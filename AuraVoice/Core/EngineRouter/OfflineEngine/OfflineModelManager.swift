@@ -11,7 +11,8 @@
 //
 
 import Foundation
-import WhisperKit
+// Bkz. WhisperKitEngine.swift — paket Sendable benimsemedi.
+@preconcurrency import WhisperKit
 
 public actor OfflineModelManager {
 

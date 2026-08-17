@@ -10,7 +10,12 @@
 //
 
 import Foundation
-import WhisperKit
+// WhisperKit henüz strict concurrency benimsemedi: `WhisperKit` sınıfı Sendable
+// değil, dolayısıyla aktörde tutulan örneği nonisolated bir async metoda
+// göndermek hata veriyor. `@preconcurrency`, bu modülden gelen Sendable
+// kaynaklı hataları uyarıya indirir. Erişim zaten aktörle serileştirildiği için
+// gerçek bir yarış riski yok — aynı anda tek transkripsiyon çalışır.
+@preconcurrency import WhisperKit
 
 public actor WhisperKitEngine: SpeechTranscriber {
 
