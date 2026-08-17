@@ -22,7 +22,7 @@ public final class ProcessingRouter: Sendable {
     private let quotaManager: QuotaManager
 
     public init(
-        offlineEngine: any ProcessingEngineProtocol = PlaceholderOfflineEngine(),
+        offlineEngine: any ProcessingEngineProtocol = OfflineProcessingEngine(),
         onlineEngine: any ProcessingEngineProtocol = PlaceholderOnlineEngine(),
         quotaManager: QuotaManager = .shared
     ) {
@@ -57,38 +57,15 @@ public final class ProcessingRouter: Sendable {
             summaryMarkdown: raw.summaryMarkdown,
             detectedLanguage: raw.detectedLanguage,
             usedMinutes: request.durationSeconds / 60.0,
-            processingTimeSeconds: elapsed
+            processingTimeSeconds: elapsed,
+            segments: raw.segments
         )
     }
 }
 
-// MARK: - Geçici Motorlar
-// WhisperKitEngine / LocalLLMEngine / CloudASRClient / CloudLLMClient devreye
-// girene kadar arayüzün uçtan uca çalışmasını sağlayan yer tutucular.
-
-public struct PlaceholderOfflineEngine: ProcessingEngineProtocol {
-    public init() {}
-
-    public func process(request: ProcessingRequest) async throws -> ProcessingResult {
-        try await Task.sleep(for: .seconds(1.2))
-        return ProcessingResult(
-            rawTranscript: "[Yerel Transkript] WhisperKit (Core ML / ANE) çıkarımı bu noktada çalışacak.",
-            summaryMarkdown: """
-            ### \(request.summaryTemplate.rawValue)
-            _Offline · Zero-Cloud · \(AuraFormatSeconds.minutes(request.durationSeconds))_
-
-            - Karar 1
-            - Karar 2
-
-            **Aksiyonlar**
-            - [ ] Görev 1
-            """,
-            detectedLanguage: "tr",
-            usedMinutes: request.durationSeconds / 60.0,
-            processingTimeSeconds: 0
-        )
-    }
-}
+// MARK: - Geçici Motor
+// Offline taraf artık gerçek (OfflineProcessingEngine). Online taraf
+// CloudASRClient + CloudLLMClient devreye girene kadar yer tutucu.
 
 public struct PlaceholderOnlineEngine: ProcessingEngineProtocol {
     public init() {}

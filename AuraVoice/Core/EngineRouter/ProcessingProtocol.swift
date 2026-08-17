@@ -95,19 +95,23 @@ public struct ProcessingResult: Sendable {
     public let detectedLanguage: String
     public let usedMinutes: Double
     public let processingTimeSeconds: Double
+    /// Zaman damgalı transkript parçaları. Motor segment üretmiyorsa boştur.
+    public let segments: [TranscriptSegment]
 
     public init(
         rawTranscript: String,
         summaryMarkdown: String,
         detectedLanguage: String,
         usedMinutes: Double,
-        processingTimeSeconds: Double
+        processingTimeSeconds: Double,
+        segments: [TranscriptSegment] = []
     ) {
         self.rawTranscript = rawTranscript
         self.summaryMarkdown = summaryMarkdown
         self.detectedLanguage = detectedLanguage
         self.usedMinutes = usedMinutes
         self.processingTimeSeconds = processingTimeSeconds
+        self.segments = segments
     }
 }
 

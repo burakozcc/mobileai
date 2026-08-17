@@ -83,8 +83,8 @@ public final class DashboardViewModel {
 
     public var accentColorMode: ProcessingMode { mode }
 
-    /// Offline mod için cihaz içi modeller hazır mı?
-    public private(set) var isOfflineModelReady: Bool = OfflineAssetChecker.isReady()
+    /// Offline mod için cihaz içi ASR modeli indirilmiş mi?
+    public private(set) var isOfflineModelReady: Bool = OfflineModelManager.isOfflineReady()
 
     public var nextMeeting: MeetingCandidate? { upcomingMeetings.first }
 
@@ -150,7 +150,7 @@ public final class DashboardViewModel {
         defer { isSyncing = false }
 
         remainingSeconds = quotaManager.getRemainingSeconds()
-        isOfflineModelReady = OfflineAssetChecker.isReady()
+        isOfflineModelReady = OfflineModelManager.isOfflineReady()
 
         do {
             notes = try await repository.all()
@@ -247,12 +247,16 @@ public final class DashboardViewModel {
 
     // MARK: Sonuçlar
 
-    /// RecordingView işlemi tamamlayıp notu kaydettikten sonra çağrılır.
-    public func recordingFinished(with note: NoteSummary?) async {
+    /// RecordingView işlemi tamamladıktan sonra çağrılır.
+    public func recordingFinished(with outcome: RecordingOutcome?) async {
         recordingIntent = nil
-        if let note {
+        if let outcome {
             do {
-                notes = try await repository.insert(note)
+                notes = try await repository.insert(outcome.note)
+                // Zaman damgalı parçalar ayrı tabloda; not eklendikten sonra yazılır.
+                if !outcome.segments.isEmpty {
+                    try await repository.replaceSegments(outcome.segments, forNote: outcome.note.id)
+                }
                 minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
             } catch {
                 // Kota zaten düşüldü; notu kaybettiğimizi kullanıcıdan gizlemeyelim.
@@ -309,27 +313,6 @@ public final class DashboardViewModel {
     }
 }
 
-// MARK: - Offline Varlık Kontrolü
-
-/// Cihaz içi modellerin (WhisperKit + yerel LLM) indirilip indirilmediğini
-/// kontrol eder. Model indirme akışı `OfflineModelDownloader` ile eklenecek;
-/// burada yalnızca dosya varlığı sorgulanır.
-public enum OfflineAssetChecker {
-
-    public static var modelsDirectory: URL {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Models", isDirectory: true)
-    }
-
-    public static func isReady() -> Bool {
-        #if targetEnvironment(simulator)
-        // Simülatörde ANE yok; arayüzü test edebilmek için hazır kabul edilir.
-        return true
-        #else
-        let whisper = modelsDirectory.appendingPathComponent("whisperkit", isDirectory: true)
-        let llm = modelsDirectory.appendingPathComponent("llm", isDirectory: true)
-        let fm = FileManager.default
-        return fm.fileExists(atPath: whisper.path) && fm.fileExists(atPath: llm.path)
-        #endif
-    }
-}
+// Offline hazırlık kontrolü artık `OfflineModelManager` üzerinden yapılıyor
+// (kurulum kaydı + klasör doğrulaması). Eski `OfflineAssetChecker` yer tutucusu
+// kaldırıldı.

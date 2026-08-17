@@ -9,14 +9,25 @@
 import SwiftUI
 import AVFoundation
 
+/// Kayıt ekranının sonucu: not + zaman damgalı transkript parçaları.
+public struct RecordingOutcome: Sendable {
+    public let note: NoteSummary
+    public let segments: [TranscriptSegment]
+
+    public init(note: NoteSummary, segments: [TranscriptSegment]) {
+        self.note = note
+        self.segments = segments
+    }
+}
+
 public struct RecordingView: View {
 
     // MARK: Girdi
 
     private let intent: RecordingIntent
-    private let onFinish: (NoteSummary?) -> Void
+    private let onFinish: (RecordingOutcome?) -> Void
 
-    public init(intent: RecordingIntent, onFinish: @escaping (NoteSummary?) -> Void) {
+    public init(intent: RecordingIntent, onFinish: @escaping (RecordingOutcome?) -> Void) {
         self.intent = intent
         self.onFinish = onFinish
         _template = State(initialValue: intent.template)
@@ -400,7 +411,7 @@ public struct RecordingView: View {
                 sourceTrigger: intent.source
             )
 
-            onFinish(note)
+            onFinish(RecordingOutcome(note: note, segments: output.segments))
             dismiss()
         } catch {
             phase = .failed(error.localizedDescription)

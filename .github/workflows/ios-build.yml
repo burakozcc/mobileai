@@ -14,7 +14,8 @@ jobs:
   build:
     name: Build & Test (iOS Simulator)
     runs-on: macos-15
-    timeout-minutes: 30
+    # WhisperKit (Core ML) paketinin çözümlenip derlenmesi süreyi uzatıyor.
+    timeout-minutes: 50
 
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +61,8 @@ jobs:
             -scheme AuraVoice \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -resultBundlePath build-results.xcresult \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_ENTITLEMENTS=""
 
@@ -70,6 +73,8 @@ jobs:
             -scheme AuraVoice \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -resultBundlePath test-results.xcresult \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_ENTITLEMENTS=""
 
