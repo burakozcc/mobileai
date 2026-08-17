@@ -17,6 +17,17 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         NotificationManager.shared.bootstrap()
         CallObserverService.shared.start()
+
+        Task.detached(priority: .utility) {
+            // JSON tabanlı geçici depodan SwiftData'ya bir kereye mahsus taşıma.
+            let migrated = (try? await DatabaseManager.shared.migrateLegacyNotesIfNeeded()) ?? 0
+            if migrated > 0 {
+                print("[AuraVoice] \(migrated) eski not SwiftData'ya taşındı.")
+            }
+            // Notu silinmiş ama diskte kalmış ses dosyalarını temizle.
+            _ = try? await DatabaseManager.shared.pruneOrphanedRecordings()
+        }
+
         return true
     }
 }

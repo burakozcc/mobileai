@@ -1,0 +1,203 @@
+//
+//  DatabaseManager.swift
+//  AuraVoice
+//
+//  SwiftData kalıcılık katmanı. `@ModelActor` sayesinde tüm veritabanı işleri
+//  tek bir aktör üzerinde seri çalışır; `ModelContext` hiçbir zaman aktör
+//  dışına sızmaz ve dışarıya yalnızca Sendable DTO'lar döner.
+//
+
+import Foundation
+import SwiftData
+
+// MARK: - Repository Sözleşmesi
+
+/// Görünüm modelleri bu protokole bağlanır; böylece testte SwiftData yerine
+/// bellek içi bir sahte (`NoteStore`) takılabilir.
+public protocol NoteRepository: Sendable {
+    func all() async throws -> [NoteSummary]
+    @discardableResult func insert(_ note: NoteSummary) async throws -> [NoteSummary]
+    @discardableResult func delete(id: UUID) async throws -> [NoteSummary]
+    func minutesUsedThisMonth() async throws -> Double
+    func segments(forNote noteID: UUID) async throws -> [TranscriptSegment]
+    func replaceSegments(_ segments: [TranscriptSegment], forNote noteID: UUID) async throws
+}
+
+// MARK: - Konteyner
+
+public enum AuraModelContainer {
+
+    public static let schema = Schema([
+        NoteEntity.self,
+        TranscriptSegmentEntity.self
+    ])
+
+    /// Uygulama genelinde tek konteyner. Disk açılamazsa (bozuk store, dolu
+    /// disk) uygulamayı çökertmek yerine bellek içi moda düşeriz: kullanıcı
+    /// kaydını yine yapabilir, yalnızca kalıcılık kaybolur.
+    public static let shared: ModelContainer = {
+        let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [diskConfig])
+        } catch {
+            print("[AuraVoice] Kalıcı store açılamadı, bellek içi moda düşülüyor: \(error)")
+            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            // Bellek içi konteyner da açılamıyorsa kurtarılacak bir durum yok.
+            return try! ModelContainer(for: schema, configurations: [memoryConfig])
+        }
+    }()
+
+    /// Testler ve önizlemeler için izole, diske dokunmayan konteyner.
+    public static func inMemory() throws -> ModelContainer {
+        try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]
+        )
+    }
+}
+
+// MARK: - Yönetici
+
+@ModelActor
+public actor DatabaseManager: NoteRepository {
+
+    public static let shared = DatabaseManager(modelContainer: AuraModelContainer.shared)
+
+    // MARK: Okuma
+
+    public func all() throws -> [NoteSummary] {
+        var descriptor = FetchDescriptor<NoteEntity>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        // Dashboard yalnızca son kayıtları gösteriyor; tüm geçmişi belleğe
+        // çekmenin anlamı yok.
+        descriptor.fetchLimit = 500
+        return try modelContext.fetch(descriptor).map(\.summary)
+    }
+
+    public func note(id: UUID) throws -> NoteSummary? {
+        try fetchEntity(id: id)?.summary
+    }
+
+    public func minutesUsedThisMonth() throws -> Double {
+        let monthStart = Calendar.current.dateInterval(of: .month, for: Date())?.start ?? .distantPast
+        let descriptor = FetchDescriptor<NoteEntity>(
+            predicate: #Predicate { $0.createdAt >= monthStart }
+        )
+        let total = try modelContext.fetch(descriptor).reduce(0) { $0 + $1.durationSeconds }
+        return total / 60.0
+    }
+
+    public func segments(forNote noteID: UUID) throws -> [TranscriptSegment] {
+        guard let entity = try fetchEntity(id: noteID) else { return [] }
+        return entity.segments
+            .sorted { $0.startSeconds < $1.startSeconds }
+            .map(\.segment)
+    }
+
+    // MARK: Yazma
+
+    @discardableResult
+    public func insert(_ note: NoteSummary) throws -> [NoteSummary] {
+        if let existing = try fetchEntity(id: note.id) {
+            existing.apply(note)
+        } else {
+            modelContext.insert(NoteEntity(summary: note))
+        }
+        try modelContext.save()
+        return try all()
+    }
+
+    @discardableResult
+    public func delete(id: UUID) throws -> [NoteSummary] {
+        if let entity = try fetchEntity(id: id) {
+            // Ses dosyası da gitmeli; aksi halde sandbox sessizce şişer.
+            if let fileName = entity.audioFileName {
+                try? FileManager.default.removeItem(at: Self.audioURL(for: fileName))
+            }
+            modelContext.delete(entity) // segments cascade ile silinir
+            try modelContext.save()
+        }
+        return try all()
+    }
+
+    public func replaceSegments(_ segments: [TranscriptSegment], forNote noteID: UUID) throws {
+        guard let entity = try fetchEntity(id: noteID) else { return }
+        for old in entity.segments {
+            modelContext.delete(old)
+        }
+        entity.segments = segments.map { TranscriptSegmentEntity(segment: $0, note: entity) }
+        try modelContext.save()
+    }
+
+    // MARK: Bakım
+
+    /// Geçici JSON deposundaki (`NoteStore`) kayıtları SwiftData'ya taşır ve
+    /// dosyayı siler. Birden çok kez çağrılabilir; taşınacak kayıt yoksa
+    /// hiçbir şey yapmaz.
+    @discardableResult
+    public func migrateLegacyNotesIfNeeded() throws -> Int {
+        let legacyURL = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("aura_notes.json")
+
+        guard FileManager.default.fileExists(atPath: legacyURL.path),
+              let data = try? Data(contentsOf: legacyURL)
+        else { return 0 }
+
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let legacyNotes = (try? decoder.decode([NoteSummary].self, from: data)) ?? []
+
+        for note in legacyNotes {
+            // Aynı notu iki kez eklememek için kimlik kontrolü.
+            if try fetchEntity(id: note.id) == nil {
+                modelContext.insert(NoteEntity(summary: note))
+            }
+        }
+        if !legacyNotes.isEmpty {
+            try modelContext.save()
+        }
+        try? FileManager.default.removeItem(at: legacyURL)
+        return legacyNotes.count
+    }
+
+    /// Veritabanında karşılığı kalmamış ses dosyalarını temizler.
+    @discardableResult
+    public func pruneOrphanedRecordings() throws -> Int {
+        let directory = Self.recordingsDirectory
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ) else { return 0 }
+
+        let referenced = Set(
+            try modelContext.fetch(FetchDescriptor<NoteEntity>()).compactMap(\.audioFileName)
+        )
+
+        var removed = 0
+        for file in files where !referenced.contains(file.lastPathComponent) {
+            try? FileManager.default.removeItem(at: file)
+            removed += 1
+        }
+        return removed
+    }
+
+    // MARK: Yardımcılar
+
+    /// Parametre adı bilerek `id` değil: `#Predicate` içinde `$0.id` ile
+    /// karışmasın ve makro doğru sembolü yakalasın.
+    private func fetchEntity(id target: UUID) throws -> NoteEntity? {
+        var descriptor = FetchDescriptor<NoteEntity>(predicate: #Predicate { $0.id == target })
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
+    }
+
+    public static var recordingsDirectory: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Recordings", isDirectory: true)
+    }
+
+    public static func audioURL(for fileName: String) -> URL {
+        recordingsDirectory.appendingPathComponent(fileName)
+    }
+}

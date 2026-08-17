@@ -16,8 +16,11 @@ ve **takvim entegre bildirim yöneticisi** tam çalışır halde yazıldı.
 | Tetikleyici | `Core/Triggers/CallObserverService.swift` | Tam |
 | Kota | `Core/Quota/QuotaManager.swift` | Tam (Sendable düzeltmesi) |
 | Router | `Core/EngineRouter/ProcessingRouter.swift` | Arayüz tam, motorlar yer tutucu |
-| Depolama | `Core/Storage/NoteStore.swift` | Geçici (SwiftData'ya taşınacak) |
+| Depolama | `Core/Storage/DatabaseManager.swift` + `Entities/*` | Tam (SwiftData, `@ModelActor`) |
+| Depolama | `Core/Storage/NoteSummary.swift` | DTO + bellek içi test sahtesi |
 | Ekran | `Features/Dashboard/*`, `Features/Recording/*`, `Features/NoteDetail/*` | Tam |
+| Test | `AuraVoiceTests/*` | 5 suite, Swift Testing |
+| CI | `.github/workflows/ios-build.yml` | macOS runner'da xcodebuild + test |
 
 ## Projeyi açma
 
@@ -68,9 +71,8 @@ Mac erişimi olmadan da gerçek `xcodebuild` doğrulaması alınabilir.
 ## Bilinen sonraki adımlar
 
 1. `OfflineEngine/WhisperKitEngine.swift` + `LocalLLMEngine.swift` (WhisperKit / ExecuTorch)
+   ve gerçek model indirici (`OfflineAssetChecker` şu an yalnızca dosya varlığına bakıyor)
 2. `OnlineEngine/CloudASRClient.swift` + `CloudLLMClient.swift`
-3. `Storage/DatabaseManager.swift` + SwiftData `NoteEntity` / `TranscriptSegmentEntity`
-   (`NoteStore` bu noktada emekli edilecek)
-4. `Quota/SecureTicketStore.swift` — Ed25519 imzalı dakika bileti doğrulaması
-5. `Paywall/SubscriptionPaywallView.swift` — RevenueCat
-6. Widget / App Intents (Kilit Ekranı, Eylem Butonu, Siri)
+3. `Quota/SecureTicketStore.swift` — Ed25519 imzalı dakika bileti doğrulaması
+4. `Paywall/SubscriptionPaywallView.swift` — RevenueCat
+5. Widget / App Intents (Kilit Ekranı, Eylem Butonu, Siri)

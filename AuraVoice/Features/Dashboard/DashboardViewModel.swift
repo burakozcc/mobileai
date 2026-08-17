@@ -93,7 +93,7 @@ public final class DashboardViewModel {
     @ObservationIgnored private let quotaManager: QuotaManager
     @ObservationIgnored private let calendarService: CalendarTriggerService
     @ObservationIgnored private let notificationManager: NotificationManager
-    @ObservationIgnored private let noteStore: NoteStore
+    @ObservationIgnored private let repository: any NoteRepository
 
     // `deinit` nonisolated olduğu için bu iki alan gözlemleme dışında tutulur;
     // aksi halde makro üreteceği @MainActor getter'a deinit'ten erişilemez.
@@ -109,12 +109,12 @@ public final class DashboardViewModel {
         quotaManager: QuotaManager = .shared,
         calendarService: CalendarTriggerService = .shared,
         notificationManager: NotificationManager = .shared,
-        noteStore: NoteStore = .shared
+        repository: any NoteRepository = DatabaseManager.shared
     ) {
         self.quotaManager = quotaManager
         self.calendarService = calendarService
         self.notificationManager = notificationManager
-        self.noteStore = noteStore
+        self.repository = repository
 
         if let raw = UserDefaults.standard.string(forKey: Keys.mode),
            let saved = ProcessingMode(rawValue: raw) {
@@ -150,9 +150,14 @@ public final class DashboardViewModel {
         defer { isSyncing = false }
 
         remainingSeconds = quotaManager.getRemainingSeconds()
-        notes = await noteStore.all()
-        minutesUsedThisMonth = await noteStore.minutesUsedThisMonth()
         isOfflineModelReady = OfflineAssetChecker.isReady()
+
+        do {
+            notes = try await repository.all()
+            minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
+        } catch {
+            errorMessage = "Kayıtlar okunamadı: \(error.localizedDescription)"
+        }
 
         calendarStatus = calendarService.authorizationStatus
         notificationStatus = await notificationManager.authorizationStatus()
@@ -246,15 +251,24 @@ public final class DashboardViewModel {
     public func recordingFinished(with note: NoteSummary?) async {
         recordingIntent = nil
         if let note {
-            notes = await noteStore.insert(note)
-            minutesUsedThisMonth = await noteStore.minutesUsedThisMonth()
+            do {
+                notes = try await repository.insert(note)
+                minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
+            } catch {
+                // Kota zaten düşüldü; notu kaybettiğimizi kullanıcıdan gizlemeyelim.
+                errorMessage = "Not kaydedilemedi: \(error.localizedDescription)"
+            }
         }
         remainingSeconds = quotaManager.getRemainingSeconds()
     }
 
     public func delete(_ note: NoteSummary) async {
-        notes = await noteStore.delete(id: note.id)
-        minutesUsedThisMonth = await noteStore.minutesUsedThisMonth()
+        do {
+            notes = try await repository.delete(id: note.id)
+            minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
+        } catch {
+            errorMessage = "Not silinemedi: \(error.localizedDescription)"
+        }
     }
 
     // MARK: Akışlar

@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct AuraVoiceApp: App {
@@ -14,5 +15,8 @@ struct AuraVoiceApp: App {
         WindowGroup {
             DashboardView()
         }
+        // Yazma işleri `DatabaseManager` aktörü üzerinden gidiyor; bu konteyner
+        // görünümlerin ileride `@Query` kullanabilmesi için bağlanıyor.
+        .modelContainer(AuraModelContainer.shared)
     }
 }

@@ -1,11 +1,13 @@
 //
-//  NoteStore.swift
+//  NoteSummary.swift
 //  AuraVoice
 //
-//  GEÇİCİ depolama katmanı. SwiftData tabanlı `DatabaseManager` + `NoteEntity`
-//  devreye girene kadar Dashboard ve Recording akışlarının uçtan uca çalışmasını
-//  sağlar. API yüzeyi (`all/insert/delete`) bilerek repository biçiminde tutuldu;
-//  SwiftData'ya geçişte yalnızca bu dosyanın gövdesi değişir.
+//  Depolama katmanının Sendable dış yüzü. SwiftData model sınıfları
+//  (`NoteEntity`) aktör sınırını geçemez; görünümler ve view model'ler daima
+//  bu DTO ile çalışır.
+//
+//  Ayrıca testler ve SwiftUI önizlemeleri için diske dokunmayan bir
+//  `InMemoryNoteRepository` içerir.
 //
 
 import Foundation
@@ -23,8 +25,8 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
     public var detectedLanguage: String
     /// Kart üzerindeki minik dalga formu için örneklenmiş seviyeler.
     public var waveformPreview: [Float]
-    /// Documents/Recordings altındaki dosya adı (tam yol saklanmaz — sandbox yolu
-    /// uygulama güncellemelerinde değişir).
+    /// Documents/Recordings altındaki dosya adı (tam yol saklanmaz — sandbox
+    /// yolu uygulama güncellemelerinde değişir).
     public var audioFileName: String?
     public var sourceTrigger: RecordingTriggerSource
 
@@ -69,76 +71,50 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
-public actor NoteStore {
+// MARK: - Bellek İçi Depo (test / önizleme)
 
-    public static let shared = NoteStore()
+/// Diske dokunmayan `NoteRepository` uygulaması. Üretimde `DatabaseManager`
+/// kullanılır; bu tip yalnızca birim testlerde ve SwiftUI önizlemelerinde
+/// gerçek veritabanının yerine geçer.
+public actor InMemoryNoteRepository: NoteRepository {
 
-    private var cache: [NoteSummary]?
-    private let fileURL: URL
+    private var notes: [NoteSummary]
+    private var segmentsByNote: [UUID: [TranscriptSegment]] = [:]
 
-    public init(fileName: String = "aura_notes.json") {
-        let directory = FileManager.default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        if !FileManager.default.fileExists(atPath: directory.path) {
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        }
-        self.fileURL = directory.appendingPathComponent(fileName)
+    public init(seed: [NoteSummary] = []) {
+        self.notes = seed.sorted { $0.createdAt > $1.createdAt }
     }
 
-    public func all() -> [NoteSummary] {
-        if let cache { return cache }
-        let loaded = load()
-        cache = loaded
-        return loaded
-    }
+    public func all() -> [NoteSummary] { notes }
 
     @discardableResult
     public func insert(_ note: NoteSummary) -> [NoteSummary] {
-        var notes = all()
         notes.removeAll { $0.id == note.id }
         notes.insert(note, at: 0)
-        persist(notes)
+        notes.sort { $0.createdAt > $1.createdAt }
         return notes
     }
 
     @discardableResult
     public func delete(id: UUID) -> [NoteSummary] {
-        var notes = all()
-        if let removed = notes.first(where: { $0.id == id }), let fileName = removed.audioFileName {
-            let audioURL = FileManager.default
-                .urls(for: .documentDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("Recordings", isDirectory: true)
-                .appendingPathComponent(fileName)
-            try? FileManager.default.removeItem(at: audioURL)
-        }
         notes.removeAll { $0.id == id }
-        persist(notes)
+        segmentsByNote[id] = nil
         return notes
     }
 
-    /// Bu ay kullanılan toplam dakika (Dashboard istatistiği).
     public func minutesUsedThisMonth() -> Double {
         let calendar = Calendar.current
         let now = Date()
-        return all()
+        return notes
             .filter { calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) }
             .reduce(0) { $0 + $1.durationSeconds } / 60.0
     }
 
-    // MARK: Disk
-
-    private func load() -> [NoteSummary] {
-        guard let data = try? Data(contentsOf: fileURL) else { return [] }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([NoteSummary].self, from: data)) ?? []
+    public func segments(forNote noteID: UUID) -> [TranscriptSegment] {
+        segmentsByNote[noteID] ?? []
     }
 
-    private func persist(_ notes: [NoteSummary]) {
-        cache = notes
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(notes) else { return }
-        try? data.write(to: fileURL, options: [.atomic, .completeFileProtectionUnlessOpen])
+    public func replaceSegments(_ segments: [TranscriptSegment], forNote noteID: UUID) {
+        segmentsByNote[noteID] = segments.sorted { $0.startSeconds < $1.startSeconds }
     }
 }
