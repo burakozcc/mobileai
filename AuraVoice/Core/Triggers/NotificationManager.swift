@@ -143,7 +143,10 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
     @discardableResult
     public func requestAuthorization() async -> Bool {
         do {
-            return try await center.requestAuthorization(options: [.alert, .sound, .badge, .timeSensitive])
+            // `.timeSensitive` iOS 15'te kullanımdan kaldırıldı: artık izin
+            // isteğiyle değil, entitlement ile veriliyor
+            // (Support/AuraVoice.entitlements içinde tanımlı).
+            return try await center.requestAuthorization(options: [.alert, .sound, .badge])
         } catch {
             print("[AuraVoice] Bildirim izni hatası: \(error.localizedDescription)")
             return false

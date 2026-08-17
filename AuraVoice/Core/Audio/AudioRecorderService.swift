@@ -38,8 +38,11 @@ public final class AudioRecorderService: NSObject, ObservableObject {
 
     // MARK: - Yapılandırma
 
-    public static let targetSampleRate: Double = 16_000
-    public static let waveformResolution = 56
+    // `nonisolated`: bu sabitlere render thread'inde çalışan `RecordingSink`
+    // de erişiyor. @MainActor sınıfın static üyeleri varsayılan olarak
+    // MainActor'a bağlıdır ve aktör dışından okunamaz.
+    public nonisolated static let targetSampleRate: Double = 16_000
+    public nonisolated static let waveformResolution = 56
 
     private let levelRefreshInterval: Duration = .milliseconds(40)
 
@@ -195,13 +198,19 @@ public final class AudioRecorderService: NSObject, ObservableObject {
 
     private func configureSession() throws {
         let session = AVAudioSession.sharedInstance()
+        // `allowBluetooth` yeni SDK'da `allowBluetoothHFP` olarak yeniden
+        // adlandırıldı. Dağıtım hedefi iOS 17 olduğu için her iki isim de
+        // desteklenecek şekilde ayrılıyor.
+        var options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothA2DP]
+        if #available(iOS 26.0, *) {
+            options.insert(.allowBluetoothHFP)
+        } else {
+            options.insert(.allowBluetooth)
+        }
+
         // `.voiceChat` modu donanımsal yankı bastırmayı (AEC) devreye alır —
         // hoparlörden gelen karşı taraf sesi kaydı bozmaz.
-        try session.setCategory(
-            .playAndRecord,
-            mode: .voiceChat,
-            options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP]
-        )
+        try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
         try? session.setPreferredSampleRate(Self.targetSampleRate)
         try? session.setPreferredIOBufferDuration(0.02)
         try session.setActive(true, options: [])
@@ -355,16 +364,18 @@ private final class RecordingSink: @unchecked Sendable {
             return nil
         }
 
-        var consumed = false
+        // `AVAudioConverter`ın girdi bloğu `@Sendable`: `var` yakalamak ve
+        // Sendable olmayan `AVAudioPCMBuffer` taşımak Swift 6'da uyarı üretir.
+        // Tek seferlik tüketimi kilitli bir kutuya devrediyoruz.
+        let input = ConverterInput(buffer: buffer)
         var conversionError: NSError?
         let status = converter.convert(to: output, error: &conversionError) { _, inputStatus in
-            if consumed {
+            guard let next = input.take() else {
                 inputStatus.pointee = .noDataNow
                 return nil
             }
-            consumed = true
             inputStatus.pointee = .haveData
-            return buffer
+            return next
         }
 
         switch status {
@@ -425,5 +436,25 @@ private final class RecordingSink: @unchecked Sendable {
     /// bu kutu olduğu için kuyruğa taşınması güvenlidir.
     private struct BufferBox: @unchecked Sendable {
         let buffer: AVAudioPCMBuffer
+    }
+
+    /// Dönüştürücünün girdi bloğuna tek seferlik buffer sunar. Blok `@Sendable`
+    /// olduğu için doğrudan `var` yakalamak yerine bu kutu kullanılır.
+    private final class ConverterInput: @unchecked Sendable {
+        private let lock = NSLock()
+        private var buffer: AVAudioPCMBuffer?
+
+        init(buffer: AVAudioPCMBuffer) {
+            self.buffer = buffer
+        }
+
+        /// İlk çağrıda buffer'ı verir, sonrakilerde nil — dönüştürücü aynı
+        /// veriyi iki kez işlemesin.
+        func take() -> AVAudioPCMBuffer? {
+            lock.lock()
+            defer { lock.unlock() }
+            defer { buffer = nil }
+            return buffer
+        }
     }
 }
