@@ -131,6 +131,12 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
     case offlineModelMissing
     case networkUnavailable
     case engineFailure(String)
+    case cloudCredentialsMissing(provider: String)
+    case cloudAuthenticationFailed(provider: String)
+    case cloudRateLimited(provider: String)
+    /// Sağlayıcının güvenlik sınıflandırıcısı isteği reddetti (HTTP 200 + refusal).
+    case cloudRefused(category: String)
+    case audioTooLargeForCloud(megabytes: Double, limitMegabytes: Double)
 
     public var errorDescription: String? {
         switch self {
@@ -152,6 +158,19 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
             return "İnternet bağlantısı yok. Offline moda geçebilirsin."
         case let .engineFailure(detail):
             return "İşleme hatası: \(detail)"
+        case let .cloudCredentialsMissing(provider):
+            return "\(provider) erişimi yapılandırılmamış. Ayarlar'dan oturum aç veya offline moda geç."
+        case let .cloudAuthenticationFailed(provider):
+            return "\(provider) kimlik doğrulaması reddetti. Oturumun düşmüş olabilir."
+        case let .cloudRateLimited(provider):
+            return "\(provider) hız sınırına takıldı. Birazdan tekrar dene ya da offline modu kullan."
+        case let .cloudRefused(category):
+            return "Sağlayıcı bu içeriği işlemeyi reddetti (\(category)). Offline mod bu kısıtlamaya tabi değil."
+        case let .audioTooLargeForCloud(megabytes, limit):
+            return String(
+                format: "Kayıt bulut için çok büyük (%.0f MB / %.0f MB sınırı). Offline mod bu kaydı işleyebilir.",
+                megabytes, limit
+            )
         }
     }
 }

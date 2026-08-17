@@ -23,7 +23,7 @@ public final class ProcessingRouter: Sendable {
 
     public init(
         offlineEngine: any ProcessingEngineProtocol = OfflineProcessingEngine(),
-        onlineEngine: any ProcessingEngineProtocol = PlaceholderOnlineEngine(),
+        onlineEngine: any ProcessingEngineProtocol = OnlineProcessingEngine.makeDefault(),
         quotaManager: QuotaManager = .shared
     ) {
         self.offlineEngine = offlineEngine
@@ -63,30 +63,5 @@ public final class ProcessingRouter: Sendable {
     }
 }
 
-// MARK: - Geçici Motor
-// Offline taraf artık gerçek (OfflineProcessingEngine). Online taraf
-// CloudASRClient + CloudLLMClient devreye girene kadar yer tutucu.
-
-public struct PlaceholderOnlineEngine: ProcessingEngineProtocol {
-    public init() {}
-
-    public func process(request: ProcessingRequest) async throws -> ProcessingResult {
-        try await Task.sleep(for: .seconds(0.8))
-        return ProcessingResult(
-            rawTranscript: "[Bulut Transkript] Groq whisper-large-v3 çıktısı bu noktada gelecek.",
-            summaryMarkdown: """
-            ### \(request.summaryTemplate.rawValue)
-            _Online · Bulut · \(AuraFormatSeconds.minutes(request.durationSeconds))_
-
-            - Stratejik nokta 1
-            - Kritik çıkarım 2
-
-            **Aksiyonlar**
-            - [ ] Görev 1
-            """,
-            detectedLanguage: "tr",
-            usedMinutes: request.durationSeconds / 60.0,
-            processingTimeSeconds: 0
-        )
-    }
-}
+// Her iki motor da artık gerçek: OfflineProcessingEngine (WhisperKit + cihaz
+// içi özetleme) ve OnlineProcessingEngine (Groq + Anthropic).
