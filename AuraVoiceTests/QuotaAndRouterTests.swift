@@ -2,51 +2,105 @@
 //  QuotaAndRouterTests.swift
 //  AuraVoiceTests
 //
-//  Bu testler gerçek Keychain'e dokunuyor (simülatörde izole). Bakiyeyi
-//  değiştiren testler değişikliği kendileri geri alıyor, bu yüzden suite
-//  seri çalıştırılıyor.
+//  Kota testleri artık gerçek Keychain'e dokunmuyor: `InMemoryQuotaStorage`
+//  enjekte ediliyor. Eski sürüm CI'da "available: 0.0" ile düşüyordu çünkü
+//  imzasız simülatör derlemesinde Keychain yazma reddediliyor — ve o hata
+//  sessizce yutuluyordu. Bu düzeltme hem testleri deterministik yapıyor hem de
+//  üretimdeki sessiz veri kaybını ortaya çıkardı.
 //
 
 import Testing
 import Foundation
 @testable import AuraVoice
 
-@Suite("Kota yöneticisi", .serialized)
+@Suite("Kota yöneticisi")
 struct QuotaManagerTests {
+
+    private func makeManager(seconds: Double) -> QuotaManager {
+        QuotaManager(storage: InMemoryQuotaStorage(initialSeconds: seconds, bootstrapped: true))
+    }
+
+    @Test("İlk açılışta 30 ücretsiz dakika yüklenir")
+    func bootstrapGrantsFreeTier() {
+        let manager = QuotaManager(storage: InMemoryQuotaStorage())
+        #expect(manager.getRemainingSeconds() == QuotaManager.freeTierSeconds)
+        #expect(abs(manager.getRemainingMinutes() - 30) < 0.001)
+    }
+
+    @Test("Hediye yalnızca bir kez verilir")
+    func bootstrapIsOneShot() throws {
+        let storage = InMemoryQuotaStorage()
+        let manager = QuotaManager(storage: storage)
+
+        try manager.deductUsage(durationSeconds: QuotaManager.freeTierSeconds)
+        #expect(manager.getRemainingSeconds() == 0)
+
+        // Bakiye bitti diye hediye tekrar yüklenmemeli.
+        #expect(manager.getRemainingSeconds() == 0)
+    }
 
     @Test("Bakiye hiçbir zaman negatif değil")
     func balanceIsNeverNegative() {
-        #expect(QuotaManager.shared.getRemainingSeconds() >= 0)
-        #expect(QuotaManager.shared.getRemainingMinutes() >= 0)
+        let manager = makeManager(seconds: 0)
+        #expect(manager.getRemainingSeconds() >= 0)
+        #expect(manager.getRemainingMinutes() >= 0)
     }
 
     @Test("Bakiyeden büyük istek reddedilir")
     func rejectsOversizedRequest() {
-        #expect(!QuotaManager.shared.canProcess(durationSeconds: 1_000_000))
+        let manager = makeManager(seconds: 60)
+        #expect(!manager.canProcess(durationSeconds: 61))
+        #expect(manager.canProcess(durationSeconds: 60))
     }
 
     @Test("Yetersiz bakiyede insufficientQuota fırlatır")
     func deductThrowsWhenInsufficient() {
-        #expect(throws: AuraError.self) {
-            try QuotaManager.shared.deductUsage(durationSeconds: 1_000_000)
+        let manager = makeManager(seconds: 10)
+        #expect(throws: AuraError.insufficientQuota(requiredSeconds: 30, availableSeconds: 10)) {
+            try manager.deductUsage(durationSeconds: 30)
         }
     }
 
     @Test("Düşüm bakiyeyi tam olarak azaltır")
     func deductReducesBalanceExactly() throws {
-        let manager = QuotaManager.shared
-        // Testin bakiyeden bağımsız çalışması için önce küçük bir tampon ekle.
-        manager.addMinutesFromSubscription(1)
-        let before = manager.getRemainingSeconds()
-
+        let manager = makeManager(seconds: 600)
         try manager.deductUsage(durationSeconds: 30)
-        let after = manager.getRemainingSeconds()
-
-        #expect(abs((before - 30) - after) < 0.01)
-
-        // Testin yan etkisini geri al: 60 sn eklenmiş, 30 sn düşülmüştü.
-        try? manager.deductUsage(durationSeconds: 30)
+        #expect(abs(manager.getRemainingSeconds() - 570) < 0.001)
     }
+
+    @Test("Abonelik dakikası bakiyeye eklenir")
+    func subscriptionAddsMinutes() {
+        let manager = makeManager(seconds: 60)
+        manager.addMinutesFromSubscription(10)
+        #expect(abs(manager.getRemainingSeconds() - 660) < 0.001)
+    }
+
+    @Test("Plan yenilemesi bakiyeyi eşitler")
+    func resetOverwritesBalance() {
+        let manager = makeManager(seconds: 5)
+        manager.resetBalance(toMinutes: 600)
+        #expect(abs(manager.getRemainingMinutes() - 600) < 0.001)
+    }
+
+    // MARK: Depolama arızası
+
+    @Test("Depo yazamıyorsa düşüm sessizce başarılı sayılmaz")
+    func failingStorageSurfacesError() {
+        let manager = QuotaManager(storage: FailingWriteStorage(balance: 600))
+        #expect(throws: AuraError.quotaStorageUnavailable) {
+            try manager.deductUsage(durationSeconds: 30)
+        }
+    }
+}
+
+/// Okuyabilen ama yazamayan depo — Keychain'in reddettiği durumu taklit eder.
+private struct FailingWriteStorage: QuotaStorage {
+    let balance: Double
+
+    func readBalanceSeconds() -> Double? { balance }
+    func writeBalanceSeconds(_ seconds: Double) -> Bool { false }
+    func isBootstrapped() -> Bool { true }
+    func markBootstrapped() -> Bool { false }
 }
 
 // MARK: - Router
@@ -62,7 +116,7 @@ private struct StubEngine: ProcessingEngineProtocol {
     }
 }
 
-@Suite("İşleme yönlendiricisi", .serialized)
+@Suite("İşleme yönlendiricisi")
 struct ProcessingRouterTests {
 
     private var dummyRequest: ProcessingRequest {
@@ -84,59 +138,81 @@ struct ProcessingRouterTests {
         )
     }
 
+    private func makeRouter(
+        balanceSeconds: Double,
+        engineOutput: ProcessingResult?
+    ) -> (ProcessingRouter, QuotaManager) {
+        let quota = QuotaManager(
+            storage: InMemoryQuotaStorage(initialSeconds: balanceSeconds, bootstrapped: true)
+        )
+        let router = ProcessingRouter(
+            offlineEngine: StubEngine(output: engineOutput),
+            onlineEngine: StubEngine(output: engineOutput),
+            quotaManager: quota
+        )
+        return (router, quota)
+    }
+
     @Test("Motor hata verirse kota düşülmez")
     func failedEngineDoesNotConsumeQuota() async {
-        QuotaManager.shared.addMinutesFromSubscription(1)
-        let before = QuotaManager.shared.getRemainingSeconds()
+        let (router, quota) = makeRouter(balanceSeconds: 600, engineOutput: nil)
 
-        let router = ProcessingRouter(
-            offlineEngine: StubEngine(output: nil),
-            onlineEngine: StubEngine(output: nil)
-        )
-
-        await #expect(throws: AuraError.self) {
+        await #expect(throws: AuraError.engineFailure("stub başarısız")) {
             _ = try await router.execute(request: dummyRequest)
         }
 
-        #expect(abs(QuotaManager.shared.getRemainingSeconds() - before) < 0.01)
-        try? QuotaManager.shared.deductUsage(durationSeconds: 60)
+        #expect(abs(quota.getRemainingSeconds() - 600) < 0.001)
     }
 
     @Test("Başarılı işlem kotayı kayıt süresi kadar düşer")
     func successConsumesExactDuration() async throws {
-        QuotaManager.shared.addMinutesFromSubscription(1)
-        let before = QuotaManager.shared.getRemainingSeconds()
-
-        let router = ProcessingRouter(
-            offlineEngine: StubEngine(output: stubResult),
-            onlineEngine: StubEngine(output: stubResult)
-        )
+        let (router, quota) = makeRouter(balanceSeconds: 600, engineOutput: stubResult)
 
         let result = try await router.execute(request: dummyRequest)
 
-        #expect(abs(QuotaManager.shared.getRemainingSeconds() - (before - 10)) < 0.01)
+        #expect(abs(quota.getRemainingSeconds() - 590) < 0.001)
         #expect(abs(result.usedMinutes - (10.0 / 60.0)) < 0.0001)
         // Şablondaki `now - now` hatasının geri gelmediğini doğrular.
         #expect(result.processingTimeSeconds > 0)
-
-        try? QuotaManager.shared.deductUsage(durationSeconds: 50)
     }
 
     @Test("Bakiye yetersizse motor hiç çağrılmaz")
     func insufficientQuotaShortCircuits() async {
+        let (router, quota) = makeRouter(balanceSeconds: 5, engineOutput: stubResult)
+
+        await #expect(throws: AuraError.insufficientQuota(requiredSeconds: 10, availableSeconds: 5)) {
+            _ = try await router.execute(request: dummyRequest)
+        }
+
+        #expect(abs(quota.getRemainingSeconds() - 5) < 0.001)
+    }
+
+    @Test("Seçilen mod doğru motora yönlenir")
+    func routesToSelectedEngine() async throws {
+        let quota = QuotaManager(
+            storage: InMemoryQuotaStorage(initialSeconds: 600, bootstrapped: true)
+        )
+        let onlineOnly = ProcessingResult(
+            rawTranscript: "bulut",
+            summaryMarkdown: "bulut",
+            detectedLanguage: "tr",
+            usedMinutes: 0,
+            processingTimeSeconds: 0
+        )
+        let router = ProcessingRouter(
+            offlineEngine: StubEngine(output: nil),      // offline seçilirse hata verir
+            onlineEngine: StubEngine(output: onlineOnly),
+            quotaManager: quota
+        )
+
         let request = ProcessingRequest(
             audioFileURL: URL(fileURLWithPath: "/tmp/aura-test.wav"),
-            durationSeconds: 10_000_000,
+            durationSeconds: 10,
             mode: .onlineCloudFast,
             summaryTemplate: .quickNotes
         )
-        let router = ProcessingRouter(
-            offlineEngine: StubEngine(output: stubResult),
-            onlineEngine: StubEngine(output: stubResult)
-        )
 
-        await #expect(throws: AuraError.self) {
-            _ = try await router.execute(request: request)
-        }
+        let result = try await router.execute(request: request)
+        #expect(result.rawTranscript == "bulut")
     }
 }

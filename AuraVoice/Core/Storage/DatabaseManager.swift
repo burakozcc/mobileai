@@ -36,6 +36,12 @@ public enum AuraModelContainer {
     /// disk) uygulamayı çökertmek yerine bellek içi moda düşeriz: kullanıcı
     /// kaydını yine yapabilir, yalnızca kalıcılık kaybolur.
     public static let shared: ModelContainer = {
+        // Temiz kurulumda `Library/Application Support` klasörü henüz yoktur ve
+        // store oluşturma "No such file or directory" ile düşer. CI loglarında
+        // bu hatayı gördük; ilk açılışta kullanıcı da sessizce kalıcılığı
+        // kaybederdi.
+        ensureApplicationSupportExists()
+
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             return try ModelContainer(for: schema, configurations: [diskConfig])
@@ -46,6 +52,14 @@ public enum AuraModelContainer {
             return try! ModelContainer(for: schema, configurations: [memoryConfig])
         }
     }()
+
+    private static func ensureApplicationSupportExists() {
+        let fm = FileManager.default
+        guard let directory = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first,
+              !fm.fileExists(atPath: directory.path)
+        else { return }
+        try? fm.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
 
     /// Testler ve önizlemeler için izole, diske dokunmayan konteyner.
     public static func inMemory() throws -> ModelContainer {

@@ -2,37 +2,180 @@
 //  QuotaManager.swift
 //  AuraVoice
 //
-//  Keychain tabanlı dakika bakiyesi yönetimi.
+//  Dakika bakiyesi yönetimi.
 //
-//  NOT (Swift 6): Şablondaki sürüme göre iki değişiklik yapıldı:
-//   1. `@unchecked Sendable` — `static let shared` strict concurrency altında
-//      Sendable olmayan bir tipte derlenmez. Sınıfın saklanan mutable durumu yok;
-//      tüm durum Keychain'de ve Keychain API'leri thread-safe.
-//   2. Okuma sırasında yazma (free grant) ayrı bir `bootstrapIfNeeded()` çağrısına
-//      taşındı; getter'ın yan etkisi kaldırıldı.
+//  Depolama enjekte edilebilir: üretimde Keychain, testte bellek içi. Bu ayrım
+//  CI'da ortaya çıkan gerçek bir hatadan doğdu — eski sürüm `SecItemAdd`/
+//  `SecItemUpdate` dönüş kodlarını yok sayıyordu, yazma başarısız olduğunda
+//  kullanıcının bakiyesi sessizce sıfırlanıyordu.
 //
 
 import Foundation
 import Security
 
-public final class QuotaManager: @unchecked Sendable {
+// MARK: - Depolama Sözleşmesi
 
-    public static let shared = QuotaManager()
+public protocol QuotaStorage: Sendable {
+    func readBalanceSeconds() -> Double?
+    /// `false` → yazma başarısız; çağıran bunu kullanıcıya yansıtmalı.
+    @discardableResult func writeBalanceSeconds(_ seconds: Double) -> Bool
+    func isBootstrapped() -> Bool
+    @discardableResult func markBootstrapped() -> Bool
+}
 
-    private let keychainService = "com.auravoice.quota"
+// MARK: - Keychain Uygulaması
+
+public final class KeychainQuotaStorage: QuotaStorage {
+
+    private let service: String
     private let quotaKey = "remaining_seconds_balance"
     private let bootstrapKey = "free_grant_issued_v1"
+
+    public init(service: String = "com.auravoice.quota") {
+        self.service = service
+    }
+
+    public func readBalanceSeconds() -> Double? {
+        guard let data = read(key: quotaKey),
+              let text = String(data: data, encoding: .utf8),
+              let value = Double(text)
+        else { return nil }
+        return value
+    }
+
+    @discardableResult
+    public func writeBalanceSeconds(_ seconds: Double) -> Bool {
+        let rounded = (max(0, seconds) * 1000).rounded() / 1000
+        guard let data = "\(rounded)".data(using: .utf8) else { return false }
+        return write(data, key: quotaKey)
+    }
+
+    public func isBootstrapped() -> Bool {
+        read(key: bootstrapKey) != nil
+    }
+
+    @discardableResult
+    public func markBootstrapped() -> Bool {
+        write(Data([1]), key: bootstrapKey)
+    }
+
+    // MARK: Keychain temel işlemleri
+
+    private func read(key: String) -> Data? {
+        var query = baseQuery(key: key)
+        query[kSecReturnData as String] = kCFBooleanTrue
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var item: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        switch status {
+        case errSecSuccess:
+            return item as? Data
+        case errSecItemNotFound:
+            return nil
+        default:
+            print("[AuraVoice] Keychain okuma hatası (\(key)): \(Self.describe(status))")
+            return nil
+        }
+    }
+
+    @discardableResult
+    private func write(_ data: Data, key: String) -> Bool {
+        let query = baseQuery(key: key)
+        let existing = SecItemCopyMatching(query as CFDictionary, nil)
+
+        let status: OSStatus
+        if existing == errSecSuccess {
+            status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        } else {
+            var insert = query
+            insert[kSecValueData as String] = data
+            status = SecItemAdd(insert as CFDictionary, nil)
+        }
+
+        guard status == errSecSuccess else {
+            // Eskiden bu satır yoktu: hata yutulunca bakiye sessizce kayboluyordu.
+            print("[AuraVoice] Keychain yazma hatası (\(key)): \(Self.describe(status))")
+            return false
+        }
+        return true
+    }
+
+    private func baseQuery(key: String) -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            // Cihaz ilk açılıştan sonra kilitliyken de okunabilsin (arka plan
+            // işleme), ama yedeklerle başka cihaza taşınmasın.
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+    }
+
+    private static func describe(_ status: OSStatus) -> String {
+        let message = SecCopyErrorMessageString(status, nil) as String? ?? "bilinmeyen"
+        return "\(status) (\(message))"
+    }
+}
+
+// MARK: - Bellek İçi Uygulama (test / önizleme)
+
+public final class InMemoryQuotaStorage: QuotaStorage, @unchecked Sendable {
+
+    private let lock = NSLock()
+    private var balance: Double?
+    private var bootstrapped: Bool
+
+    public init(initialSeconds: Double? = nil, bootstrapped: Bool = false) {
+        self.balance = initialSeconds
+        self.bootstrapped = bootstrapped
+    }
+
+    public func readBalanceSeconds() -> Double? {
+        lock.lock(); defer { lock.unlock() }
+        return balance
+    }
+
+    @discardableResult
+    public func writeBalanceSeconds(_ seconds: Double) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        balance = max(0, seconds)
+        return true
+    }
+
+    public func isBootstrapped() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        return bootstrapped
+    }
+
+    @discardableResult
+    public func markBootstrapped() -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        bootstrapped = true
+        return true
+    }
+}
+
+// MARK: - Yönetici
+
+public final class QuotaManager: Sendable {
+
+    public static let shared = QuotaManager(storage: KeychainQuotaStorage())
 
     /// Ücretsiz plan ilk kurulum hediyesi: 30 dakika.
     public static let freeTierSeconds: Double = 30 * 60
 
-    private init() {}
+    private let storage: any QuotaStorage
 
-    // MARK: - Okuma
+    public init(storage: any QuotaStorage) {
+        self.storage = storage
+    }
+
+    // MARK: Okuma
 
     public func getRemainingSeconds() -> Double {
         bootstrapIfNeeded()
-        return max(0, readBalanceSeconds() ?? 0)
+        return max(0, storage.readBalanceSeconds() ?? 0)
     }
 
     public func getRemainingMinutes() -> Double {
@@ -43,7 +186,7 @@ public final class QuotaManager: @unchecked Sendable {
         getRemainingSeconds() >= durationSeconds
     }
 
-    // MARK: - Yazma
+    // MARK: Yazma
 
     public func deductUsage(durationSeconds: Double) throws {
         let currentBalance = getRemainingSeconds()
@@ -53,78 +196,32 @@ public final class QuotaManager: @unchecked Sendable {
                 availableSeconds: currentBalance
             )
         }
-        saveBalanceSeconds(currentBalance - durationSeconds)
+        guard storage.writeBalanceSeconds(currentBalance - durationSeconds) else {
+            throw AuraError.quotaStorageUnavailable
+        }
     }
 
-    public func addMinutesFromSubscription(_ minutes: Double) {
-        let currentBalance = getRemainingSeconds()
-        saveBalanceSeconds(currentBalance + (minutes * 60.0))
+    @discardableResult
+    public func addMinutesFromSubscription(_ minutes: Double) -> Bool {
+        storage.writeBalanceSeconds(getRemainingSeconds() + (minutes * 60.0))
     }
 
     /// RevenueCat yenileme döngüsünde bakiyeyi plan kotasına eşitler.
-    public func resetBalance(toMinutes minutes: Double) {
-        saveBalanceSeconds(max(0, minutes * 60.0))
+    @discardableResult
+    public func resetBalance(toMinutes minutes: Double) -> Bool {
+        storage.writeBalanceSeconds(max(0, minutes * 60.0))
     }
 
-    // MARK: - Kurulum
+    // MARK: Kurulum
 
-    /// İlk açılışta bir kez ücretsiz dakikaları yükler.
-    /// Bayrak ayrı bir Keychain kaydında tutulur; bakiye silinse bile
-    /// hediye tekrar verilmez (kota manipülasyonuna karşı ilk savunma hattı).
+    /// İlk açılışta bir kez ücretsiz dakikaları yükler. Bayrak ayrı bir kayıtta
+    /// tutulur; bakiye silinse bile hediye tekrar verilmez (kota manipülasyonuna
+    /// karşı ilk savunma hattı — imzalı bilet doğrulaması bunun üstüne gelecek).
     private func bootstrapIfNeeded() {
-        guard readData(forKey: bootstrapKey) == nil else { return }
-        writeData(Data([1]), forKey: bootstrapKey)
-        if readBalanceSeconds() == nil {
-            saveBalanceSeconds(Self.freeTierSeconds)
+        guard !storage.isBootstrapped() else { return }
+        storage.markBootstrapped()
+        if storage.readBalanceSeconds() == nil {
+            storage.writeBalanceSeconds(Self.freeTierSeconds)
         }
-    }
-
-    // MARK: - Keychain
-
-    private func readBalanceSeconds() -> Double? {
-        guard let data = readData(forKey: quotaKey),
-              let text = String(data: data, encoding: .utf8),
-              let value = Double(text)
-        else { return nil }
-        return value
-    }
-
-    private func saveBalanceSeconds(_ balance: Double) {
-        let rounded = (max(0, balance) * 1000).rounded() / 1000
-        guard let data = "\(rounded)".data(using: .utf8) else { return }
-        writeData(data, forKey: quotaKey)
-    }
-
-    private func readData(forKey key: String) -> Data? {
-        var query = keychainQuery(forKey: key)
-        query[kSecReturnData as String] = kCFBooleanTrue
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-
-        var item: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else { return nil }
-        return item as? Data
-    }
-
-    private func writeData(_ data: Data, forKey key: String) {
-        let query = keychainQuery(forKey: key)
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-
-        if status == errSecSuccess {
-            SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        } else {
-            var insert = query
-            insert[kSecValueData as String] = data
-            SecItemAdd(insert as CFDictionary, nil)
-        }
-    }
-
-    private func keychainQuery(forKey key: String) -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: key,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        ]
     }
 }

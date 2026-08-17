@@ -119,6 +119,7 @@ public protocol ProcessingEngineProtocol: Sendable {
 
 public enum AuraError: LocalizedError, Sendable, Equatable {
     case insufficientQuota(requiredSeconds: Double, availableSeconds: Double)
+    case quotaStorageUnavailable
     case microphonePermissionDenied
     case calendarPermissionDenied
     case notificationPermissionDenied
@@ -131,6 +132,8 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
         switch self {
         case let .insufficientQuota(required, available):
             return "Yetersiz dakika bakiyesi. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available))."
+        case .quotaStorageUnavailable:
+            return "Dakika bakiyen güvenli depoya yazılamadı. Cihazı yeniden başlatıp tekrar dene."
         case .microphonePermissionDenied:
             return "Mikrofon izni verilmedi. Ayarlar › AuraVoice üzerinden açabilirsin."
         case .calendarPermissionDenied:
