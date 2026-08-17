@@ -36,51 +36,50 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
 
-      # Runner imajındaki simülatör isimleri sürümle değişiyor; derleme
-      # patlarsa hangi cihazların mevcut olduğunu loglardan görebilelim.
-      - name: List simulators
-        run: xcrun simctl list devices available
-
+      # Runner imajındaki simülatör isimleri sürümle değişiyor; ismi sabitlemek
+      # yerine mevcut olanlardan birinin UDID'sini alıyoruz.
       - name: Resolve simulator destination
         id: sim
         run: |
+          xcrun simctl list devices available
           UDID=$(xcrun simctl list devices available --json \
-            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];\
-c=[v for k,v in d.items() if 'iOS' in k];\
-f=[x for r in c for x in r if 'iPhone' in x['name']];\
-print(f[-1]['udid'] if f else '')")
-          if [ -z "$UDID" ]; then echo 'Uygun iPhone simülatörü bulunamadı'; exit 1; fi
+            | jq -r '[.devices[][] | select(.name | test("iPhone"))] | last | .udid')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            echo "Uygun iPhone simülatörü bulunamadı"
+            exit 1
+          fi
+          echo "Seçilen simülatör: $UDID"
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
-      - name: Build
+      # xcpretty runner imajında garanti değil — çıktıyı ham bırakıyoruz ki
+      # derleme hatası yerine boru hattı hatası almayalım.
+      - name: Build for testing
         run: |
-          set -o pipefail
           xcodebuild build-for-testing \
             -project AuraVoice.xcodeproj \
             -scheme AuraVoice \
             -destination "id=${{ steps.sim.outputs.udid }}" \
-            -skipPackagePluginValidation \
+            -resultBundlePath build-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            | xcpretty || exit ${PIPESTATUS[0]}
+            CODE_SIGN_ENTITLEMENTS=""
 
       - name: Test
         run: |
-          set -o pipefail
           xcodebuild test-without-building \
             -project AuraVoice.xcodeproj \
             -scheme AuraVoice \
             -destination "id=${{ steps.sim.outputs.udid }}" \
+            -resultBundlePath test-results.xcresult \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGN_ENTITLEMENTS="" \
-            | xcpretty || exit ${PIPESTATUS[0]}
+            CODE_SIGN_ENTITLEMENTS=""
 
-      - name: Upload build logs on failure
+      - name: Upload result bundles on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: derived-data-logs
+          name: xcresult-bundles
           path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Logs/**
+            build-results.xcresult
+            test-results.xcresult
           retention-days: 5
           if-no-files-found: ignore

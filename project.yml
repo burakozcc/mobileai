@@ -59,8 +59,9 @@ targets:
         CFBundleDisplayName: AuraVoice
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
-        UILaunchScreen:
-          UIColorName: ""
+        # Boş sözlük = varsayılan (düz renk) açılış ekranı. Bu anahtar
+        # olmadan iOS uygulamayı küçük ekran modunda başlatır.
+        UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UISupportedInterfaceOrientations~ipad:

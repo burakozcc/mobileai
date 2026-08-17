@@ -10,23 +10,20 @@ import Foundation
 @Suite("Biçimlendirme")
 struct FormattingTests {
 
-    @Test("Saat biçimi dakika:saniye üretir", arguments: [
-        (0.0, "00:00"),
-        (5.0, "00:05"),
-        (59.9, "00:59"),
-        (60.0, "01:00"),
-        (125.0, "02:05"),
-        (599.0, "09:59")
-    ])
+    // NOT: Swift Testing'de eşleşmiş parametreler `zip` ile verilir; iki ayrı
+    // koleksiyon yazmak Kartezyen çarpım üretir, tuple dizisi ise derlenmez.
+    @Test("Saat biçimi dakika:saniye üretir", arguments: zip(
+        [0.0, 5.0, 59.9, 60.0, 125.0, 599.0],
+        ["00:00", "00:05", "00:59", "01:00", "02:05", "09:59"]
+    ))
     func clockUnderAnHour(seconds: Double, expected: String) {
         #expect(AuraFormat.clock(seconds) == expected)
     }
 
-    @Test("Bir saati aşınca saat alanı eklenir", arguments: [
-        (3600.0, "1:00:00"),
-        (3661.0, "1:01:01"),
-        (7325.0, "2:02:05")
-    ])
+    @Test("Bir saati aşınca saat alanı eklenir", arguments: zip(
+        [3600.0, 3661.0, 7325.0],
+        ["1:00:00", "1:01:01", "2:02:05"]
+    ))
     func clockOverAnHour(seconds: Double, expected: String) {
         #expect(AuraFormat.clock(seconds) == expected)
     }
