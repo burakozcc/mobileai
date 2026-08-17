@@ -1,0 +1,157 @@
+//
+//  ProcessingProtocol.swift
+//  AuraVoice
+//
+//  Online / Offline motorların ortak sözleşmesi ve veri modelleri.
+//
+
+import Foundation
+
+public enum ProcessingMode: String, Codable, CaseIterable, Sendable, Identifiable {
+    case offlineZeroCloud = "OFFLINE_ZERO_CLOUD"
+    case onlineCloudFast = "ONLINE_CLOUD_FAST"
+
+    public var id: String { rawValue }
+
+    public var title: String {
+        switch self {
+        case .offlineZeroCloud: return "Offline"
+        case .onlineCloudFast:  return "Online"
+        }
+    }
+
+    public var subtitle: String {
+        switch self {
+        case .offlineZeroCloud: return "Cihaz içi · Zero-Cloud"
+        case .onlineCloudFast:  return "Bulut · Yüksek hız"
+        }
+    }
+
+    public var systemImage: String {
+        switch self {
+        case .offlineZeroCloud: return "lock.shield.fill"
+        case .onlineCloudFast:  return "bolt.horizontal.fill"
+        }
+    }
+
+    /// Kullanıcıya gizlilik vaadini net anlatan tek satır.
+    public var privacyStatement: String {
+        switch self {
+        case .offlineZeroCloud:
+            return "Ses ve metin cihazdan hiç çıkmaz. Uçuş modunda dahi çalışır."
+        case .onlineCloudFast:
+            return "Ses şifreli olarak işlenmek üzere buluta gönderilir."
+        }
+    }
+}
+
+public enum SummaryTemplate: String, Codable, CaseIterable, Sendable, Identifiable {
+    case meetingNotes = "Toplantı Özeti & Aksiyonlar"
+    case phoneCallSummary = "Telefon Görüşmesi Özeti"
+    case quickNotes = "Hızlı Not & Fikirler"
+
+    public var id: String { rawValue }
+
+    public var systemImage: String {
+        switch self {
+        case .meetingNotes:     return "person.2.fill"
+        case .phoneCallSummary: return "phone.fill"
+        case .quickNotes:       return "lightbulb.fill"
+        }
+    }
+
+    /// Kısa etiket (segment kontrolü için).
+    public var shortTitle: String {
+        switch self {
+        case .meetingNotes:     return "Toplantı"
+        case .phoneCallSummary: return "Görüşme"
+        case .quickNotes:       return "Hızlı Not"
+        }
+    }
+}
+
+public struct ProcessingRequest: Sendable {
+    public let audioFileURL: URL
+    public let durationSeconds: Double
+    public let mode: ProcessingMode
+    public let summaryTemplate: SummaryTemplate
+
+    public init(
+        audioFileURL: URL,
+        durationSeconds: Double,
+        mode: ProcessingMode,
+        summaryTemplate: SummaryTemplate
+    ) {
+        self.audioFileURL = audioFileURL
+        self.durationSeconds = durationSeconds
+        self.mode = mode
+        self.summaryTemplate = summaryTemplate
+    }
+}
+
+public struct ProcessingResult: Sendable {
+    public let rawTranscript: String
+    public let summaryMarkdown: String
+    public let detectedLanguage: String
+    public let usedMinutes: Double
+    public let processingTimeSeconds: Double
+
+    public init(
+        rawTranscript: String,
+        summaryMarkdown: String,
+        detectedLanguage: String,
+        usedMinutes: Double,
+        processingTimeSeconds: Double
+    ) {
+        self.rawTranscript = rawTranscript
+        self.summaryMarkdown = summaryMarkdown
+        self.detectedLanguage = detectedLanguage
+        self.usedMinutes = usedMinutes
+        self.processingTimeSeconds = processingTimeSeconds
+    }
+}
+
+public protocol ProcessingEngineProtocol: Sendable {
+    func process(request: ProcessingRequest) async throws -> ProcessingResult
+}
+
+// MARK: - Hata Tipleri
+
+public enum AuraError: LocalizedError, Sendable, Equatable {
+    case insufficientQuota(requiredSeconds: Double, availableSeconds: Double)
+    case microphonePermissionDenied
+    case calendarPermissionDenied
+    case notificationPermissionDenied
+    case audioEngineFailure(String)
+    case offlineModelMissing
+    case networkUnavailable
+    case engineFailure(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case let .insufficientQuota(required, available):
+            return "Yetersiz dakika bakiyesi. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available))."
+        case .microphonePermissionDenied:
+            return "Mikrofon izni verilmedi. Ayarlar › AuraVoice üzerinden açabilirsin."
+        case .calendarPermissionDenied:
+            return "Takvim izni verilmedi. Toplantı algılama devre dışı."
+        case .notificationPermissionDenied:
+            return "Bildirim izni verilmedi. Toplantı hatırlatmaları gönderilemez."
+        case let .audioEngineFailure(detail):
+            return "Ses motoru başlatılamadı: \(detail)"
+        case .offlineModelMissing:
+            return "Cihaz içi model indirilmemiş. Offline mod için modeli indir."
+        case .networkUnavailable:
+            return "İnternet bağlantısı yok. Offline moda geçebilirsin."
+        case let .engineFailure(detail):
+            return "İşleme hatası: \(detail)"
+        }
+    }
+}
+
+/// `AuraError` içinde kullanılan hafif biçimlendirici (UIComponents'a bağımlılık yaratmamak için).
+enum AuraFormatSeconds {
+    static func minutes(_ seconds: Double) -> String {
+        String(format: "%.1f dk", max(0, seconds) / 60.0)
+    }
+}

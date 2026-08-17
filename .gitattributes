@@ -1,0 +1,7 @@
+# Depoda ve macOS'ta daima LF — Windows'ta yazılan dosyalar Xcode tarafında
+# CRLF olarak görünmesin.
+* text=auto eol=lf
+*.swift text eol=lf
+*.yml   text eol=lf
+*.plist text eol=lf
+*.entitlements text eol=lf

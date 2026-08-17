@@ -1,0 +1,40 @@
+# Xcode projesi XcodeGen ile üretiliyor — depoda tutulmaz.
+*.xcodeproj/
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+
+# Xcode
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Üretilen Info.plist (project.yml'den doğar)
+Support/Info.plist
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# CocoaPods / Carthage (kullanılmıyor ama kazara eklenirse)
+Pods/
+Carthage/Build/
+
+# Cihaz içi modeller — depoya girmemeli (GB'larca)
+AuraVoice/Resources/Models/
+*.mlmodelc
+*.gguf
+
+# Gizli anahtarlar
+Secrets.xcconfig
+.env
+
+# macOS
+.DS_Store
