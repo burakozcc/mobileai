@@ -41,6 +41,7 @@ public enum AuraTab: String, CaseIterable, Identifiable, Sendable {
 public struct RootTabView: View {
 
     @State private var selection: AuraTab = .dashboard
+    @State private var needsOnboarding = !OnboardingViewModel.isCompleted()
 
     public init() {}
 
@@ -62,6 +63,11 @@ public struct RootTabView: View {
             AuraTabBar(selection: $selection)
         }
         .auraBackground()
+        // İlk açılışta izinler gerekçesiyle isteniyor; tamamlanana kadar
+        // uygulamanın geri kalanı görünmüyor.
+        .fullScreenCover(isPresented: $needsOnboarding) {
+            OnboardingView { needsOnboarding = false }
+        }
     }
 }
 
