@@ -59,7 +59,11 @@ public struct RecordingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let router = ProcessingRouter()
+    // `let` olsaydı SwiftUI her geçersizleştirmede struct'ı yeniden kurup yeni
+    // bir ProcessingRouter — dolayısıyla yeni bir WhisperKitEngine aktörü —
+    // üretirdi. Dalga formu `currentDuration`'ı saniyede onlarca kez
+    // tetiklediği için bu, kayıt boyunca sürekli yeni Core ML yükleme demekti.
+    @State private var router = ProcessingRouter()
 
     private var accent: Color { AuraTheme.accent(for: intent.mode) }
     private var isLive: Bool { phase == .recording }

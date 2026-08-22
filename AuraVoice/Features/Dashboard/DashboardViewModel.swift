@@ -59,6 +59,10 @@ public final class DashboardViewModel {
     /// Kayıt ekranını sunmak için `sheet(item:)` ile bağlanır.
     public var recordingIntent: RecordingIntent?
     public var isPaywallPresented = false
+    /// Offline mod seçili ama model yokken kayıt denendiğinde açılır.
+    public var isModelDownloadPresented = false
+    /// Uyarıya "Modeli indir" düğmesi eklenmeli mi.
+    public var offersModelDownload = false
     public var errorMessage: String?
 
     public var mode: ProcessingMode = .offlineZeroCloud {
@@ -199,16 +203,20 @@ public final class DashboardViewModel {
     public func consumeLaunchRequest(now: Date = Date()) {
         guard recordingIntent == nil else { return }
         guard let request = launchInbox.take(now: now) else { return }
-        guard ensureQuota() else { return }
 
-        if let requested = request.mode, requested != mode {
-            // Offline istenmiş ama model yoksa `select` uyarıyor ve modu
-            // değiştirmiyor; kayıt yine de mevcut modda başlıyor.
-            select(mode: requested)
-        }
+        // AÇIKÇA istenen mod karşılanamıyorsa kayıt BAŞLAMIYOR.
+        //
+        // Eski hali sessizce `self.mode`'a düşüyordu: Kontrol Merkezi'ndeki
+        // "Zero-Cloud Kayıt" düğmesine basan kullanıcı, model kurulu değilse ve
+        // son seçili mod Online ise buluta kaydediyordu. Bu bir kolaylık
+        // meselesi değil — uygulamanın verdiği tek sözün sessizce bozulması.
+        let requestedMode = request.mode ?? mode
+        guard canStartRecording(in: requestedMode) else { return }
+
+        mode = requestedMode
 
         recordingIntent = RecordingIntent(
-            mode: mode,
+            mode: requestedMode,
             template: request.template,
             source: request.source,
             contextTitle: request.contextTitle
@@ -240,23 +248,33 @@ public final class DashboardViewModel {
     // MARK: Mod
 
     public func select(mode newMode: ProcessingMode) {
-        if newMode == .offlineZeroCloud, !isOfflineModelReady {
-            // Model yoksa kullanıcıyı sessizce online'da bırakmak yerine uyar.
-            errorMessage = AuraError.offlineModelMissing.errorDescription
-            return
+        if newMode == .offlineZeroCloud {
+            isOfflineModelReady = OfflineModelManager.isOfflineReady()
+            guard isOfflineModelReady else {
+                // Model yoksa kullanıcıyı sessizce online'da bırakmak yerine uyar.
+                errorMessage = AuraError.offlineModelMissing.errorDescription
+                offersModelDownload = true
+                return
+            }
         }
         mode = newMode
+    }
+
+    /// Uyarı kapandığında iliştirilen durumu da temizler.
+    public func dismissError() {
+        errorMessage = nil
+        offersModelDownload = false
     }
 
     // MARK: Kayıt Tetikleyicileri
 
     public func startManualRecording() {
-        guard ensureQuota() else { return }
+        guard canStartRecording(in: mode) else { return }
         recordingIntent = RecordingIntent(mode: mode, template: .quickNotes, source: .manual)
     }
 
     public func startRecording(for meeting: MeetingCandidate) {
-        guard ensureQuota() else { return }
+        guard canStartRecording(in: mode) else { return }
         recordingIntent = RecordingIntent(
             mode: mode,
             template: .meetingNotes,
@@ -266,7 +284,7 @@ public final class DashboardViewModel {
     }
 
     public func startCallRecording() {
-        guard ensureQuota() else { return }
+        guard canStartRecording(in: mode) else { return }
         recordingIntent = RecordingIntent(
             mode: mode,
             template: .phoneCallSummary,
@@ -275,12 +293,31 @@ public final class DashboardViewModel {
         )
     }
 
-    private func ensureQuota() -> Bool {
+    /// Kayıt başlatmanın TEK kapısı.
+    ///
+    /// Hazırlık kaydın SONUNDA değil başında denetleniyor: eskiden kullanıcı
+    /// 40 dakikalık toplantıyı sonuna kadar kaydedip "Durdur"a bastıktan sonra
+    /// `offlineModelMissing` alıyordu ve o fazdan tekrar deneme yolu yoktu.
+    private func canStartRecording(in requestedMode: ProcessingMode) -> Bool {
+
         remainingSeconds = quotaManager.getRemainingSeconds()
         guard !isQuotaEmpty else {
             isPaywallPresented = true
             return false
         }
+
+        // Dosya sistemi kontrolü ucuz; kullanıcı ekranı açık bırakıp modeli
+        // Ayarlar'dan indirmiş olabilir.
+        isOfflineModelReady = OfflineModelManager.isOfflineReady()
+
+        guard requestedMode != .offlineZeroCloud || isOfflineModelReady else {
+            errorMessage = AuraError.offlineModelMissing.errorDescription
+            // Uyarı ile indirme ekranını aynı anda açmak yerine kullanıcıya
+            // uyarının içinden bir çıkış yolu veriyoruz.
+            offersModelDownload = true
+            return false
+        }
+
         return true
     }
 

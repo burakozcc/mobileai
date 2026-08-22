@@ -77,14 +77,26 @@ public struct DashboardView: View {
                 viewModel.select(mode: .offlineZeroCloud)
             }
         }
+        .sheet(isPresented: $viewModel.isModelDownloadPresented) {
+            NavigationStack { ModelDownloadView() }
+                // Kapanınca hazırlık durumu tazelensin: kullanıcı burada
+                // modeli indirmiş olabilir.
+                .onDisappear { Task { await viewModel.refresh() } }
+        }
         .alert(
             "Bir sorun var",
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
+                set: { if !$0 { viewModel.dismissError() } }
             )
         ) {
-            Button("Tamam", role: .cancel) { viewModel.errorMessage = nil }
+            if viewModel.offersModelDownload {
+                Button("Modeli indir") {
+                    viewModel.dismissError()
+                    viewModel.isModelDownloadPresented = true
+                }
+            }
+            Button("Tamam", role: .cancel) { viewModel.dismissError() }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
@@ -502,23 +514,59 @@ public struct DashboardView: View {
 
     // MARK: - Kayıt butonu
 
+    /// Kayıt düğmesi üç durumu ayırt ediyor: hazır, kota bitti, model eksik.
+    /// Üçünü tek "kilit" ikonuyla göstermek kullanıcıya ne yapması gerektiğini
+    /// söylemiyordu.
+    private enum RecordButtonState {
+        case ready, quotaEmpty, modelMissing
+
+        var icon: String {
+            switch self {
+            case .ready:        return "mic.fill"
+            case .quotaEmpty:   return "lock.fill"
+            case .modelMissing: return "arrow.down.circle.fill"
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .ready:        return "Kaydı başlat"
+            case .quotaEmpty:   return "Dakika bakiyen bitti"
+            case .modelMissing: return "Cihaz içi model indirilmemiş"
+            }
+        }
+    }
+
+    private var recordButtonState: RecordButtonState {
+        if viewModel.isQuotaEmpty { return .quotaEmpty }
+        if viewModel.mode == .offlineZeroCloud, !viewModel.isOfflineModelReady { return .modelMissing }
+        return .ready
+    }
+
     private var recordButton: some View {
-        Button {
-            viewModel.startManualRecording()
+        let state = recordButtonState
+        let isBlocked = state != .ready
+
+        return Button {
+            if state == .modelMissing {
+                viewModel.isModelDownloadPresented = true
+            } else {
+                viewModel.startManualRecording()
+            }
         } label: {
-            Image(systemName: viewModel.isQuotaEmpty ? "lock.fill" : "mic.fill")
+            Image(systemName: state.icon)
                 .font(.system(size: 26, weight: .semibold))
-                .foregroundStyle(viewModel.isQuotaEmpty ? AuraTheme.onSurfaceVariant : AuraTheme.onPrimaryFixed)
+                .foregroundStyle(isBlocked ? AuraTheme.onSurfaceVariant : AuraTheme.onPrimaryFixed)
                 .frame(width: 64, height: 64)
                 .background {
                     Circle().fill(
-                        viewModel.isQuotaEmpty ? AuraTheme.surfaceContainerHigh : AuraTheme.primaryContainer
+                        isBlocked ? AuraTheme.surfaceContainerHigh : AuraTheme.primaryContainer
                     )
                 }
-                .auraGlow(viewModel.isQuotaEmpty ? .clear : AuraTheme.primaryContainer, radius: 22, opacity: 0.35)
+                .auraGlow(isBlocked ? .clear : AuraTheme.primaryContainer, radius: 22, opacity: 0.35)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(viewModel.isQuotaEmpty ? "Dakika bakiyen bitti" : "Kaydı başlat")
+        .accessibilityLabel(state.label)
     }
 }
 
