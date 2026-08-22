@@ -94,6 +94,7 @@ public final class DashboardViewModel {
     @ObservationIgnored private let calendarService: CalendarTriggerService
     @ObservationIgnored private let notificationManager: NotificationManager
     @ObservationIgnored private let repository: any NoteRepository
+    @ObservationIgnored private let launchInbox: RecordingLaunchInbox
 
     // `deinit` nonisolated olduğu için bu iki alan gözlemleme dışında tutulur;
     // aksi halde makro üreteceği @MainActor getter'a deinit'ten erişilemez.
@@ -109,12 +110,14 @@ public final class DashboardViewModel {
         quotaManager: QuotaManager = .shared,
         calendarService: CalendarTriggerService = .shared,
         notificationManager: NotificationManager = .shared,
-        repository: any NoteRepository = DatabaseManager.shared
+        repository: any NoteRepository = DatabaseManager.shared,
+        launchInbox: RecordingLaunchInbox = .shared
     ) {
         self.quotaManager = quotaManager
         self.calendarService = calendarService
         self.notificationManager = notificationManager
         self.repository = repository
+        self.launchInbox = launchInbox
 
         if let raw = UserDefaults.standard.string(forKey: Keys.mode),
            let saved = ProcessingMode(rawValue: raw) {
@@ -174,6 +177,35 @@ public final class DashboardViewModel {
             upcomingMeetings = []
             scheduledReminderCount = 0
         }
+
+        // Siri / Kısayol / Action Button uygulamayı açtıysa niyet burada
+        // karşılanıyor: ön plana her dönüşte kutuya bakılıyor.
+        consumeLaunchRequest()
+    }
+
+    // MARK: Dışarıdan gelen kayıt istekleri
+
+    /// Kutuda bekleyen "kaydı başlat" isteğini uygular.
+    ///
+    /// Kayıt zaten açıksa dokunmuyoruz — kullanıcının süren kaydını başka bir
+    /// niyetle kesmek, kaybedilen ses demek olurdu.
+    public func consumeLaunchRequest(now: Date = Date()) {
+        guard recordingIntent == nil else { return }
+        guard let request = launchInbox.take(now: now) else { return }
+        guard ensureQuota() else { return }
+
+        if let requested = request.mode, requested != mode {
+            // Offline istenmiş ama model yoksa `select` uyarıyor ve modu
+            // değiştirmiyor; kayıt yine de mevcut modda başlıyor.
+            select(mode: requested)
+        }
+
+        recordingIntent = RecordingIntent(
+            mode: mode,
+            template: request.template,
+            source: request.source,
+            contextTitle: request.contextTitle
+        )
     }
 
     // MARK: İzinler
