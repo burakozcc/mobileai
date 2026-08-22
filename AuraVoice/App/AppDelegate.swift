@@ -24,6 +24,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             if migrated > 0 {
                 print("[AuraVoice] \(migrated) eski not SwiftData'ya taşındı.")
             }
+            // Önceki oturum işleme ortasında öldürülmüşse notu kurtar.
+            // Temizlikten ÖNCE çalışmalı: kurtarılan not sesini referans
+            // ediyor ve o referans olmadan dosya yetim sayılırdı.
+            let recovered = (try? await DatabaseManager.shared.recoverInterruptedProcessing()) ?? 0
+            if recovered > 0 {
+                print("[AuraVoice] \(recovered) yarım kalmış işleme kurtarıldı.")
+            }
+
             // Notu silinmiş ama diskte kalmış ses dosyalarını temizle.
             _ = try? await DatabaseManager.shared.pruneOrphanedRecordings()
         }

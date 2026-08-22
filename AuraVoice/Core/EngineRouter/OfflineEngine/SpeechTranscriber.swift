@@ -49,10 +49,23 @@ public protocol SpeechTranscriber: Sendable {
         languageHint: String?,
         progress: TranscriptionProgress?
     ) async throws -> TranscriptionOutput
+
+    /// Modeli bellekten bırakır.
+    ///
+    /// Boru hattının bir sonraki adımı (konuşmacı ayrıştırma) kendi modelini
+    /// yüklüyor ve tüm sesi belleğe alıyor. 45 dakikalık 16 kHz mono kayıt
+    /// tek başına ~86 MB tampon + ~173 MB Float demek; üstüne Whisper `small`
+    /// varyantının ~480 MB'ı resident kalırsa iOS uygulamayı öldürüyor ve not
+    /// hiç yazılmıyordu.
+    func unload() async
 }
 
 public extension SpeechTranscriber {
+
     func transcribe(audioURL: URL, languageHint: String? = nil) async throws -> TranscriptionOutput {
         try await transcribe(audioURL: audioURL, languageHint: languageHint, progress: nil)
     }
+
+    /// Model tutmayan uygulamalar (testler, sahte motorlar) için no-op.
+    func unload() async {}
 }

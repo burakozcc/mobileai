@@ -194,3 +194,73 @@ struct NoteStatePersistenceTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 }
+
+// MARK: - Yarım kalmış işleme kurtarma
+
+@Suite("Yarım kalmış işleme", .serialized)
+struct InterruptedProcessingTests {
+
+    private func makeManager() throws -> DatabaseManager {
+        DatabaseManager(modelContainer: try AuraModelContainer.inMemory())
+    }
+
+    private func note(state: NoteProcessingState, title: String) -> NoteSummary {
+        NoteSummary(
+            title: title,
+            durationSeconds: 900,
+            mode: .offlineZeroCloud,
+            template: .meetingNotes,
+            summaryMarkdown: state == .ready ? "### X\n- y" : "",
+            rawTranscript: "",
+            processingState: state
+        )
+    }
+
+    @Test("Takılı kalan not tekrar denenebilir hale geliyor")
+    func stuckNoteBecomesFailed() async throws {
+        let manager = try makeManager()
+        _ = try await manager.insert(note(state: .processing, title: "Yarım toplantı"))
+
+        let recovered = try await manager.recoverInterruptedProcessing()
+
+        #expect(recovered == 1)
+        let stored = try await manager.all().first
+        #expect(stored?.processingState == .failed)
+        #expect(stored?.failureReason?.isEmpty == false)
+    }
+
+    @Test("Hazır ve başarısız notlara dokunulmuyor")
+    func onlyProcessingNotesAreTouched() async throws {
+        let manager = try makeManager()
+        _ = try await manager.insert(note(state: .ready, title: "Tamamlanmış"))
+
+        var failed = note(state: .failed, title: "Zaten başarısız")
+        failed.failureReason = "Bağlantı yok"
+        _ = try await manager.insert(failed)
+
+        let recovered = try await manager.recoverInterruptedProcessing()
+
+        #expect(recovered == 0)
+        let states = try await manager.all().map(\.processingState)
+        #expect(Set(states) == Set([.ready, .failed]))
+        let reason = try await manager.all().first { $0.title == "Zaten başarısız" }?.failureReason
+        #expect(reason == "Bağlantı yok")
+    }
+
+    @Test("Kurtarılacak not yoksa iş yapılmıyor")
+    func noOpWhenNothingStuck() async throws {
+        let manager = try makeManager()
+        #expect(try await manager.recoverInterruptedProcessing() == 0)
+    }
+
+    @Test("Birden fazla takılı not birlikte kurtarılıyor")
+    func recoversAllStuckNotes() async throws {
+        let manager = try makeManager()
+        _ = try await manager.insert(note(state: .processing, title: "Bir"))
+        _ = try await manager.insert(note(state: .processing, title: "İki"))
+
+        #expect(try await manager.recoverInterruptedProcessing() == 2)
+        let states = try await manager.all().map(\.processingState)
+        #expect(states.allSatisfy { $0 == .failed })
+    }
+}

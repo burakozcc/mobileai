@@ -45,6 +45,13 @@ public final class ProcessingRouter: Sendable {
     }
 
     public func execute(request: ProcessingRequest) async throws -> ProcessingResult {
+        try await execute(request: request, progress: nil)
+    }
+
+    public func execute(
+        request: ProcessingRequest,
+        progress: ProcessingProgress?
+    ) async throws -> ProcessingResult {
         let available = quotaManager.getRemainingSeconds()
         guard available + Self.overrunToleranceSeconds >= request.durationSeconds else {
             throw AuraError.insufficientQuota(
@@ -62,7 +69,7 @@ public final class ProcessingRouter: Sendable {
         case .onlineCloudFast:  onlineEngine
         }
 
-        let raw = try await engine.process(request: request)
+        let raw = try await engine.process(request: request, progress: progress)
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
         // Dakika yalnızca sonuç üretildikten sonra düşülür.

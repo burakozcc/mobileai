@@ -205,6 +205,33 @@ public actor DatabaseManager: NoteRepository {
         return removed
     }
 
+    /// Açılışta `.processing` durumunda kalmış notları `.failed` yapar.
+    ///
+    /// Uygulama açılırken hiçbir işleme sürüyor olamaz; bu durumda kalmış bir
+    /// not, önceki oturumun ortasında öldürüldüğü (jetsam, çökme, kullanıcı)
+    /// anlamına geliyor. Öyle bırakılırsa not listede sonsuza kadar
+    /// "İşleniyor" görünür ve kullanıcı tekrar deneyemez.
+    @discardableResult
+    public func recoverInterruptedProcessing(
+        reason: String = "İşleme yarıda kesildi. Ses duruyor, tekrar deneyebilirsin."
+    ) throws -> Int {
+
+        let pending = NoteProcessingState.processing.rawValue
+        let descriptor = FetchDescriptor<NoteEntity>(
+            predicate: #Predicate { $0.processingStateRaw == pending }
+        )
+
+        let stuck = try modelContext.fetch(descriptor)
+        guard !stuck.isEmpty else { return 0 }
+
+        for note in stuck {
+            note.processingStateRaw = NoteProcessingState.failed.rawValue
+            note.failureReason = reason
+        }
+        try modelContext.save()
+        return stuck.count
+    }
+
     // MARK: Yardımcılar
 
     /// Parametre adı bilerek `id` değil: `#Predicate` içinde `$0.id` ile

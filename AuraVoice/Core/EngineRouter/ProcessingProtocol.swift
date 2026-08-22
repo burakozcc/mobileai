@@ -115,8 +115,45 @@ public struct ProcessingResult: Sendable {
     }
 }
 
+/// İşleme boru hattının kullanıcıya gösterilebilir aşamaları.
+///
+/// Eskiden ekran tüm süre boyunca "Özet çıkarılıyor…" yazıyordu — oysa 45
+/// dakikalık bir kayıtta zamanın neredeyse tamamı transkripsiyonda geçiyor.
+/// Kullanıcı yanlış aşamayı dakikalarca donuk görünce takıldığını sanıp
+/// uygulamayı öldürüyordu.
+public enum ProcessingStage: String, Sendable, CaseIterable {
+
+    case transcribing
+    case diarizing
+    case summarizing
+
+    public func label(for mode: ProcessingMode) -> String {
+        switch self {
+        case .transcribing:
+            return mode == .offlineZeroCloud ? "Cihaz içi transkripsiyon" : "Buluta yükleniyor"
+        case .diarizing:
+            return "Konuşmacılar ayrıştırılıyor"
+        case .summarizing:
+            return "Özet çıkarılıyor"
+        }
+    }
+}
+
+/// Aşama ve o aşamanın 0...1 ilerlemesi.
+public typealias ProcessingProgress = @Sendable (ProcessingStage, Double) -> Void
+
 public protocol ProcessingEngineProtocol: Sendable {
     func process(request: ProcessingRequest) async throws -> ProcessingResult
+    func process(request: ProcessingRequest, progress: ProcessingProgress?) async throws -> ProcessingResult
+}
+
+public extension ProcessingEngineProtocol {
+
+    /// İlerleme bildirmeyen motorlar için varsayılan — mevcut sahte motorlar
+    /// ve testler tek metodu uygulamaya devam edebiliyor.
+    func process(request: ProcessingRequest, progress: ProcessingProgress?) async throws -> ProcessingResult {
+        try await process(request: request)
+    }
 }
 
 // MARK: - Hata Tipleri

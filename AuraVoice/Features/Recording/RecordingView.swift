@@ -25,6 +25,33 @@ public struct RecordingOutcome: Sendable {
     }
 }
 
+/// İşleme ilerlemesini taşıyan küçük gözlemlenebilir kutu.
+///
+/// Motor ilerlemeyi `@Sendable` bir kapanıştan bildiriyor. `RecordingView` bir
+/// struct ve `onFinish` kapanışı Sendable değil, dolayısıyla `self` o kapanışa
+/// sokulamıyor. Bu sınıf sadece o sınırı geçmek için var.
+@MainActor
+@Observable
+public final class ProcessingProgressModel {
+
+    public var stage: ProcessingStage = .transcribing
+    public var fraction: Double = 0
+
+    public init() {}
+
+    public nonisolated func report(_ stage: ProcessingStage, _ fraction: Double) {
+        Task { @MainActor in
+            self.stage = stage
+            self.fraction = max(0, min(1, fraction))
+        }
+    }
+
+    public func reset() {
+        stage = .transcribing
+        fraction = 0
+    }
+}
+
 public struct RecordingView: View {
 
     // MARK: Girdi
@@ -62,7 +89,8 @@ public struct RecordingView: View {
     /// Motor çalışmadan önce yazılan not. Hata durumunda tekrar denemek için
     /// elde tutuluyor.
     @State private var pendingNote: NoteSummary?
-    @State private var processingStatus = "Hazırlanıyor…"
+    @State private var progressModel = ProcessingProgressModel()
+    @State private var processingTask: Task<Void, Never>?
     @State private var isBreathing = false
 
     @Environment(\.dismiss) private var dismiss
@@ -212,7 +240,7 @@ public struct RecordingView: View {
 
     private var statusBlock: some View {
         VStack(spacing: 4) {
-            Text(statusText.uppercased())
+            Text(statusText.uppercased(with: Locale.current))
                 .font(AuraFont.labelCaps)
                 .tracking(AuraFont.labelCapsTracking + 0.8)
                 .foregroundStyle(isLive ? AuraTheme.error : AuraTheme.onSurfaceVariant)
@@ -238,7 +266,9 @@ public struct RecordingView: View {
         case .recording:     return "Kaydediliyor"
         case .paused:        return "Duraklatıldı"
         case .processing:    return "İşleniyor"
-        case .failed(let m): return m
+        // Hata metninin tamamı buraya gelirse 12pt tracked all-caps'e sokulup
+        // Türkçe yazımı bozuluyordu. Ayrıntı artık kurtarma panelinde.
+        case .failed:        return "İşlenemedi"
         }
     }
 
@@ -385,7 +415,7 @@ public struct RecordingView: View {
             HStack(spacing: AuraTheme.Spacing.gutter) {
                 Button {
                     guard let pendingNote else { return }
-                    Task { await process(pendingNote) }
+                    startProcessing(pendingNote)
                 } label: {
                     Text("TEKRAR DENE")
                         .font(AuraFont.labelCaps)
@@ -450,15 +480,23 @@ public struct RecordingView: View {
             Color.black.opacity(0.6).ignoresSafeArea()
 
             VStack(spacing: AuraTheme.Spacing.stackMD) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(accent)
-                    .scaleEffect(1.3)
 
-                Text(processingStatus)
+                // Belirsiz spinner yerine gerçek yüzde: 45 dakikalık kayıtta
+                // zamanın neredeyse tamamı transkripsiyonda geçiyor ve donuk
+                // bir spinner kullanıcıya "takıldı" dedirtiyordu.
+                ProgressView(value: progressModel.fraction)
+                    .progressViewStyle(.linear)
+                    .tint(accent)
+
+                Text(progressModel.stage.label(for: intent.mode))
                     .font(AuraFont.bodyLarge)
                     .foregroundStyle(AuraTheme.onSurface)
                     .multilineTextAlignment(.center)
+
+                Text("%\(Int((progressModel.fraction * 100).rounded()))")
+                    .font(AuraFont.digitMono)
+                    .monospacedDigit()
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
 
                 Text(intent.mode == .offlineZeroCloud
                      ? "Tüm işlem cihazında yapılıyor — veri dışarı çıkmıyor."
@@ -466,6 +504,25 @@ public struct RecordingView: View {
                     .font(AuraFont.bodySmall)
                     .foregroundStyle(AuraTheme.onSurfaceVariant)
                     .multilineTextAlignment(.center)
+
+                // İptal edilebilirlik şart: uzun bir işlemede tek çıkış yolu
+                // uygulamayı öldürmek olmamalı.
+                Button {
+                    cancelProcessing()
+                } label: {
+                    Text("VAZGEÇ")
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.labelCapsTracking)
+                        .foregroundStyle(AuraTheme.onSurfaceVariant)
+                        .padding(.horizontal, AuraTheme.Spacing.stackLG)
+                        .padding(.vertical, 10)
+                        .background {
+                            Capsule().fill(AuraTheme.surfaceContainerHigh)
+                                .overlay { Capsule().strokeBorder(AuraTheme.hairline, lineWidth: 1) }
+                        }
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
             .padding(AuraTheme.Spacing.stackLG)
             .frame(maxWidth: .infinity)
@@ -529,7 +586,18 @@ public struct RecordingView: View {
         pendingNote = note
         _ = try? await repository.insert(note)
 
-        await process(note)
+        startProcessing(note)
+    }
+
+    /// İşlemeyi iptal edilebilir bir görevde başlatır.
+    private func startProcessing(_ note: NoteSummary) {
+        processingTask?.cancel()
+        progressModel.reset()
+        processingTask = Task { await process(note) }
+    }
+
+    private func cancelProcessing() {
+        processingTask?.cancel()
     }
 
     /// Transkripsiyon + özetleme. Hata sonrası "Tekrar dene" de buraya giriyor.
@@ -539,18 +607,22 @@ public struct RecordingView: View {
         let fileURL = DatabaseManager.audioURL(for: fileName)
 
         phase = .processing
-        processingStatus = intent.mode == .offlineZeroCloud
-            ? "Cihaz içi transkripsiyon…"
-            : "Buluta yükleniyor…"
+
+        // Kapanış yalnızca bu yerel referansı yakalıyor; `self` (View struct'ı)
+        // Sendable olmadığı için oraya giremez.
+        let reporter = progressModel
 
         var updated = note
         do {
-            let output = try await router.execute(request: ProcessingRequest(
-                audioFileURL: fileURL,
-                durationSeconds: note.durationSeconds,
-                mode: intent.mode,
-                summaryTemplate: template
-            ))
+            let output = try await router.execute(
+                request: ProcessingRequest(
+                    audioFileURL: fileURL,
+                    durationSeconds: note.durationSeconds,
+                    mode: intent.mode,
+                    summaryTemplate: template
+                ),
+                progress: { stage, value in reporter.report(stage, value) }
+            )
 
             updated.summaryMarkdown = output.summaryMarkdown
             updated.rawTranscript = output.rawTranscript
@@ -564,14 +636,18 @@ public struct RecordingView: View {
             dismiss()
 
         } catch {
-            let reason = error.localizedDescription
+            // İptal kullanıcının kendi kararı; hata gibi sunulmamalı ama not
+            // yine de tekrar denenebilir kalmalı.
+            let reason = error is CancellationError
+                ? "İşleme durduruldu. Ses duruyor, istediğin zaman tekrar deneyebilirsin."
+                : error.localizedDescription
+
             updated.processingState = .failed
             updated.failureReason = reason
             pendingNote = updated
             _ = try? await repository.insert(updated)
 
             phase = .failed(reason)
-            processingStatus = reason
         }
     }
 

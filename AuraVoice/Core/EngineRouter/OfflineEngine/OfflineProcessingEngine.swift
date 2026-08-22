@@ -25,19 +25,37 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
     }
 
     public func process(request: ProcessingRequest) async throws -> ProcessingResult {
+        try await process(request: request, progress: nil)
+    }
 
+    public func process(
+        request: ProcessingRequest,
+        progress: ProcessingProgress?
+    ) async throws -> ProcessingResult {
+
+        progress?(.transcribing, 0)
         let transcription = try await transcriber.transcribe(
             audioURL: request.audioFileURL,
             languageHint: nil,
-            progress: nil
+            progress: { value in progress?(.transcribing, value) }
         )
+        try Task.checkCancellation()
 
+        // ASR modelini burada bırakıyoruz. Sıradaki adım kendi modelini
+        // yüklüyor ve tüm sesi belleğe alıyor; ikisi aynı anda resident
+        // olduğunda uzun kayıtlarda iOS uygulamayı öldürüyordu.
+        await transcriber.unload()
+
+        progress?(.diarizing, 0)
         // Konuşmacı etiketleme başarısız olursa segmentler etiketsiz döner.
         let segments = await speakerLabeler.label(
             transcription.segments,
             audioURL: request.audioFileURL
         )
+        progress?(.diarizing, 1)
+        try Task.checkCancellation()
 
+        progress?(.summarizing, 0)
         let summary = try await summarizer.summarize(
             SummarizationInput(
                 transcript: transcription.text,
@@ -47,6 +65,7 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
                 durationSeconds: request.durationSeconds
             )
         )
+        progress?(.summarizing, 1)
 
         return ProcessingResult(
             rawTranscript: transcription.text,
