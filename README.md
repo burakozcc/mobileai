@@ -1,28 +1,14 @@
-# AuraVoice — Kurulum Notları (Adım 1)
+# AuraVoice
 
-Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı akıllı toplantı
-ve ses kayıt uygulaması. Bu adımda **Dashboard**, **Recording + canlı dalga formu**
-ve **takvim entegre bildirim yöneticisi** tam çalışır halde yazıldı.
+Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
+ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-## Bu adımda üretilenler
+**Durum:** 211 test / 34 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
+Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
+Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
+gerektiriyor (aşağıda).
 
-| Katman | Dosya | Durum |
-|---|---|---|
-| Tema | `UIComponents/AuraTheme.swift` | Tam |
-| Bileşen | `UIComponents/GlassCardView.swift`, `PulseRecordButton.swift` | Tam |
-| Ses | `Core/Audio/AudioRecorderService.swift` | Tam (şablon düzeltildi) |
-| Tetikleyici | `Core/Triggers/CalendarTriggerService.swift` | Tam (actor'a taşındı) |
-| Tetikleyici | `Core/Triggers/NotificationManager.swift` | Tam |
-| Tetikleyici | `Core/Triggers/CallObserverService.swift` | Tam |
-| Kota | `Core/Quota/QuotaManager.swift` | Tam (Sendable düzeltmesi) |
-| Router | `Core/EngineRouter/ProcessingRouter.swift` | Tam |
-| Offline motor | `EngineRouter/OfflineEngine/*` | ASR + çıkarımsal özetleme tam |
-| Online motor | `EngineRouter/OnlineEngine/*` | Yer tutucu |
-| Depolama | `Core/Storage/DatabaseManager.swift` + `Entities/*` | Tam (SwiftData, `@ModelActor`) |
-| Depolama | `Core/Storage/NoteSummary.swift` | DTO + bellek içi test sahtesi |
-| Ekran | `Features/Dashboard/*`, `Features/Recording/*`, `Features/NoteDetail/*` | Tam |
-| Test | `AuraVoiceTests/*` | 5 suite, Swift Testing |
-| CI | `.github/workflows/ios-build.yml` | macOS runner'da xcodebuild + test |
+---
 
 ## Projeyi açma
 
@@ -33,49 +19,126 @@ Bir Mac'te:
 brew install xcodegen && xcodegen generate && open AuraVoice.xcodeproj
 ```
 
-Test çalıştırma:
+Testler:
 
 ```bash
 xcodebuild test -project AuraVoice.xcodeproj -scheme AuraVoice -destination 'platform=iOS Simulator,name=iPhone 16'
 ```
 
-`.github/workflows/ios-build.yml` aynı adımları macOS runner'ında koşturur —
-Mac erişimi olmadan da gerçek `xcodebuild` doğrulaması alınabilir.
+`.github/workflows/ios-build.yml` aynı adımları macOS runner'ında koşturur.
 
-## Xcode projesi ayarları
+### İlk çalıştırmadan önce yapılması gerekenler
 
-- **iOS Deployment Target:** 17.0
-- **Swift Language Version:** Swift 6 (`SWIFT_STRICT_CONCURRENCY = complete`)
-- **Signing & Capabilities → Background Modes:** `Audio, AirPlay, and Picture in Picture`
-- **Capabilities:** Keychain Sharing (kota bileti için)
-- **Capabilities → Time Sensitive Notifications:** Toplantı hatırlatmaları
-  `interruptionLevel = .timeSensitive` kullanıyor. Bu entitlement olmadan bildirim
-  yine gider ama Odaklanma modunda susturulur — `NotificationManager` içindeki
-  `.timeSensitive` satırları entitlement eklenene kadar `.active` yapılabilir.
+1. **Takım kimliği.** `project.yml` içinde iki hedefte de `DEVELOPMENT_TEAM: ""`
+   duruyor. Kendi takım kimliğini gir ya da Xcode'da her iki hedef için
+   "Automatically manage signing" işaretle.
 
-### Info.plist anahtarları (zorunlu)
+2. **App Group.** Widget uzantısı ana uygulamayla `group.com.auravoice.shared`
+   konteynerini paylaşıyor. Xcode'da **her iki hedefte** Signing & Capabilities
+   → App Groups altında bu kimliği ekle. Eklemezsen uygulama yine çalışır
+   (kod standart `UserDefaults`'a düşüyor), yalnızca widget düğmesi uygulamaya
+   ulaşamaz.
 
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>Toplantı ve görüşmelerini kaydedip özet çıkarabilmek için mikrofona erişiyoruz. Offline modda ses cihazdan hiç çıkmaz.</string>
+3. **Time Sensitive Notifications** (isteğe bağlı). Toplantı hatırlatmaları
+   `interruptionLevel = .timeSensitive` kullanıyor. Entitlement onayı yoksa
+   `Support/AuraVoice.entitlements` içindeki ilgili anahtarı silip
+   `NotificationManager` içinde `.timeSensitive` → `.active` yap; bildirim yine
+   gider, yalnızca Odaklanma modunda susturulur.
 
-<key>NSCalendarsFullAccessUsageDescription</key>
-<string>Yaklaşan toplantılarını cihazda tarayıp kayıt hatırlatması gönderebilmek için takvimine erişiyoruz. Etkinlik verisi hiçbir sunucuya gönderilmez.</string>
+Mikrofon, takvim ve arka plan ses ayarları `project.yml` içinden üretiliyor,
+elle Info.plist düzenlemeye gerek yok.
 
-<key>UIBackgroundModes</key>
-<array>
-    <string>audio</string>
-</array>
+---
+
+## Mimari
+
+```
+AuraVoice/
+├── App/                     Giriş noktası, kök sekme çubuğu, AppDelegate
+├── Core/
+│   ├── Audio/               AVAudioEngine kaydı (16 kHz mono PCM, donanım AEC)
+│   ├── EngineRouter/        Mod yönlendirme + iki motorun ortak sözleşmesi
+│   │   ├── OfflineEngine/   WhisperKit ASR + çıkarımsal özetleme
+│   │   ├── OnlineEngine/    Groq Whisper + Anthropic özetleme, yükleme hazırlığı
+│   │   └── Diarization/     SpeakerKit (Pyannote v4) — her iki modda cihazda
+│   ├── Intents/             Siri / Kısayol / widget niyetleri + App Group sözleşmesi
+│   ├── Quota/               Dakika bakiyesi, Ed25519 imzalı biletler
+│   ├── Storage/             SwiftData (@ModelActor), not ve segment varlıkları
+│   └── Triggers/            Takvim taraması, bildirimler, CallKit gözlemcisi
+├── Features/                Dashboard, Recording, Notes, NoteDetail, Settings, Onboarding
+├── UIComponents/            Tema jetonları ve paylaşılan bileşenler
+└── Resources/               Asset katalogu, PrivacyInfo.xcprivacy
+
+AuraVoiceWidget/             Kilit ekranı kotası + Kontrol Merkezi kaydı (iOS 18)
 ```
 
-> `NSRemindersFullAccessUsageDescription` gerekmez — yalnızca `EKEntityType.event` okunuyor.
+### Bilinçli kararlar
 
-## Bilinen sonraki adımlar
+**Sağlayıcı anahtarları uygulamada taşınmaz.** Üretim rotası `.proxy`:
+anahtarlar ve kota doğrulaması sunucuda. Sunucu yokken `.userProvidedKey`
+(kullanıcının kendi anahtarı, Keychain'de) devreye giriyor. `Info.plist`
+içindeki `AuraCloudProxyBaseURL` rotayı seçiyor.
 
-1. Nöral cihaz içi özetleyici — `LocalSummarizer` protokolüne ExecuTorch /
-   llama.cpp / Apple Foundation Models arka ucu takılacak. `ExtractiveSummarizer`
-   yedek olarak kalacak (model indirilmemişken ve bellek baskısında kullanılır).
-2. `OnlineEngine/CloudASRClient.swift` + `CloudLLMClient.swift`
-3. `Quota/SecureTicketStore.swift` — Ed25519 imzalı dakika bileti doğrulaması
-4. `Paywall/SubscriptionPaywallView.swift` — RevenueCat
-5. Widget / App Intents (Kilit Ekranı, Eylem Butonu, Siri)
+**Dakika bileti sunucudan gelir.** Bakiye cihazda ve uygulama offline
+çalışabildiği için Keychain tek başına yeterli değil. Ed25519 imzalı bilet
+dakikanın sunucudan geldiğini kanıtlıyor; özel anahtar cihaza hiç inmiyor.
+Tekrar kullanım defteri ve "en ileri görülen zaman" saat geri almaya karşı
+koruyor. Kanonik imza gövdesi `MinuteTicket.swift` başında birebir belgelendi —
+sunucu tarafını yazarken tahmine yer yok.
+
+**Uzun kayıtlar için sıkıştırma + parçalama.** Ham PCM saniyede ~32 KB; 25 MB
+yükleme sınırı bunu ~13 dakikaya çeviriyordu. Sınırı aşan kayıt AAC'ye
+kodlanıyor (~100 dakika), o da yetmezse bindirmeli parçalara bölünüyor ve
+transkriptler tek zaman eksenine dikiliyor.
+
+**Widget kotayı yeniden hesaplamaz.** Uygulama App Group'a anlık görüntü
+yazıyor, uzantı okuyor. Kota kuralları iki yerde yaşasaydı iki farklı sayı
+görürdük.
+
+**Kayıt intent'in içinde başlamaz.** Siri / Action Button / widget yalnızca
+niyeti kutuya bırakıp uygulamayı açıyor; kaydı Dashboard başlatıyor. Kayıt
+ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
+
+---
+
+## Tamamlananlar
+
+| Alan | Durum |
+|---|---|
+| Kayıt (AVAudioEngine, 16 kHz mono, donanım AEC, kesinti kurtarma) | Tam |
+| Canlı dalga formu | Tam |
+| Offline motor (WhisperKit ASR + çıkarımsal özetleme) | Tam |
+| Online motor (Groq Whisper + Anthropic özetleme, cihaz içi yedek) | Tam |
+| Konuşmacı ayrıştırma (SpeakerKit / Pyannote v4) | Tam, her iki modda |
+| Uzun kayıt yüklemesi (AAC sıkıştırma + bindirmeli parçalama) | Tam |
+| Takvim tetikleyicisi + eylemli bildirimler | Tam |
+| CallKit görüşme algılama | Tam |
+| SwiftData depolama, arama, göç, yetim temizliği | Tam |
+| Kota yönetimi (Keychain, hata yutmayan) | Tam |
+| Ed25519 imzalı dakika biletleri + tekrar kullanım defteri | Tam (sunucu bekliyor) |
+| Model indirme ekranı, ayarlar, onboarding | Tam |
+| Not detayı: bölümler, işaretlenebilir görevler, transkript akordeonu | Tam |
+| Siri / Kısayollar / Action Button (App Intents) | Tam |
+| Widget: kilit ekranı kotası + Kontrol Merkezi kaydı | Tam |
+| Uygulama ikonu, asset katalogu, `PrivacyInfo.xcprivacy` | Tam |
+| GitHub Actions CI (gerçek `xcodebuild` + test) | Tam |
+
+## Kalanlar
+
+1. **Uygulamayı bir kez çalıştırmak.** Mac gerekiyor; ekran görüntüsü ve
+   cihazda doğrulama henüz yok.
+2. **Backend proxy.** `.proxy` rotası ve bilet imzalama için. Bilet doğrulama
+   tarafı hazır, imzalayan taraf yok.
+3. **RevenueCat paywall.** App Store Connect hesabı ve RevenueCat API anahtarı
+   gerekiyor.
+4. **Nöral cihaz içi özetleyici.** `LocalSummarizer` protokolü hazır;
+   ExecuTorch / llama.cpp / Apple Foundation Models arka ucu takılacak.
+   `ExtractiveSummarizer` yedek olarak kalacak.
+5. **Yerelleştirme.** Metinler şu an sabit Türkçe.
+
+### App Store için dikkat
+
+Görüşme kaydı özelliği inceleme riski taşıyor: bazı ülkelerde her iki tarafın
+rızası zorunlu. `CallObserverService` kaydı kendiliğinden başlatmıyor, yalnızca
+kullanıcıya "hoparlörü açarak kaydı başlatabilirsiniz" diyor — bu ayrım
+inceleme notunda açıkça anlatılmalı.
