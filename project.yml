@@ -52,6 +52,9 @@ targets:
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
+      # Konusmaci ayristirma (Pyannote v4) - ayni paketin urunu.
+      - package: ArgmaxOSS
+        product: SpeakerKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.auravoice.app

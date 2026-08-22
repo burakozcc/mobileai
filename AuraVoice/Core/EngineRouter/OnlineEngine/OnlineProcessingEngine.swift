@@ -16,15 +16,19 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
     private let llm: CloudLLMClient
     /// Bulut özetleme başarısız olursa cihaz içi çıkarımsal özetleyiciye düş.
     private let fallbackSummarizer: (any LocalSummarizer)?
+    /// Ayrıştırma online modda da CİHAZDA yapılır — ses zaten burada.
+    private let speakerLabeler: SpeakerLabeler
 
     public init(
         asr: CloudASRClient,
         llm: CloudLLMClient,
-        fallbackSummarizer: (any LocalSummarizer)? = ExtractiveSummarizer()
+        fallbackSummarizer: (any LocalSummarizer)? = ExtractiveSummarizer(),
+        speakerLabeler: SpeakerLabeler = .makeDefault()
     ) {
         self.asr = asr
         self.llm = llm
         self.fallbackSummarizer = fallbackSummarizer
+        self.speakerLabeler = speakerLabeler
     }
 
     /// Varsayılan kurulum: proxy rotası + Keychain deposu.
@@ -62,6 +66,11 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
 
         let language = transcription.language.isEmpty ? "tr" : transcription.language
 
+        let segments = await speakerLabeler.label(
+            transcription.segments,
+            audioURL: request.audioFileURL
+        )
+
         let summary: String
         do {
             summary = try await llm.summarize(
@@ -79,7 +88,7 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
             let fallback = try await fallbackSummarizer.summarize(
                 SummarizationInput(
                     transcript: transcription.text,
-                    segments: transcription.segments,
+                    segments: segments,
                     template: request.summaryTemplate,
                     language: language,
                     durationSeconds: request.durationSeconds
@@ -95,7 +104,7 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
             detectedLanguage: language,
             usedMinutes: request.durationSeconds / 60.0,
             processingTimeSeconds: 0, // ProcessingRouter gerçek süreyi ölçüp yazar
-            segments: transcription.segments
+            segments: segments
         )
     }
 }

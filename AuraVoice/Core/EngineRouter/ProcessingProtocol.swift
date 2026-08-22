@@ -129,6 +129,7 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
     case notificationPermissionDenied
     case audioEngineFailure(String)
     case offlineModelMissing
+    case diarizationModelMissing
     case networkUnavailable
     case engineFailure(String)
     case cloudCredentialsMissing(provider: String)
@@ -154,6 +155,8 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
             return "Ses motoru başlatılamadı: \(detail)"
         case .offlineModelMissing:
             return "Cihaz içi model indirilmemiş. Offline mod için modeli indir."
+        case .diarizationModelMissing:
+            return "Konuşmacı ayrıştırma modeli indirilmemiş. Ayarlar'dan indirebilirsin."
         case .networkUnavailable:
             return "İnternet bağlantısı yok. Offline moda geçebilirsin."
         case let .engineFailure(detail):

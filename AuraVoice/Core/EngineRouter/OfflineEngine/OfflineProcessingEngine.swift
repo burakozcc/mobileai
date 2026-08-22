@@ -12,13 +12,16 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
 
     private let transcriber: any SpeechTranscriber
     private let summarizer: any LocalSummarizer
+    private let speakerLabeler: SpeakerLabeler
 
     public init(
         transcriber: any SpeechTranscriber = WhisperKitEngine(),
-        summarizer: any LocalSummarizer = ExtractiveSummarizer()
+        summarizer: any LocalSummarizer = ExtractiveSummarizer(),
+        speakerLabeler: SpeakerLabeler = .makeDefault()
     ) {
         self.transcriber = transcriber
         self.summarizer = summarizer
+        self.speakerLabeler = speakerLabeler
     }
 
     public func process(request: ProcessingRequest) async throws -> ProcessingResult {
@@ -29,10 +32,16 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
             progress: nil
         )
 
+        // Konuşmacı etiketleme başarısız olursa segmentler etiketsiz döner.
+        let segments = await speakerLabeler.label(
+            transcription.segments,
+            audioURL: request.audioFileURL
+        )
+
         let summary = try await summarizer.summarize(
             SummarizationInput(
                 transcript: transcription.text,
-                segments: transcription.segments,
+                segments: segments,
                 template: request.summaryTemplate,
                 language: transcription.language,
                 durationSeconds: request.durationSeconds
@@ -45,7 +54,7 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
             detectedLanguage: transcription.language.isEmpty ? "tr" : transcription.language,
             usedMinutes: request.durationSeconds / 60.0,
             processingTimeSeconds: 0, // ProcessingRouter gerçek süreyi ölçüp yazar
-            segments: transcription.segments
+            segments: segments
         )
     }
 }
