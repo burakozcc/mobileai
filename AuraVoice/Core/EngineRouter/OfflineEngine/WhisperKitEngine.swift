@@ -19,28 +19,76 @@ import Foundation
 
 public actor WhisperKitEngine: SpeechTranscriber {
 
-    /// Model varyantları. Küçük cihazlarda `base`, yeni cihazlarda `small`
-    /// makul kalite/hız dengesi verir.
+    /// Model varyantları.
+    ///
+    /// Boyutlar Hugging Face API'sinin bildirdiği GERÇEK dosya toplamlarıdır,
+    /// tahmin değil (`argmaxinc/whisperkit-coreml` ağaç uç noktası).
+    ///
+    /// Türkçe için varsayılan `largeV3Turbo`. Whisper makalesindeki (arXiv
+    /// 2212.04356) Türkçe WER'leri bu tercihi taşıyor — Fleurs: base 27,5 /
+    /// small 15,9 / large-v2 8,4. `small`'dan large sınıfına geçiş Türkçe
+    /// hatayı yarıdan fazla düşürüyor, ki şive ve özel isim yoğun toplantı
+    /// kaydında fark birebir hissediliyor.
     public enum Variant: String, Sendable, CaseIterable {
+
         case tiny = "openai_whisper-tiny"
         case base = "openai_whisper-base"
         case small = "openai_whisper-small"
+        /// OpenAI large-v3-turbo (2024-09-30), Argmax'ın sıkıştırdığı Core ML
+        /// sürümü. rawValue TAM klasör adı olmak zorunda: `WhisperKit.download`
+        /// `"*\(variant)/*"` glob'uyla arıyor ve birden çok eşleşmede hata veriyor.
+        case largeV3Turbo = "openai_whisper-large-v3-v20240930_626MB"
 
         /// Yaklaşık indirme boyutu (kullanıcıya gösterilir).
         public var approximateMegabytes: Int {
             switch self {
-            case .tiny:  return 78
-            case .base:  return 145
-            case .small: return 480
+            case .tiny:         return 77
+            case .base:         return 147
+            case .small:        return 487
+            case .largeV3Turbo: return 627
             }
         }
 
         public var displayName: String {
             switch self {
-            case .tiny:  return "Hızlı (küçük)"
-            case .base:  return "Dengeli"
-            case .small: return "Yüksek doğruluk"
+            case .tiny:         return "Hızlı (küçük)"
+            case .base:         return "Dengeli"
+            case .small:        return "Yüksek doğruluk"
+            case .largeV3Turbo: return "En yüksek doğruluk"
             }
+        }
+
+        public var subtitle: String {
+            switch self {
+            case .tiny:         return "En hızlı, en düşük doğruluk"
+            case .base:         return "Küçük cihazlar için denge"
+            case .small:        return "İyi Türkçe, orta boyut"
+            case .largeV3Turbo: return "Türkçe için önerilen — şive ve özel isimde belirgin fark"
+            }
+        }
+
+        /// WhisperKit'in vocab boyutundan tespit ettiği tokenizer deposu.
+        /// large-v3 ailesi 51866 vocab kullanıyor, diğerleri 51865.
+        public var tokenizerRepoID: String {
+            switch self {
+            case .tiny:         return "openai/whisper-tiny"
+            case .base:         return "openai/whisper-base"
+            case .small:        return "openai/whisper-small"
+            case .largeV3Turbo: return "openai/whisper-large-v3"
+            }
+        }
+
+        // MARK: Seçim politikası
+
+        /// Verilen kümedeki en iyi varyant.
+        ///
+        /// Saf fonksiyon — testler bunu çağırıyor, cihaz sorgusunu değil:
+        /// simülatörde WhisperKit host Mac'i bildiriyor ve eşleşmeyen cihaz
+        /// kimliğinde TÜM modelleri "destekleniyor" sayıyor, dolayısıyla
+        /// gerçek cihaz kapısı CI'da hiç sınanamıyor.
+        public static func best(from candidates: Set<String>) -> Variant {
+            [Variant.largeV3Turbo, .small, .base, .tiny]
+                .first { candidates.contains($0.rawValue) } ?? .base
         }
     }
 
@@ -145,11 +193,24 @@ public actor WhisperKitEngine: SpeechTranscriber {
             throw AuraError.offlineModelMissing
         }
 
+        // `download: false` YALNIZCA Core ML ağırlıklarını kapsıyor. Tokenizer
+        // yükleme anında ayrı bir yoldan Hugging Face'ten çekiliyor ve
+        // `tokenizerFolder` verilmezse `?? downloadBase` de nil olduğu için
+        // HubApi varsayılanına düşüyor — yani model diskte dururken bile uçak
+        // modunda yükleme patlıyordu. Asıl düzeltme bu satır.
+        guard let tokenizerRoot = BundledTokenizers.root else {
+            throw AuraError.engineFailure(
+                "Paketlenmiş tokenizer bulunamadı: AuraVoice/Resources/Tokenizers "
+                + "uygulama paketine kopyalanmamış (project.yml'de type: folder olmalı)."
+            )
+        }
+
         // Klasör yolu kurulum kaydından geliyor; WhisperKit'in iç disk şemasına
         // bağımlı değiliz (bkz. OfflineModelManager).
         let config = WhisperKitConfig(
             model: variant.rawValue,
             modelFolder: folder.path,
+            tokenizerFolder: tokenizerRoot,
             // İndirme ayrı bir akış (OfflineModelManager); burada ağ kullanmıyoruz.
             download: false
         )

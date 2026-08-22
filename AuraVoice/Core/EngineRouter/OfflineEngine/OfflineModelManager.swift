@@ -44,6 +44,25 @@ public actor OfflineModelManager {
             .appendingPathComponent("Models", isDirectory: true)
     }
 
+    /// Model klasörünü iCloud yedeğinden çıkarır.
+    ///
+    /// App Store inceleme kuralı: yeniden indirilebilir veri yedeklenmemeli.
+    /// Bugün 627 MB, nöral özetleyici geldiğinde 1,9 GB — kullanıcının iCloud
+    /// alanını bununla doldurmak hem ret sebebi hem de düpedüz kabalık.
+    /// Klasör bir kez işaretlenince altındaki her şey kapsanıyor.
+    nonisolated static func excludeFromBackup(_ url: URL) {
+        var target = url
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        do {
+            try target.setResourceValues(values)
+        } catch {
+            // Yedekleme bayrağı yazılamadıysa uygulama çalışmaya devam etmeli;
+            // sessiz kalmasın diye kaydediliyor.
+            print("[AuraVoice] Model klasörü yedekten çıkarılamadı: \(error.localizedDescription)")
+        }
+    }
+
     private nonisolated static var registryURL: URL {
         modelsDirectory.appendingPathComponent("installed_models.json")
     }
@@ -81,6 +100,21 @@ public actor OfflineModelManager {
         !installations(in: directory).isEmpty
     }
 
+    /// Motorun kullanacağı varyant: KURULU olanların en iyisi.
+    ///
+    /// Eskiden `isOfflineReady` herhangi bir kurulu varyantta true dönüyordu
+    /// ama motor `.base`'e sabitti. Yalnızca "Hızlı (küçük)" ya da yalnızca
+    /// "Yüksek doğruluk" indiren kullanıcı yeşil "Kurulu" rozetini görüyor,
+    /// mod seçimi kabul ediliyor ve kayıt sonunda `offlineModelMissing`
+    /// alıyordu — cihazda düzeltmenin yolu da yoktu.
+    public nonisolated static func activeVariant(
+        in directory: URL = modelsDirectory
+    ) -> WhisperKitEngine.Variant? {
+        let installed = Set(installations(in: directory).map(\.variant))
+        guard !installed.isEmpty else { return nil }
+        return WhisperKitEngine.Variant.best(from: installed)
+    }
+
     // MARK: - Kurulum
 
     /// Modeli indirir ve kurulum kaydına yazar. Zaten kuruluysa doğrudan döner.
@@ -97,6 +131,7 @@ public actor OfflineModelManager {
 
         let directory = Self.modelsDirectory
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        Self.excludeFromBackup(directory)
 
         let folderURL: URL
         do {

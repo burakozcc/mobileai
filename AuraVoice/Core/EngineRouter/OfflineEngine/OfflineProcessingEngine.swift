@@ -14,8 +14,13 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
     private let summarizer: any LocalSummarizer
     private let speakerLabeler: SpeakerLabeler
 
+    /// Varsayılan transcriber KURULU varyantı kullanıyor; hiçbiri kurulu
+    /// değilse `.base` ile kuruluyor ve `offlineModelMissing` fırlatıyor —
+    /// hazırlık kontrolü zaten kaydın başında yapılıyor.
     public init(
-        transcriber: any SpeechTranscriber = WhisperKitEngine(),
+        transcriber: any SpeechTranscriber = WhisperKitEngine(
+            variant: OfflineModelManager.activeVariant() ?? .base
+        ),
         summarizer: any LocalSummarizer = ExtractiveSummarizer(),
         speakerLabeler: SpeakerLabeler = .makeDefault()
     ) {

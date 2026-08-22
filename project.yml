@@ -48,7 +48,19 @@ targets:
     type: application
     platform: iOS
     sources:
+      # Normal kaynak agaci. Gomulu tokenizer klasoru DISLANIYOR: aksi halde
+      # XcodeGen onu ayrica "group" olarak da ekliyor, JSON'lari tek tek Copy
+      # Bundle Resources'a koyuyor ve dizin yapisini duzlestiriyor -- iki
+      # tokenizer.json cakisip "Multiple commands produce" hatasi veriyor.
       - path: AuraVoice
+        excludes:
+          - "Resources/Tokenizers/**"
+      # KLASOR REFERANSI: alt agac .app icinde birebir korunmali. WhisperKit
+      # tokenizer'i once <kok>/models/<repoID>, sonra duz <kok> altinda ariyor.
+      - path: AuraVoice/Resources/Tokenizers
+        name: Tokenizers
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: ArgmaxOSS
         product: WhisperKit
