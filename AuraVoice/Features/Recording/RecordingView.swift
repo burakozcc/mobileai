@@ -31,9 +31,15 @@ public struct RecordingView: View {
 
     private let intent: RecordingIntent
     private let onFinish: (RecordingOutcome?) -> Void
+    private let repository: any NoteRepository
 
-    public init(intent: RecordingIntent, onFinish: @escaping (RecordingOutcome?) -> Void) {
+    public init(
+        intent: RecordingIntent,
+        repository: any NoteRepository = DatabaseManager.shared,
+        onFinish: @escaping (RecordingOutcome?) -> Void
+    ) {
         self.intent = intent
+        self.repository = repository
         self.onFinish = onFinish
         _template = State(initialValue: intent.template)
     }
@@ -53,6 +59,9 @@ public struct RecordingView: View {
     @State private var template: SummaryTemplate
     @State private var allowanceSeconds: Double = 0
     @State private var showCancelConfirm = false
+    /// Motor çalışmadan önce yazılan not. Hata durumunda tekrar denemek için
+    /// elde tutuluyor.
+    @State private var pendingNote: NoteSummary?
     @State private var processingStatus = "Hazırlanıyor…"
     @State private var isBreathing = false
 
@@ -90,8 +99,18 @@ public struct RecordingView: View {
                 durationCounter
                 waveform
                 Spacer(minLength: AuraTheme.Spacing.stackMD)
-                templateSelector
-                controls
+
+                // Hata fazında duraklat/durdur anlamsız; kullanıcının burada
+                // ihtiyacı olan şey çıkış yolu. Eskiden bu ekranda her düğme
+                // devre dışıydı ve sheet de kapatılamıyordu — kullanıcının tek
+                // seçeneği uygulamayı öldürmekti, ki kaydı kaybettiren tam
+                // olarak o hareketti.
+                if case .failed(let message) = phase {
+                    failurePanel(message)
+                } else {
+                    templateSelector
+                    controls
+                }
             }
             .padding(.horizontal, AuraTheme.Spacing.screenMargin)
             .padding(.bottom, AuraTheme.Spacing.stackLG)
@@ -120,8 +139,8 @@ public struct RecordingView: View {
         ) {
             Button("Kaydı sil ve çık", role: .destructive) {
                 recorder.cancelRecording()
-                onFinish(nil)
-                dismiss()
+                // İşleme başlamışsa not zaten yazıldı; onu da temizle.
+                Task { await discardFailedNote() }
             }
             Button("Kayda devam et", role: .cancel) {}
         } message: {
@@ -332,6 +351,81 @@ public struct RecordingView: View {
         }
     }
 
+    // MARK: Hata kurtarma
+
+    private func failurePanel(_ message: String) -> some View {
+        VStack(spacing: AuraTheme.Spacing.stackMD) {
+
+            HStack(alignment: .top, spacing: AuraTheme.Spacing.gutter) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 18))
+                    .foregroundStyle(AuraTheme.warning)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("İşleme tamamlanamadı")
+                        .font(AuraFont.bodyLarge)
+                        .foregroundStyle(AuraTheme.onSurface)
+                    // Hata metni gövde yazısı olarak veriliyor: eskiden tüm
+                    // cümle 12pt tracked all-caps'e sokuluyordu ve Türkçe
+                    // yazımı bozuluyordu.
+                    Text(message)
+                        .font(AuraFont.bodySmall)
+                        .foregroundStyle(AuraTheme.onSurfaceVariant)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            Text("Kayıt notlarına kaydedildi, sesi duruyor. İstediğin zaman tekrar deneyebilirsin.")
+                .font(AuraFont.bodySmall)
+                .foregroundStyle(AuraTheme.onSurfaceVariant)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: AuraTheme.Spacing.gutter) {
+                Button {
+                    guard let pendingNote else { return }
+                    Task { await process(pendingNote) }
+                } label: {
+                    Text("TEKRAR DENE")
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.labelCapsTracking)
+                        .foregroundStyle(AuraTheme.onPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background {
+                            RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                                .fill(AuraTheme.primary)
+                        }
+                }
+                .buttonStyle(.plain)
+                .disabled(pendingNote == nil)
+
+                Button {
+                    keepFailedNoteAndClose()
+                } label: {
+                    Text("NOTLARA GİT")
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.labelCapsTracking)
+                        .foregroundStyle(AuraTheme.onSurface)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background {
+                            RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                                .fill(AuraTheme.surfaceContainerHigh)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                                        .strokeBorder(AuraTheme.hairline, lineWidth: 1)
+                                }
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(AuraTheme.Spacing.stackMD)
+        .glassSurface(borderColor: AuraTheme.warning.opacity(0.30))
+    }
+
     private func secondaryControl(
         icon: String,
         label: String,
@@ -413,43 +507,87 @@ public struct RecordingView: View {
             return
         }
 
-        let waveformPreview = AudioWaveformProcessor.downsample(recorder.audioLevels, to: 24)
+        // Motor çalışmadan ÖNCE notu yaz.
+        //
+        // Eskiden ses dosyası "kullanıcı tekrar denesin diye" korunuyordu ama
+        // hiçbir NoteEntity onu referans etmediği için bir sonraki açılışta
+        // prune siliyordu: uçakta işleme patlayan kullanıcı uygulamayı kapatıp
+        // açtığında kaydını bulamıyordu. Artık bu noktadan sonra ne olursa
+        // olsun (hata, çökme, kullanıcının uygulamayı öldürmesi) kayıt duruyor.
+        let note = NoteSummary(
+            title: intent.contextTitle ?? defaultTitle(),
+            durationSeconds: result.duration,
+            mode: intent.mode,
+            template: template,
+            summaryMarkdown: "",
+            rawTranscript: "",
+            waveformPreview: AudioWaveformProcessor.downsample(recorder.audioLevels, to: 24),
+            audioFileName: fileURL.lastPathComponent,
+            sourceTrigger: intent.source,
+            processingState: .processing
+        )
+        pendingNote = note
+        _ = try? await repository.insert(note)
+
+        await process(note)
+    }
+
+    /// Transkripsiyon + özetleme. Hata sonrası "Tekrar dene" de buraya giriyor.
+    private func process(_ note: NoteSummary) async {
+
+        guard let fileName = note.audioFileName else { return }
+        let fileURL = DatabaseManager.audioURL(for: fileName)
+
         phase = .processing
         processingStatus = intent.mode == .offlineZeroCloud
             ? "Cihaz içi transkripsiyon…"
             : "Buluta yükleniyor…"
 
-        let request = ProcessingRequest(
-            audioFileURL: fileURL,
-            durationSeconds: result.duration,
-            mode: intent.mode,
-            summaryTemplate: template
-        )
-
+        var updated = note
         do {
-            processingStatus = "Özet çıkarılıyor…"
-            let output = try await router.execute(request: request)
-
-            let note = NoteSummary(
-                title: intent.contextTitle ?? defaultTitle(),
-                durationSeconds: result.duration,
+            let output = try await router.execute(request: ProcessingRequest(
+                audioFileURL: fileURL,
+                durationSeconds: note.durationSeconds,
                 mode: intent.mode,
-                template: template,
-                summaryMarkdown: output.summaryMarkdown,
-                rawTranscript: output.rawTranscript,
-                detectedLanguage: output.detectedLanguage,
-                waveformPreview: waveformPreview,
-                audioFileName: fileURL.lastPathComponent,
-                sourceTrigger: intent.source
-            )
+                summaryTemplate: template
+            ))
 
-            onFinish(RecordingOutcome(note: note, segments: output.segments))
+            updated.summaryMarkdown = output.summaryMarkdown
+            updated.rawTranscript = output.rawTranscript
+            updated.detectedLanguage = output.detectedLanguage
+            updated.processingState = .ready
+            updated.failureReason = nil
+
+            // Son yazma DashboardViewModel'de: `insert` upsert olduğu için
+            // aynı kimlik üzerine yazıyor, ikinci bir not oluşmuyor.
+            onFinish(RecordingOutcome(note: updated, segments: output.segments))
             dismiss()
+
         } catch {
-            phase = .failed(error.localizedDescription)
-            // Ses dosyası korunur: kullanıcı tekrar deneyebilsin diye silinmez.
-            processingStatus = error.localizedDescription
+            let reason = error.localizedDescription
+            updated.processingState = .failed
+            updated.failureReason = reason
+            pendingNote = updated
+            _ = try? await repository.insert(updated)
+
+            phase = .failed(reason)
+            processingStatus = reason
         }
+    }
+
+    /// Başarısız notu listede bırakıp ekranı kapatır.
+    private func keepFailedNoteAndClose() {
+        onFinish(nil)
+        dismiss()
+    }
+
+    /// Başarısız notu ve sesini tamamen siler.
+    private func discardFailedNote() async {
+        if let pendingNote {
+            _ = try? await repository.delete(id: pendingNote.id)
+        }
+        onFinish(nil)
+        dismiss()
     }
 
     private func defaultTitle() -> String {

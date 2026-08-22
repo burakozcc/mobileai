@@ -184,9 +184,18 @@ public actor DatabaseManager: NoteRepository {
             at: directory, includingPropertiesForKeys: nil
         ) else { return 0 }
 
-        let referenced = Set(
+        var referenced = Set(
             try modelContext.fetch(FetchDescriptor<NoteEntity>()).compactMap(\.audioFileName)
         )
+
+        // Şu anda yazılmakta olan dosya henüz hiçbir notta görünmüyor: dosya
+        // kayıt başlar başlamaz oluşuyor, not ise kayıt bitince yazılıyor.
+        // Widget/Siri yolunda kayıt açılıştan birkaç yüz ms sonra başlıyor ve
+        // tam bu temizlikle çakışabiliyordu — dosya unlink edilirken recorder
+        // açık inode'a yazmaya devam ediyor, sonuçta WAV yok oluyordu.
+        if let active = AudioRecorderService.activeRecordingFileName() {
+            referenced.insert(active)
+        }
 
         var removed = 0
         for file in files where !referenced.contains(file.lastPathComponent) {

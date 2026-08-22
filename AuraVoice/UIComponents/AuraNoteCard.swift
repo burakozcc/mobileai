@@ -56,6 +56,18 @@ public struct AuraNoteCard: View {
 
                 Spacer(minLength: 0)
 
+                // İşlenmeyi bekleyen ve başarısız notlar listede kaybolmasın:
+                // sesleri duruyor ve tekrar denenebiliyorlar.
+                if note.processingState.isPending {
+                    AuraBadge(
+                        note.processingState.label,
+                        systemImage: note.processingState == .failed
+                            ? "exclamationmark.triangle.fill"
+                            : "clock.fill",
+                        tint: note.processingState == .failed ? AuraTheme.warning : AuraTheme.onSurfaceVariant
+                    )
+                }
+
                 if showsModeBadge {
                     AuraBadge(
                         note.mode == .offlineZeroCloud ? "Zero-Cloud" : "Bulut",

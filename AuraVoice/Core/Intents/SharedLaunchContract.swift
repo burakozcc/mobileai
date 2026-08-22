@@ -29,6 +29,10 @@ public enum AuraSharedContract {
 
     public static let launchRequestKey = "aura.recording.launchRequest"
     public static let quotaSnapshotKey = "aura.quota.snapshot"
+    /// O anda yazılmakta olan kayıt dosyasının adı. Yetim temizliği bu dosyaya
+    /// dokunmuyor: dosya kayıt başlar başlamaz oluşuyor, notu ise ancak kayıt
+    /// bitince yazılıyor — aradaki pencerede temizlik onu silebilirdi.
+    public static let activeRecordingKey = "aura.recording.activeFile"
 
     public static func sharedDefaults() -> UserDefaults {
         UserDefaults(suiteName: appGroupIdentifier) ?? .standard

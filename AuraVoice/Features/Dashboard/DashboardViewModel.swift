@@ -338,6 +338,16 @@ public final class DashboardViewModel {
                 // Kota zaten düşüldü; notu kaybettiğimizi kullanıcıdan gizlemeyelim.
                 errorMessage = "Not kaydedilemedi: \(error.localizedDescription)"
             }
+        } else {
+            // Kayıt ekranı hata ya da iptalle kapandı. İşleme başlamışsa not
+            // zaten `.failed` olarak yazıldı; listeyi tazelemezsek kullanıcı
+            // onu göremezdi.
+            do {
+                notes = try await repository.all()
+                minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
+            } catch {
+                errorMessage = "Kayıtlar okunamadı: \(error.localizedDescription)"
+            }
         }
         remainingSeconds = quotaManager.getRemainingSeconds()
     }

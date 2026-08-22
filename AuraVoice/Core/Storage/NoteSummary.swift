@@ -12,6 +12,32 @@
 
 import Foundation
 
+/// Notun işleme durumu.
+///
+/// Kayıt, motor çalışmadan ÖNCE `.processing` durumuyla kalıcılaştırılıyor.
+/// Sebep: eskiden işleme başarısız olduğunda ses dosyası "kullanıcı tekrar
+/// denesin diye" korunuyordu ama hiçbir not onu referans etmediği için bir
+/// sonraki açılışta prune siliyordu. Uçakta işleme patlayan kullanıcı
+/// uygulamayı kapatıp açtığında kaydını bulamıyordu.
+public enum NoteProcessingState: String, Sendable, Codable, CaseIterable {
+
+    /// Ses kaydedildi, transkript/özet henüz üretilmedi.
+    case processing
+    case ready
+    /// İşleme başarısız oldu; ses duruyor, tekrar denenebilir.
+    case failed
+
+    public var isPending: Bool { self != .ready }
+
+    public var label: String {
+        switch self {
+        case .processing: return "İşleniyor"
+        case .ready:      return "Hazır"
+        case .failed:     return "İşlenemedi"
+        }
+    }
+}
+
 public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
 
     public let id: UUID
@@ -29,6 +55,9 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
     /// yolu uygulama güncellemelerinde değişir).
     public var audioFileName: String?
     public var sourceTrigger: RecordingTriggerSource
+    public var processingState: NoteProcessingState
+    /// `.failed` durumunda kullanıcıya gösterilecek sebep.
+    public var failureReason: String?
 
     public init(
         id: UUID = UUID(),
@@ -42,7 +71,9 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
         detectedLanguage: String = "tr",
         waveformPreview: [Float] = [],
         audioFileName: String? = nil,
-        sourceTrigger: RecordingTriggerSource = .manual
+        sourceTrigger: RecordingTriggerSource = .manual,
+        processingState: NoteProcessingState = .ready,
+        failureReason: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -56,11 +87,21 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
         self.waveformPreview = waveformPreview
         self.audioFileName = audioFileName
         self.sourceTrigger = sourceTrigger
+        self.processingState = processingState
+        self.failureReason = failureReason
     }
 
     /// Kart üzerinde gösterilecek tek satırlık özet.
     public var previewLine: String {
-        summaryMarkdown
+        switch processingState {
+        case .processing:
+            return "Transkript ve özet hazırlanıyor…"
+        case .failed:
+            return failureReason ?? "İşleme tamamlanamadı — tekrar denenebilir."
+        case .ready:
+            break
+        }
+        return summaryMarkdown
             .split(separator: "\n")
             .first { line in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)

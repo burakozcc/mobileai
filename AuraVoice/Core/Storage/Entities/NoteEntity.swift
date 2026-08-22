@@ -36,6 +36,11 @@ public final class NoteEntity {
     /// yolu uygulama güncellemelerinde değişir).
     public var audioFileName: String?
 
+    /// Varsayılan değeri olan yeni alanlar SwiftData'nın hafif göçünü
+    /// tetikliyor; eski kayıtlar `.ready` olarak açılıyor.
+    public var processingStateRaw: String = NoteProcessingState.ready.rawValue
+    public var failureReason: String?
+
     @Relationship(deleteRule: .cascade, inverse: \TranscriptSegmentEntity.note)
     public var segments: [TranscriptSegmentEntity]
 
@@ -52,6 +57,8 @@ public final class NoteEntity {
         detectedLanguage: String,
         waveformData: Data,
         audioFileName: String?,
+        processingStateRaw: String = NoteProcessingState.ready.rawValue,
+        failureReason: String? = nil,
         segments: [TranscriptSegmentEntity] = []
     ) {
         self.id = id
@@ -66,6 +73,8 @@ public final class NoteEntity {
         self.detectedLanguage = detectedLanguage
         self.waveformData = waveformData
         self.audioFileName = audioFileName
+        self.processingStateRaw = processingStateRaw
+        self.failureReason = failureReason
         self.segments = segments
     }
 }
@@ -87,7 +96,9 @@ public extension NoteEntity {
             rawTranscript: summary.rawTranscript,
             detectedLanguage: summary.detectedLanguage,
             waveformData: WaveformCodec.encode(summary.waveformPreview),
-            audioFileName: summary.audioFileName
+            audioFileName: summary.audioFileName,
+            processingStateRaw: summary.processingState.rawValue,
+            failureReason: summary.failureReason
         )
     }
 
@@ -105,7 +116,9 @@ public extension NoteEntity {
             detectedLanguage: detectedLanguage,
             waveformPreview: WaveformCodec.decode(waveformData),
             audioFileName: audioFileName,
-            sourceTrigger: RecordingTriggerSource(rawValue: sourceTriggerRaw) ?? .manual
+            sourceTrigger: RecordingTriggerSource(rawValue: sourceTriggerRaw) ?? .manual,
+            processingState: NoteProcessingState(rawValue: processingStateRaw) ?? .ready,
+            failureReason: failureReason
         )
     }
 
@@ -122,6 +135,8 @@ public extension NoteEntity {
         detectedLanguage = summary.detectedLanguage
         waveformData = WaveformCodec.encode(summary.waveformPreview)
         audioFileName = summary.audioFileName
+        processingStateRaw = summary.processingState.rawValue
+        failureReason = summary.failureReason
     }
 }
 

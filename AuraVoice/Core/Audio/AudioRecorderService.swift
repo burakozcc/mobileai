@@ -128,6 +128,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         self.engine = engine
         self.sink = sink
         self.currentFileURL = fileURL
+        Self.markActive(fileURL)
         self.isRecording = true
         self.isPaused = false
         self.currentDuration = 0
@@ -175,6 +176,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
 
         let file = currentFileURL
         currentFileURL = nil
+        Self.clearActive()
         isRecording = false
         isPaused = false
         currentDuration = duration
@@ -268,6 +270,28 @@ public final class AudioRecorderService: NSObject, ObservableObject {
     }
 
     // MARK: - Dosya
+
+    /// Yetim temizliğinin dokunmaması gereken dosyayı işaretler.
+    ///
+    /// Dosya kayıt başlar başlamaz oluşuyor, notu ise ancak kayıt bitince
+    /// yazılıyor. Widget/Siri yolunda kayıt açılıştaki temizlikten birkaç yüz
+    /// ms sonra başladığı için tam bu pencerede çakışma oluyordu: dosya unlink
+    /// ediliyor, recorder açık inode'a yazmaya devam ediyor, sonuçta WAV yok.
+    nonisolated static func markActive(_ url: URL) {
+        AuraSharedContract.sharedDefaults().set(
+            url.lastPathComponent,
+            forKey: AuraSharedContract.activeRecordingKey
+        )
+    }
+
+    nonisolated static func clearActive() {
+        AuraSharedContract.sharedDefaults().removeObject(forKey: AuraSharedContract.activeRecordingKey)
+    }
+
+    /// Şu an yazılmakta olan dosyanın adı (varsa).
+    public nonisolated static func activeRecordingFileName() -> String? {
+        AuraSharedContract.sharedDefaults().string(forKey: AuraSharedContract.activeRecordingKey)
+    }
 
     private static func makeRecordingURL() -> URL {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
