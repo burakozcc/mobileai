@@ -38,7 +38,7 @@ public final class OnboardingViewModel {
     public private(set) var isRequesting = false
     public var errorMessage: String?
 
-    public static let completedKey = "aura.onboarding.completed"
+    public nonisolated static let completedKey = "aura.onboarding.completed"
 
     public init() {}
 
