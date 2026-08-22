@@ -103,7 +103,6 @@ public final class DashboardViewModel {
 
     private enum Keys {
         static let mode = "aura.processingMode"
-        static let planMinutes = "aura.plan.monthlyMinutes"
     }
 
     public init(
@@ -123,8 +122,9 @@ public final class DashboardViewModel {
            let saved = ProcessingMode(rawValue: raw) {
             self.mode = saved
         }
-        let storedPlan = UserDefaults.standard.double(forKey: Keys.planMinutes)
-        self.planMonthlyMinutes = storedPlan > 0 ? storedPlan : 30
+        // Plan dakikası artık QuotaManager'ın kendi deposunda; UserDefaults'ta
+        // ikinci bir kopya tutmak iki farklı sayı göstermek demekti.
+        self.planMonthlyMinutes = quotaManager.planMonthlyMinutes()
     }
 
     deinit {
@@ -153,6 +153,7 @@ public final class DashboardViewModel {
         defer { isSyncing = false }
 
         remainingSeconds = quotaManager.getRemainingSeconds()
+        planMonthlyMinutes = quotaManager.planMonthlyMinutes()
         isOfflineModelReady = OfflineModelManager.isOfflineReady()
 
         // Widget kotayı kendi hesaplamıyor; buradan besleniyor.

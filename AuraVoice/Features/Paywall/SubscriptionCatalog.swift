@@ -113,7 +113,8 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
     public static let freePlanID = "aura.free"
     public static let proPlanID = "aura.pro.monthly"
 
-    /// Ücretsiz plan aylık dakikası — `QuotaManager.freeTierSeconds` ile aynı.
+    /// Ücretsiz plan aylık dakikası — `QuotaManager.freeTierMinutes` ile aynı
+    /// olmak zorunda; `SubscriptionCatalogTests` bunu doğruluyor.
     public static let freeMinutes: Double = 30
     public static let proMinutes: Double = 1_200
 
@@ -134,13 +135,16 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
                 features: [
                     PlanFeature(
                         id: "cloud",
-                        text: "30 dakika bulut transkripsiyonu",
+                        text: "Aylık 30 dakika işleme",
                         detail: "Bu ay: \(Int(min(usedMinutes, Self.freeMinutes).rounded()))/\(Int(Self.freeMinutes)) dk"
                     ),
                     PlanFeature(
                         id: "offline",
-                        text: "Sınırsız Zero-Cloud kaydı",
-                        detail: "Cihazda her zaman açık",
+                        // Sınırsız olan kayıt değil, GİZLİLİK. Dakika her iki
+                        // modda da aynı havuzdan düşüyor; bunu burada yanlış
+                        // yazmak kullanıcıya tutulamayacak bir söz vermek olur.
+                        text: "Zero-Cloud modu — ses cihazdan hiç çıkmaz",
+                        detail: "Aynı dakika havuzunu kullanır",
                         isHighlighted: true
                     ),
                     PlanFeature(
@@ -160,11 +164,11 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
                 features: [
                     PlanFeature(
                         id: "cloud",
-                        text: "1200 dakikaya kadar bulut transkripsiyonu",
-                        detail: "Yüksek doğruluklu işleme",
+                        text: "Aylık 1200 dakika işleme",
+                        detail: "Yüksek doğruluklu bulut transkripsiyonu",
                         isHighlighted: true
                     ),
-                    PlanFeature(id: "offline", text: "Sınırsız Zero-Cloud kaydı"),
+                    PlanFeature(id: "offline", text: "Zero-Cloud modu — ses cihazdan hiç çıkmaz"),
                     PlanFeature(id: "export", text: "Gelişmiş dışa aktarma (PDF, SRT, TXT)")
                 ],
                 isRecommended: true
@@ -175,7 +179,7 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
     public func activePlanID() async -> String? { Self.freePlanID }
 
     public func purchase(planID: String) async -> PurchaseOutcome {
-        .unavailable(reason: "Abonelik altyapısı henüz bağlanmadı. Zero-Cloud modu sınırsız çalışmaya devam ediyor.")
+        .unavailable(reason: "Abonelik altyapısı henüz bağlanmadı. Ücretsiz dakikaların her ay yenileniyor.")
     }
 
     public func restorePurchases() async -> PurchaseOutcome {

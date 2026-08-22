@@ -101,6 +101,13 @@ private struct FailingWriteStorage: QuotaStorage {
     func writeBalanceSeconds(_ seconds: Double) -> Bool { false }
     func isBootstrapped() -> Bool { true }
     func markBootstrapped() -> Bool { false }
+
+    // Dönem yazılamıyor: yenileme mantığının bunu sessizce yutmadığını
+    // `QuotaRenewalTests.failedWriteKeepsPeriod` doğruluyor.
+    func readPeriodStart() -> Date? { nil }
+    func writePeriodStart(_ date: Date) -> Bool { false }
+    func readPlanMinutes() -> Double? { nil }
+    func writePlanMinutes(_ minutes: Double) -> Bool { false }
 }
 
 // MARK: - Router

@@ -22,6 +22,9 @@ public final class PaywallViewModel {
     public private(set) var activePlanID: String?
     public private(set) var isLoading = true
     public private(set) var isWorking = false
+    /// Bakiyenin yenileneceği an. Kota bittiğinde kullanıcının görmesi gereken
+    /// tek eyleme dönük bilgi bu.
+    public private(set) var renewalDate: Date?
     public var message: String?
 
     @ObservationIgnored private let provider: any SubscriptionProvider
@@ -39,6 +42,7 @@ public final class PaywallViewModel {
         isLoading = true
         plans = await provider.loadPlans()
         activePlanID = await provider.activePlanID()
+        renewalDate = quotaManager.nextRenewalDate()
         isLoading = false
     }
 
@@ -69,11 +73,13 @@ public final class PaywallViewModel {
         case .purchased(let planID, let minutes):
             activePlanID = planID
             _ = quotaManager.resetBalance(toMinutes: minutes)
-            message = "Aboneliğin etkin. \(Int(minutes)) dakika hesabına tanımlandı."
+            renewalDate = quotaManager.nextRenewalDate()
+            message = "Aboneliğin etkin. Aylık \(Int(minutes)) dakika hesabına tanımlandı."
 
         case .restored(let planID, let minutes):
             activePlanID = planID
             _ = quotaManager.resetBalance(toMinutes: minutes)
+            renewalDate = quotaManager.nextRenewalDate()
             message = "Aboneliğin geri yüklendi."
 
         case .cancelled:
@@ -177,7 +183,7 @@ public struct SubscriptionPaywallView: View {
             }
             .padding(.top, AuraTheme.Spacing.stackLG)
 
-            Text(isQuotaEmpty ? "Bulut işleme durdu" : "Daha fazla dakika")
+            Text(isQuotaEmpty ? "Dakikan bitti" : "Daha fazla dakika")
                 .font(AuraFont.displayLarge)
                 .tracking(AuraFont.displayLargeTracking)
                 .foregroundStyle(AuraTheme.onBackground)
@@ -192,10 +198,24 @@ public struct SubscriptionPaywallView: View {
     }
 
     private var bodyText: String {
+        // Zero-Cloud modu dakikayı AYNI havuzdan harcıyor; burada "offline'da
+        // devam edebilirsin" demek kullanıcıyı çalışmayan bir yola yollamak
+        // olurdu. Kota bittiğinde söylenecek doğru şey yenileme tarihi.
         if isQuotaEmpty {
-            return "Bu ayki bulut transkripsiyon hakkını kullandın. Pro'ya geçebilir ya da Zero-Cloud modunda sınırsız kaydetmeye devam edebilirsin."
+            if let renewal = Self.renewalText(viewModel.renewalDate) {
+                return "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların \(renewal) yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin."
+            }
+            return "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin."
         }
-        return "Kalan \(AuraFormat.minutes(remainingMinutes)) bulut hakkın var. Zero-Cloud modu her planda sınırsız."
+        return "Kalan \(AuraFormat.minutes(remainingMinutes)) işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer."
+    }
+
+    static func renewalText(_ date: Date?) -> String? {
+        guard let date else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date) + "'te"
     }
 
     // MARK: Plan kartı
@@ -344,17 +364,27 @@ public struct SubscriptionPaywallView: View {
     private var footer: some View {
         VStack(spacing: AuraTheme.Spacing.stackMD) {
 
-            Button {
-                onContinueOffline()
-                dismiss()
-            } label: {
-                Text("ZERO-CLOUD MODUNDA DEVAM ET")
-                    .font(AuraFont.labelCaps)
-                    .tracking(AuraFont.labelCapsTracking)
-                    .foregroundStyle(AuraTheme.onSurfaceVariant)
-                    .underline(true, color: AuraTheme.hairline)
+            if isQuotaEmpty {
+                // Kota bittiğinde offline'a geçmek de işe yaramıyor; kullanıcıyı
+                // çalışmayan bir düğmeyle oyalamak yerine gerçeği yazıyoruz.
+                if let renewal = Self.renewalText(viewModel.renewalDate) {
+                    Label("Ücretsiz dakikaların \(renewal) yenilenecek", systemImage: "arrow.clockwise")
+                        .font(AuraFont.bodySmall)
+                        .foregroundStyle(AuraTheme.onSurfaceVariant)
+                }
+            } else {
+                Button {
+                    onContinueOffline()
+                    dismiss()
+                } label: {
+                    Text("ZERO-CLOUD MODUNDA DEVAM ET")
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.labelCapsTracking)
+                        .foregroundStyle(AuraTheme.onSurfaceVariant)
+                        .underline(true, color: AuraTheme.hairline)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             Button {
                 Task { await viewModel.restore() }

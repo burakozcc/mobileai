@@ -17,6 +17,19 @@ import Foundation
 
 public final class ProcessingRouter: Sendable {
 
+    /// Kota dolduğunda kaydı BİZ kapatıyoruz, ama ses o ana kadar yazılmaya
+    /// devam ediyor: durdurmayı tetikleyen örneklenmiş süre ile dosyaya yazılan
+    /// gerçek süre arasında birkaç yüz milisaniye fark oluşuyor. Bu fark, tam
+    /// olarak kotayı doldurduğu için durdurulmuş 45 dakikalık bir toplantıyı
+    /// "yetersiz kota" diye çöpe atıyordu. Tolerans o yüzden var; faturalanan
+    /// süre yine de bakiyeye kırpılıyor, yani kullanıcı sahip olmadığı dakikayı
+    /// hiçbir koşulda harcamıyor.
+    ///
+    /// 2 saniye bilinçli olarak dar: gerçek aşım ses tamponu boyutu (16 kHz'de
+    /// birkaç yüz ms) artı durdurma gecikmesi kadar. Daha geniş bir tolerans,
+    /// "bakiyesi yetmeyen kayıt reddedilir" kuralını anlamsızlaştırırdı.
+    public static let overrunToleranceSeconds: Double = 2
+
     private let offlineEngine: any ProcessingEngineProtocol
     private let onlineEngine: any ProcessingEngineProtocol
     private let quotaManager: QuotaManager
@@ -33,12 +46,15 @@ public final class ProcessingRouter: Sendable {
 
     public func execute(request: ProcessingRequest) async throws -> ProcessingResult {
         let available = quotaManager.getRemainingSeconds()
-        guard available >= request.durationSeconds else {
+        guard available + Self.overrunToleranceSeconds >= request.durationSeconds else {
             throw AuraError.insufficientQuota(
                 requiredSeconds: request.durationSeconds,
                 availableSeconds: available
             )
         }
+
+        // Faturalanabilir süre asla bakiyeyi aşmıyor.
+        let billableSeconds = min(request.durationSeconds, available)
 
         let startTime = CFAbsoluteTimeGetCurrent()
         let engine: any ProcessingEngineProtocol = switch request.mode {
@@ -50,13 +66,13 @@ public final class ProcessingRouter: Sendable {
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
         // Dakika yalnızca sonuç üretildikten sonra düşülür.
-        try quotaManager.deductUsage(durationSeconds: request.durationSeconds)
+        try quotaManager.deductUsage(durationSeconds: billableSeconds)
 
         return ProcessingResult(
             rawTranscript: raw.rawTranscript,
             summaryMarkdown: raw.summaryMarkdown,
             detectedLanguage: raw.detectedLanguage,
-            usedMinutes: request.durationSeconds / 60.0,
+            usedMinutes: billableSeconds / 60.0,
             processingTimeSeconds: elapsed,
             segments: raw.segments
         )
