@@ -2,62 +2,97 @@
 //  AuraTheme.swift
 //  AuraVoice
 //
-//  Dark Mode First tasarım dili. Tüm renk / tipografi / metrik sabitleri
-//  tek noktadan yönetilir ki mod değişiminde (Offline mint ↔ Online indigo)
-//  tüm ekranlar tutarlı kalsın.
+//  Tasarım sistemi — teslim edilen mockup'lardaki token setinin birebir
+//  Swift karşılığı (Material 3 tonal paleti).
+//
+//  TONAL AYRIM ÖNEMLİ: `primary` (#CDFFDE) soluk mint, koyu zemin üzerinde
+//  METİN ve İKON için. `primaryContainer` (#00F5A0) doygun mint, DOLGU için
+//  (buton yüzeyi, ilerleme çubuğu). İkisini karıştırmak kontrastı bozar:
+//  #00F5A0 üstüne beyaz metin okunmaz, #CDFFDE dolgu ise fazla soluk kalır.
+//  Aynı ayrım error (#FFB4AB metin / #93000A dolgu) ve secondary için de geçerli.
 //
 
 import SwiftUI
 
 public enum AuraTheme {
 
-    // MARK: - Renk Paleti
+    // MARK: - Yüzeyler
 
-    /// Ana arka plan — #0B0D11
-    public static let background = Color(auraHex: 0x0B0D11)
-    /// Kart yüzeyi — #161B22
-    public static let surface = Color(auraHex: 0x161B22)
-    /// Kart üstü ikincil yüzey (chip, alan doldurucu)
-    public static let surfaceElevated = Color(auraHex: 0x1E252F)
-    /// Offline "Zero-Cloud" güven rengi — #00F5A0
-    public static let mint = Color(auraHex: 0x00F5A0)
-    /// Canlı kayıt rengi — #FF3B30
-    public static let recordRed = Color(auraHex: 0xFF3B30)
-    /// Online vurgu rengi — #6366F1
-    public static let indigo = Color(auraHex: 0x6366F1)
-    /// Uyarı / kota kritik rengi
+    public static let background = Color(auraHex: 0x111317)
+    public static let surfaceDim = Color(auraHex: 0x111317)
+    public static let surfaceContainerLowest = Color(auraHex: 0x0C0E12)
+    public static let surfaceContainerLow = Color(auraHex: 0x1A1C20)
+    public static let surfaceContainer = Color(auraHex: 0x1E2024)
+    public static let surfaceContainerHigh = Color(auraHex: 0x282A2E)
+    public static let surfaceContainerHighest = Color(auraHex: 0x333539)
+    public static let surfaceVariant = Color(auraHex: 0x333539)
+    public static let surfaceBright = Color(auraHex: 0x37393E)
+
+    // MARK: - Primary (mint) — Offline / Zero-Cloud
+
+    /// Metin ve ikon rengi.
+    public static let primary = Color(auraHex: 0xCDFFDE)
+    /// Dolgu rengi (buton yüzeyi, ilerleme çubuğu).
+    public static let primaryContainer = Color(auraHex: 0x00F5A0)
+    public static let onPrimaryContainer = Color(auraHex: 0x006B43)
+    public static let primaryFixed = Color(auraHex: 0x50FFAF)
+    public static let primaryFixedDim = Color(auraHex: 0x00E293)
+    /// `primaryContainer` dolgusu üzerindeki metin.
+    public static let onPrimaryFixed = Color(auraHex: 0x002111)
+    public static let onPrimary = Color(auraHex: 0x003921)
+    public static let surfaceTint = Color(auraHex: 0x00E293)
+
+    // MARK: - Secondary (indigo) — Online / Bulut
+
+    public static let secondary = Color(auraHex: 0xC0C1FF)
+    public static let secondaryFixed = Color(auraHex: 0xE1E0FF)
+    public static let secondaryFixedDim = Color(auraHex: 0xC0C1FF)
+    public static let secondaryContainer = Color(auraHex: 0x3131C0)
+    public static let onSecondary = Color(auraHex: 0x1000A9)
+    public static let onSecondaryContainer = Color(auraHex: 0xB0B2FF)
+
+    // MARK: - Error — Canlı kayıt
+
+    public static let error = Color(auraHex: 0xFFB4AB)
+    public static let onError = Color(auraHex: 0x690005)
+    public static let errorContainer = Color(auraHex: 0x93000A)
+    public static let onErrorContainer = Color(auraHex: 0xFFDAD6)
+
+    // MARK: - Uyarı (kota kritik)
+
     public static let warning = Color(auraHex: 0xFFB020)
 
-    public static let textPrimary = Color(auraHex: 0xF2F5F9)
-    public static let textSecondary = Color(auraHex: 0x8B95A5)
+    // MARK: - Metin ve çizgiler
+
+    public static let onSurface = Color(auraHex: 0xE2E2E8)
+    public static let onBackground = Color(auraHex: 0xE2E2E8)
+    /// Yeşile çalan gri — ikincil metin.
+    public static let onSurfaceVariant = Color(auraHex: 0xB9CBBD)
+    public static let outline = Color(auraHex: 0x849588)
+    public static let outlineVariant = Color(auraHex: 0x3B4A40)
+    /// Cam panel kenarı.
     public static let hairline = Color.white.opacity(0.07)
 
     // MARK: - Metrikler
 
-    public static let cardRadius: CGFloat = 22
-    public static let controlRadius: CGFloat = 14
-    public static let screenPadding: CGFloat = 20
-
-    // MARK: - Mod Bazlı Yardımcılar
-
-    /// Seçili işleme moduna göre vurgu rengi.
-    public static func accent(for mode: ProcessingMode) -> Color {
-        switch mode {
-        case .offlineZeroCloud: return mint
-        case .onlineCloudFast:  return indigo
-        }
+    public enum Radius {
+        public static let small: CGFloat = 4
+        public static let large: CGFloat = 8
+        /// Kartların standart yarıçapı.
+        public static let extraLarge: CGFloat = 12
     }
 
-    public static func accentGradient(for mode: ProcessingMode) -> LinearGradient {
-        let base = accent(for: mode)
-        return LinearGradient(
-            colors: [base, base.opacity(0.45)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    public enum Spacing {
+        public static let stackSM: CGFloat = 8
+        public static let gutter: CGFloat = 12
+        public static let stackMD: CGFloat = 16
+        public static let stackLG: CGFloat = 24
+        public static let screenMargin: CGFloat = 20
     }
 
-    /// Kart arka planı için kullanılan hafif "cam" degrade.
+    // MARK: - Cam panel
+
+    /// Mockup'lardaki `.glass-panel` degradesi.
     public static var glassGradient: LinearGradient {
         LinearGradient(
             colors: [Color.white.opacity(0.055), Color.white.opacity(0.015)],
@@ -65,12 +100,72 @@ public enum AuraTheme {
             endPoint: .bottomTrailing
         )
     }
+
+    // MARK: - Mod bazlı yardımcılar
+
+    /// Metin ve ikon için mod rengi.
+    public static func accent(for mode: ProcessingMode) -> Color {
+        switch mode {
+        case .offlineZeroCloud: return primary
+        case .onlineCloudFast:  return secondary
+        }
+    }
+
+    /// Dolgu için mod rengi (buton yüzeyi vb.).
+    public static func accentFill(for mode: ProcessingMode) -> Color {
+        switch mode {
+        case .offlineZeroCloud: return primaryContainer
+        case .onlineCloudFast:  return secondaryContainer
+        }
+    }
+
+    /// Dolgunun üzerine gelen metin rengi.
+    public static func onAccentFill(for mode: ProcessingMode) -> Color {
+        switch mode {
+        case .offlineZeroCloud: return onPrimaryFixed
+        case .onlineCloudFast:  return secondaryFixed
+        }
+    }
+}
+
+// MARK: - Tipografi
+
+public enum AuraFont {
+
+    /// Gövde metni ailesi. `useBundledInter` açılırsa paketlenmiş Inter,
+    /// kapalıyken sistem fontu (SF Pro) kullanılır — SF Pro dinamik tip ve
+    /// optik boyut ayarıyla iOS'ta daha doğru davranır ve paket boyutu eklemez.
+    public static let useBundledInter = false
+
+    private static func text(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        useBundledInter
+            ? .custom("Inter", size: size).weight(weight)
+            : .system(size: size, weight: weight)
+    }
+
+    /// Rakam gösterimleri (süre, dakika) — mockup'ta Be Vietnam Pro.
+    private static func digits(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        .system(size: size, weight: weight, design: .rounded)
+    }
+
+    public static let displayLarge = text(34, .bold)
+    public static let headlineMedium = text(24, .semibold)
+    public static let bodyLarge = text(17, .regular)
+    public static let bodySmall = text(15, .regular)
+    public static let labelCaps = text(12, .semibold)
+    public static let digitMono = digits(17, .medium)
+    public static let durationDisplay = digits(48, .medium)
+
+    // Harf aralığı (em değerleri pt karşılığına çevrildi)
+    public static let displayLargeTracking: CGFloat = -0.68
+    public static let headlineMediumTracking: CGFloat = -0.24
+    public static let labelCapsTracking: CGFloat = 0.6
+    public static let durationTracking: CGFloat = -0.48
 }
 
 // MARK: - Color + Hex
 
 public extension Color {
-    /// `Color(auraHex: 0x0B0D11)` biçiminde kullanım için.
     init(auraHex hex: UInt32, opacity: Double = 1.0) {
         let r = Double((hex >> 16) & 0xFF) / 255.0
         let g = Double((hex >> 8) & 0xFF) / 255.0
@@ -82,16 +177,35 @@ public extension Color {
 // MARK: - Ortak View Modifier'ları
 
 public extension View {
-    /// Ekranın tamamını AuraVoice arka planıyla kaplar.
+
     func auraBackground() -> some View {
         self
             .background(AuraTheme.background.ignoresSafeArea())
             .preferredColorScheme(.dark)
     }
 
-    /// Metin/ikon üzerine mod rengiyle yumuşak parıltı.
-    func auraGlow(_ color: Color, radius: CGFloat = 18, opacity: Double = 0.45) -> some View {
+    func auraGlow(_ color: Color, radius: CGFloat = 20, opacity: Double = 0.15) -> some View {
         shadow(color: color.opacity(opacity), radius: radius, x: 0, y: 0)
+    }
+
+    /// Mockup'lardaki `.glass-panel` yüzeyi.
+    func glassSurface(
+        cornerRadius: CGFloat = AuraTheme.Radius.extraLarge,
+        borderColor: Color = AuraTheme.hairline,
+        borderWidth: CGFloat = 1
+    ) -> some View {
+        background {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(AuraTheme.surfaceContainerLow)
+                .overlay {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .fill(AuraTheme.glassGradient)
+                }
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(borderColor, lineWidth: borderWidth)
+        }
     }
 }
 
@@ -124,5 +238,33 @@ public enum AuraFormat {
     public static func meetingSubtitle(start: Date, durationMinutes: Int) -> String {
         let time = start.formatted(date: .omitted, time: .shortened)
         return "\(time) · \(durationMinutes) dk"
+    }
+}
+
+// MARK: - Geriye Dönük Uyumluluk
+//
+// Ekranlar tek tek yeni tasarıma geçirilene kadar eski isimler çalışmaya
+// devam etsin diye tutuluyor. Her ekran dönüştürüldükçe ilgili alias silinecek.
+
+public extension AuraTheme {
+
+    static var surface: Color { surfaceContainerLow }
+    static var surfaceElevated: Color { surfaceContainerHigh }
+    static var mint: Color { primary }
+    static var indigo: Color { secondary }
+    static var recordRed: Color { error }
+    static var textPrimary: Color { onSurface }
+    static var textSecondary: Color { onSurfaceVariant }
+    static var cardRadius: CGFloat { Radius.extraLarge }
+    static var controlRadius: CGFloat { Radius.large }
+    static var screenPadding: CGFloat { Spacing.screenMargin }
+
+    static func accentGradient(for mode: ProcessingMode) -> LinearGradient {
+        let base = accentFill(for: mode)
+        return LinearGradient(
+            colors: [base, base.opacity(0.45)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }

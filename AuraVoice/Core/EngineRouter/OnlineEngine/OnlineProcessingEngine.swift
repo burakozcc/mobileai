@@ -50,14 +50,7 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
         store: any CloudCredentialStore = KeychainCredentialStore(),
         bundle: Bundle = .main
     ) -> OnlineProcessingEngine {
-        let route: CloudRoute
-        if let raw = bundle.object(forInfoDictionaryKey: "AuraCloudProxyBaseURL") as? String,
-           let url = URL(string: raw), url.scheme == "https" {
-            route = .proxy(baseURL: url)
-        } else {
-            route = .userProvidedKey
-        }
-        return OnlineProcessingEngine(route: route, store: store)
+        OnlineProcessingEngine(route: .makeDefault(bundle: bundle), store: store)
     }
 
     public func process(request: ProcessingRequest) async throws -> ProcessingResult {

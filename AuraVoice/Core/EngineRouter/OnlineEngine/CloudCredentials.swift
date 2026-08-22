@@ -179,7 +179,7 @@ public final class InMemoryCredentialStore: CloudCredentialStore, @unchecked Sen
 public struct CloudRequestBuilder: Sendable {
 
     public let route: CloudRoute
-    private let store: any CloudCredentialStore
+    let store: any CloudCredentialStore
 
     public init(route: CloudRoute, store: any CloudCredentialStore) {
         self.route = route
@@ -189,8 +189,9 @@ public struct CloudRequestBuilder: Sendable {
     public func makeRequest(
         provider: CloudProvider,
         path: String,
-        body: Data,
-        extraHeaders: [String: String] = [:]
+        body: Data?,
+        extraHeaders: [String: String] = [:],
+        method: String = "POST"
     ) throws -> URLRequest {
 
         let url: URL
@@ -225,7 +226,7 @@ public struct CloudRequestBuilder: Sendable {
         }
 
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = method
         request.httpBody = body
         request.timeoutInterval = 120
         for (field, value) in headers {
