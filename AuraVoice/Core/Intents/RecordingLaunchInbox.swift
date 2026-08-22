@@ -17,7 +17,7 @@
 
 import Foundation
 
-public struct RecordingLaunchRequest: Codable, Sendable, Equatable {
+public struct RecordingLaunchRequest: Sendable, Equatable {
 
     public let source: RecordingTriggerSource
     public let template: SummaryTemplate
@@ -39,42 +39,67 @@ public struct RecordingLaunchRequest: Codable, Sendable, Equatable {
         self.contextTitle = contextTitle
         self.createdAt = createdAt
     }
+
+    // MARK: Uzantı sınırı
+
+    /// Uygulama enum'larından düz String'lere. Uzantı bu biçimi okuyor.
+    public var shared: SharedLaunchRequest {
+        SharedLaunchRequest(
+            source: source.rawValue,
+            template: template.rawValue,
+            mode: mode?.rawValue,
+            contextTitle: contextTitle,
+            createdAt: createdAt
+        )
+    }
+
+    /// Tanınmayan değerler güvenli varsayılana düşüyor: uzantı ile uygulama
+    /// sürümleri farklı olabilir (kullanıcı güncellemeyi yarım bırakabilir) ve
+    /// bu yüzden kayıt hiç başlamaması kabul edilemez.
+    public init(_ shared: SharedLaunchRequest) {
+        self.source = RecordingTriggerSource(rawValue: shared.source) ?? .widget
+        self.template = SummaryTemplate(rawValue: shared.template) ?? .meetingNotes
+        self.mode = shared.mode.flatMap(ProcessingMode.init(rawValue:))
+        self.contextTitle = shared.contextTitle
+        self.createdAt = shared.createdAt
+    }
 }
 
-public final class RecordingLaunchInbox: Sendable {
-
-    /// Widget uzantısı eklendiğinde bu App Group'a taşınacak; şu an ana
-    /// uygulamanın kendi alanı yeterli çünkü intent'ler uygulama sürecinde
-    /// çalışıyor.
-    public static let appGroupIdentifier = "group.com.auravoice.shared"
+/// `UserDefaults` Sendable olarak işaretlenmemiş ama belgelenmiş şekilde
+/// iş parçacığı güvenli; kutunun kendi durumu yok, o yüzden `@unchecked`.
+public final class RecordingLaunchInbox: @unchecked Sendable {
 
     public static let shared = RecordingLaunchInbox()
 
     /// Bu süreden eski istekler yok sayılır.
     public static let freshnessWindow: TimeInterval = 5 * 60
 
-    private let key = "aura.recording.launchRequest"
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = .standard) {
+    /// Varsayılan olarak App Group konteyneri kullanılıyor: widget uzantısı
+    /// ayrı bir süreçte çalıştığı için standart alan ikisini buluşturmaz.
+    /// Yetki verilmemişse `sharedDefaults()` standart alana düşüyor —
+    /// uygulama içi tetikleyiciler (Siri, Action Button) yine çalışır.
+    public init(defaults: UserDefaults = AuraSharedContract.sharedDefaults()) {
         self.defaults = defaults
     }
+
+    // MARK: Yazma
 
     /// İsteği bırakır. Bekleyen bir istek varsa üzerine yazar — kullanıcının
     /// en son söylediği şey geçerlidir.
     public func submit(_ request: RecordingLaunchRequest) {
-        guard let data = try? JSONEncoder().encode(request) else { return }
-        defaults.set(data, forKey: key)
+        request.shared.write(to: defaults)
     }
+
+    // MARK: Okuma
 
     /// İsteği okur ve kutuyu boşaltır. Bayat istek nil döner.
     public func take(now: Date = Date()) -> RecordingLaunchRequest? {
-        guard let data = defaults.data(forKey: key) else { return nil }
-        defaults.removeObject(forKey: key)
+        let request = decode()
+        defaults.removeObject(forKey: AuraSharedContract.launchRequestKey)
 
-        guard let request = try? JSONDecoder().decode(RecordingLaunchRequest.self, from: data) else {
-            return nil
-        }
+        guard let request else { return nil }
         // Gelecekten gelen damga da şüpheli (saat oynatılmış): mutlak farka bak.
         guard abs(now.timeIntervalSince(request.createdAt)) <= Self.freshnessWindow else {
             return nil
@@ -84,11 +109,17 @@ public final class RecordingLaunchInbox: Sendable {
 
     /// Okumadan bakmak isteyenler için (teşhis).
     public func peek() -> RecordingLaunchRequest? {
-        guard let data = defaults.data(forKey: key) else { return nil }
-        return try? JSONDecoder().decode(RecordingLaunchRequest.self, from: data)
+        decode()
     }
 
     public func clear() {
-        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: AuraSharedContract.launchRequestKey)
+    }
+
+    private func decode() -> RecordingLaunchRequest? {
+        guard let data = defaults.data(forKey: AuraSharedContract.launchRequestKey),
+              let shared = try? JSONDecoder().decode(SharedLaunchRequest.self, from: data)
+        else { return nil }
+        return RecordingLaunchRequest(shared)
     }
 }

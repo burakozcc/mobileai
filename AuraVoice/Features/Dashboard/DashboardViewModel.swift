@@ -155,6 +155,12 @@ public final class DashboardViewModel {
         remainingSeconds = quotaManager.getRemainingSeconds()
         isOfflineModelReady = OfflineModelManager.isOfflineReady()
 
+        // Widget kotayı kendi hesaplamıyor; buradan besleniyor.
+        QuotaSnapshotPublisher.publish(
+            remainingMinutes: remainingMinutes,
+            planMinutes: planMonthlyMinutes
+        )
+
         do {
             notes = try await repository.all()
             minutesUsedThisMonth = try await repository.minutesUsedThisMonth()

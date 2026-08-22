@@ -55,6 +55,8 @@ targets:
       # Konusmaci ayristirma (Pyannote v4) - ayni paketin urunu.
       - package: ArgmaxOSS
         product: SpeakerKit
+      # Widget uzantisi uygulamaya gomulur (XcodeGen embed adimini kendisi ekler).
+      - target: AuraVoiceWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.auravoice.app
@@ -101,6 +103,33 @@ targets:
         # --- Arka planda kayıt (ekran kilitlendiğinde kaydın kesilmemesi için)
         UIBackgroundModes:
           - audio
+
+  AuraVoiceWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: AuraVoiceWidget
+      # App Group sinirindaki TEK ortak dosya. Uygulamanin geri kalani
+      # uzantiya girmiyor; gerekcesi dosyanin basinda yazili.
+      - path: AuraVoice/Core/Intents/SharedLaunchContract.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.auravoice.app.widget
+        PRODUCT_NAME: AuraVoiceWidget
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGN_ENTITLEMENTS: Support/AuraVoiceWidget.entitlements
+        SKIP_INSTALL: YES
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: Support/AuraVoiceWidget-Info.plist
+      properties:
+        CFBundleDisplayName: AuraVoice
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
   AuraVoiceTests:
     type: bundle.unit-test

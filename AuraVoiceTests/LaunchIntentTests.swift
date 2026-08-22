@@ -185,3 +185,65 @@ struct IntentParameterMappingTests {
         }
     }
 }
+
+@Suite("Uzantı sözleşmesi")
+struct SharedContractValueTests {
+
+    @Test("Uzantının elle yazdığı ham değerler enum'larla aynı")
+    func rawValuesMatchAppEnums() {
+        // Uzantı uygulamanın enum'larını göremiyor ve bu String'leri elle
+        // taşıyor. Enum ham değeri değişip burası unutulursa widget düğmesi
+        // sessizce yanlış şablonla kayıt açardı — bu test onu yakalar.
+        #expect(AuraSharedContract.Values.widgetSource == RecordingTriggerSource.widget.rawValue)
+        #expect(AuraSharedContract.Values.meetingTemplate == SummaryTemplate.meetingNotes.rawValue)
+        #expect(AuraSharedContract.Values.offlineMode == ProcessingMode.offlineZeroCloud.rawValue)
+    }
+
+    @Test("Sınır dönüşümü kayıpsız")
+    func boundaryRoundTrip() {
+        let original = RecordingLaunchRequest(
+            source: .actionButton,
+            template: .phoneCallSummary,
+            mode: .onlineCloudFast,
+            contextTitle: "Müşteri görüşmesi"
+        )
+        let restored = RecordingLaunchRequest(original.shared)
+
+        #expect(restored == original)
+    }
+
+    @Test("Tanınmayan değerler güvenli varsayılana düşer")
+    func unknownValuesFallBack() {
+        let request = RecordingLaunchRequest(SharedLaunchRequest(
+            source: "gelecekteki-kaynak",
+            template: "bilinmeyen-sablon",
+            mode: "bilinmeyen-mod"
+        ))
+
+        #expect(request.source == .widget)
+        #expect(request.template == .meetingNotes)
+        // Mod tanınmadıysa nil kalıyor: kullanıcının panel seçimi kazanır,
+        // yanlış modda kayıt açmaktansa mevcut tercihi korunur.
+        #expect(request.mode == nil)
+    }
+
+    @Test("Kota oranı 0...1 aralığında kalır", arguments: zip(
+        [30.0, 0.0, 45.0, 10.0],
+        [30.0, 30.0, 30.0, 0.0]
+    ))
+    func snapshotFractionIsClamped(remaining: Double, plan: Double) {
+        let fraction = SharedQuotaSnapshot(remainingMinutes: remaining, planMinutes: plan).fraction
+        #expect(fraction >= 0 && fraction <= 1)
+    }
+
+    @Test("Plan tanımsızsa oran sıfır — yanlış güven verilmez")
+    func unknownPlanMeansEmptyRing() {
+        #expect(SharedQuotaSnapshot(remainingMinutes: 45, planMinutes: 0).fraction == 0)
+    }
+
+    @Test("Yarım dakikanın altı boş sayılır")
+    func nearlyZeroIsEmpty() {
+        #expect(SharedQuotaSnapshot(remainingMinutes: 0.4, planMinutes: 30).isEmpty)
+        #expect(!SharedQuotaSnapshot(remainingMinutes: 0.6, planMinutes: 30).isEmpty)
+    }
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        Ana uygulamayla AYNI grup kimliği olmak zorunda; farklı olursa uzantı
+        kendi boş konteynerine yazar ve widget düğmesi hiçbir şey yapmaz.
+    -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.auravoice.shared</string>
+    </array>
+</dict>
+</plist>

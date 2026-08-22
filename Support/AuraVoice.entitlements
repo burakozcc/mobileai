@@ -14,5 +14,18 @@
     -->
     <key>com.apple.developer.usernotifications.time-sensitive</key>
     <true/>
+
+    <!--
+        Widget uzantısıyla ortak konteyner. Uzantı ayrı bir süreçte çalıştığı
+        için "kaydı başlat" isteği ve kota anlık görüntüsü buradan geçiyor.
+
+        Xcode'da Signing & Capabilities > App Groups altında aynı kimlikle
+        açılmalı. Açılmazsa uygulama çalışmaya devam eder (kod standart
+        UserDefaults'a düşüyor), yalnızca widget köprüsü sessizce kurulmaz.
+    -->
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.com.auravoice.shared</string>
+    </array>
 </dict>
 </plist>
