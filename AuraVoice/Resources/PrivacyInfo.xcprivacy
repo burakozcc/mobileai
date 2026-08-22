@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        AuraVoice gizlilik manifestosu.
+
+        Offline (Zero-Cloud) modda HICBIR VERI cihazdan cikmaz: transkripsiyon,
+        ozetleme ve konusmaci ayristirma tamamen cihazda calisir.
+
+        Online modda yalnizca ses kaydi, kullanicinin acikca sectigi islemeyi
+        yapmak uzere saglayiciya gonderilir. Reklam veya izleme amaci yoktur.
+    -->
+
+    <key>NSPrivacyTracking</key>
+    <false/>
+
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <dict>
+            <!-- Yalnizca Online modda; Offline modda toplanmaz. -->
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeAudioData</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <!--
+                Kullanici tercihleri (secili mod, ayristirma acik/kapali,
+                onboarding tamamlandi) UserDefaults'ta tutuluyor.
+                CA92.1 = yalnizca uygulamanin kendi verisine erisim.
+            -->
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
