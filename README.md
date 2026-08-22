@@ -3,7 +3,7 @@
 Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
 ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-**Durum:** 211 test / 34 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
+**Durum:** 224 test / 36 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
 Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
 Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
 gerektiriyor (aşağıda).
@@ -116,6 +116,7 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
 | SwiftData depolama, arama, göç, yetim temizliği | Tam |
 | Kota yönetimi (Keychain, hata yutmayan) | Tam |
 | Ed25519 imzalı dakika biletleri + tekrar kullanım defteri | Tam (sunucu bekliyor) |
+| Paywall ekranı + satın alma sınırı | Tam (RevenueCat bekliyor) |
 | Model indirme ekranı, ayarlar, onboarding | Tam |
 | Not detayı: bölümler, işaretlenebilir görevler, transkript akordeonu | Tam |
 | Siri / Kısayollar / Action Button (App Intents) | Tam |
@@ -129,8 +130,9 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
    cihazda doğrulama henüz yok.
 2. **Backend proxy.** `.proxy` rotası ve bilet imzalama için. Bilet doğrulama
    tarafı hazır, imzalayan taraf yok.
-3. **RevenueCat paywall.** App Store Connect hesabı ve RevenueCat API anahtarı
-   gerekiyor.
+3. **RevenueCat bağlantısı.** Paywall ekranı ve akış hazır; geriye
+   `SubscriptionProvider` protokolünü uygulayan tek bir sınıf kaldı.
+   App Store Connect hesabı ve RevenueCat API anahtarı gerekiyor.
 4. **Nöral cihaz içi özetleyici.** `LocalSummarizer` protokolü hazır;
    ExecuTorch / llama.cpp / Apple Foundation Models arka ucu takılacak.
    `ExtractiveSummarizer` yedek olarak kalacak.
