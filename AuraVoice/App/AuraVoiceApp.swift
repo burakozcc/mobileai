@@ -13,7 +13,7 @@ struct AuraVoiceApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DashboardView()
+            RootTabView()
         }
         // Yazma işleri `DatabaseManager` aktörü üzerinden gidiyor; bu konteyner
         // görünümlerin ileride `@Query` kullanabilmesi için bağlanıyor.

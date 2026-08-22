@@ -328,7 +328,8 @@ public struct DashboardView: View {
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(viewModel.isQuotaEmpty ? AuraTheme.warning : AuraTheme.textSecondary)
         }
-        .padding(.bottom, 10)
+        // Sekme çubuğunun üstünde kalsın.
+        .padding(.bottom, 88)
         .background {
             LinearGradient(
                 colors: [AuraTheme.background.opacity(0), AuraTheme.background.opacity(0.92), AuraTheme.background],

@@ -72,11 +72,15 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
 
         progress?(1.0)
 
-        let turns = result.segments.map { segment in
-            SpeakerTurn(
-                startSeconds: Double(segment.start),
-                endSeconds: Double(segment.end),
-                rawSpeakerID: segment.speaker
+        // `SpeakerInfo` bir enum: .speakerId(Int) / .multiple([Int]) / .noMatch.
+        // `.multiple` üst üste binen konuşma demek — tek kişiye atfetmek yerine
+        // atlıyoruz, `.noMatch` zaten kimliksiz.
+        let turns = result.segments.compactMap { segment -> SpeakerTurn? in
+            guard let speakerID = segment.speaker.speakerId else { return nil }
+            return SpeakerTurn(
+                startSeconds: Double(segment.startTime),
+                endSeconds: Double(segment.endTime),
+                rawSpeakerID: "S\(speakerID)"
             )
         }
         .filter { $0.duration > 0 }
