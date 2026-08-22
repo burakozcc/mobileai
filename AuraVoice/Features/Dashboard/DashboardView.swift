@@ -67,9 +67,15 @@ public struct DashboardView: View {
             .presentationDragIndicator(.hidden)
             .interactiveDismissDisabled(true)
         }
-        .sheet(isPresented: $viewModel.isPaywallPresented) {
-            PaywallPlaceholderView(remainingMinutes: viewModel.remainingMinutes)
-                .presentationDetents([.medium, .large])
+        .fullScreenCover(isPresented: $viewModel.isPaywallPresented) {
+            SubscriptionPaywallView(
+                remainingMinutes: viewModel.remainingMinutes,
+                usedMinutes: viewModel.minutesUsedThisMonth
+            ) {
+                // "Zero-Cloud modunda devam et" — sadece kapatmakla kalmıyor,
+                // kullanıcıyı gerçekten kotasız çalışan moda alıyor.
+                viewModel.select(mode: .offlineZeroCloud)
+            }
         }
         .alert(
             "Bir sorun var",
@@ -513,41 +519,6 @@ public struct DashboardView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(viewModel.isQuotaEmpty ? "Dakika bakiyen bitti" : "Kaydı başlat")
-    }
-}
-
-// MARK: - Geçici Paywall
-
-/// `SubscriptionPaywallView` (RevenueCat) devreye girene kadarki yer tutucu.
-struct PaywallPlaceholderView: View {
-    let remainingMinutes: Double
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        ZStack {
-            AuraTheme.background.ignoresSafeArea()
-            VStack(spacing: AuraTheme.Spacing.stackMD) {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(AuraTheme.warning)
-                Text("AuraVoice Pro")
-                    .font(AuraFont.headlineMedium)
-                    .tracking(AuraFont.headlineMediumTracking)
-                    .foregroundStyle(AuraTheme.onSurface)
-                Text("Kalan: \(AuraFormat.minutes(remainingMinutes))\nAbonelik entegrasyonu bir sonraki adımda bağlanacak.")
-                    .font(AuraFont.bodySmall)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(AuraTheme.onSurfaceVariant)
-                Button("Kapat") { dismiss() }
-                    .font(AuraFont.labelCaps)
-                    .foregroundStyle(AuraTheme.onPrimaryFixed)
-                    .padding(.horizontal, AuraTheme.Spacing.stackLG)
-                    .padding(.vertical, AuraTheme.Spacing.gutter)
-                    .background { Capsule().fill(AuraTheme.primaryContainer) }
-            }
-            .padding(AuraTheme.Spacing.stackLG)
-        }
-        .preferredColorScheme(.dark)
     }
 }
 
