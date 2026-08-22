@@ -2,8 +2,13 @@
 //  RecordingView.swift
 //  AuraVoice
 //
-//  Aktif kayıt ekranı: canlı dalga formu, süre, kalan kota geri sayımı ve
-//  kayıt sonrası işleme akışı (ProcessingRouter → NoteSummary).
+//  Aktif kayıt ekranı — mockup düzeni: nefes alan kırmızı arka plan parıltısı,
+//  büyük süre sayacı, canlı dalga formu, şablon seçici ve üç kontrol.
+//
+//  NOT: Mockup'ta dalga formu merkeze doğru yükselen dekoratif bir zarf
+//  kullanıyor (rastgele veriyle çizildiği için). Bizde çubuklar GERÇEK ses
+//  seviyesini gösteriyor ve soldan sağa akıyor; dekoratif zarfı uygulamak
+//  veriyi çarpıtırdı, o yüzden yalnızca renk ve ölçü mockup'a uyarlandı.
 //
 
 import SwiftUI
@@ -49,12 +54,15 @@ public struct RecordingView: View {
     @State private var allowanceSeconds: Double = 0
     @State private var showCancelConfirm = false
     @State private var processingStatus = "Hazırlanıyor…"
+    @State private var isBreathing = false
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let router = ProcessingRouter()
 
     private var accent: Color { AuraTheme.accent(for: intent.mode) }
+    private var isLive: Bool { phase == .recording }
 
     private var remainingAllowance: Double {
         max(0, allowanceSeconds - recorder.currentDuration)
@@ -69,28 +77,31 @@ public struct RecordingView: View {
     public var body: some View {
         ZStack {
             AuraTheme.background.ignoresSafeArea()
-            backdropGlow
+            ambientGlow
 
             VStack(spacing: 0) {
                 header
-                Spacer(minLength: 12)
-                timerBlock
-                waveformBlock
-                Spacer(minLength: 12)
-                templatePicker
+                Spacer(minLength: AuraTheme.Spacing.stackMD)
+                statusBlock
+                durationCounter
+                waveform
+                Spacer(minLength: AuraTheme.Spacing.stackMD)
+                templateSelector
                 controls
             }
-            .padding(.horizontal, AuraTheme.screenPadding)
-            .padding(.vertical, 22)
+            .padding(.horizontal, AuraTheme.Spacing.screenMargin)
+            .padding(.bottom, AuraTheme.Spacing.stackLG)
 
             if case .processing = phase {
-                processingOverlay
-                    .transition(.opacity)
+                processingOverlay.transition(.opacity)
             }
         }
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.25), value: phase)
-        .task { await beginRecording() }
+        .task {
+            await beginRecording()
+            if !reduceMotion { isBreathing = true }
+        }
         .onChange(of: recorder.currentDuration) { _, duration in
             // Kota bittiği anda kaydı otomatik kapat — kullanıcı ödemediği
             // dakikayı kaydetmiş olmasın.
@@ -116,41 +127,24 @@ public struct RecordingView: View {
 
     // MARK: Arka plan parıltısı
 
-    private var backdropGlow: some View {
-        RadialGradient(
-            colors: [
-                (phase == .recording ? AuraTheme.recordRed : accent)
-                    .opacity(0.16 + Double(recorder.peakLevel) * 0.16),
-                .clear
-            ],
-            center: .center,
-            startRadius: 10,
-            endRadius: 330
-        )
-        .ignoresSafeArea()
-        .animation(.easeOut(duration: 0.18), value: recorder.peakLevel)
+    private var ambientGlow: some View {
+        Circle()
+            .fill((isLive ? AuraTheme.error : accent).opacity(0.10))
+            .frame(width: 260, height: 260)
+            .blur(radius: 90)
+            .scaleEffect(isBreathing && isLive ? 1.25 : 1.0)
+            .animation(
+                reduceMotion ? nil : .easeInOut(duration: 3).repeatForever(autoreverses: true),
+                value: isBreathing
+            )
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
     }
 
-    // MARK: Üst Bar
+    // MARK: Üst bar
 
     private var header: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                AuraBadge(
-                    intent.mode == .offlineZeroCloud ? "Zero-Cloud · Cihaz İçi" : "Bulut · Hızlı",
-                    systemImage: intent.mode.systemImage,
-                    tint: accent
-                )
-                if let context = intent.contextTitle {
-                    Text(context)
-                        .font(.system(size: 17, weight: .semibold, design: .rounded))
-                        .foregroundStyle(AuraTheme.textPrimary)
-                        .lineLimit(2)
-                }
-            }
-
-            Spacer(minLength: 8)
-
+        HStack {
             Button {
                 if recorder.currentDuration > 1 {
                     showCancelConfirm = true
@@ -160,110 +154,152 @@ public struct RecordingView: View {
                     dismiss()
                 }
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(AuraTheme.textSecondary)
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(AuraTheme.surface))
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    .frame(width: 38, height: 38)
             }
             .buttonStyle(.plain)
             .disabled(phase == .processing)
-            .accessibilityLabel("Kaydı iptal et")
+            .accessibilityLabel("Kapat")
+
+            Spacer()
+
+            HStack(spacing: 5) {
+                Image(systemName: intent.mode.systemImage)
+                    .font(.system(size: 11, weight: .bold))
+                Text(intent.mode == .offlineZeroCloud ? "ZERO-CLOUD" : "BULUT")
+                    .font(AuraFont.labelCaps)
+                    .tracking(AuraFont.labelCapsTracking)
+            }
+            .foregroundStyle(accent)
+            .padding(.horizontal, AuraTheme.Spacing.gutter)
+            .padding(.vertical, 7)
+            .glassSurface(cornerRadius: 20, borderColor: accent.opacity(0.20))
+
+            Spacer()
+
+            // Dengeleyici boşluk.
+            Color.clear.frame(width: 38, height: 38)
         }
+        .padding(.vertical, AuraTheme.Spacing.gutter)
     }
 
-    // MARK: Sayaç
+    // MARK: Durum
 
-    private var timerBlock: some View {
-        VStack(spacing: 10) {
-            Text(AuraFormat.clock(recorder.currentDuration))
-                .font(.system(size: 58, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(AuraTheme.textPrimary)
-                .contentTransition(.numericText(countsDown: false))
-                .animation(.linear(duration: 0.15), value: Int(recorder.currentDuration))
+    private var statusBlock: some View {
+        VStack(spacing: 4) {
+            Text(statusText.uppercased())
+                .font(AuraFont.labelCaps)
+                .tracking(AuraFont.labelCapsTracking + 0.8)
+                .foregroundStyle(isLive ? AuraTheme.error : AuraTheme.onSurfaceVariant)
 
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(phase == .recording ? AuraTheme.recordRed : AuraTheme.textSecondary)
-                    .frame(width: 8, height: 8)
-                    .opacity(phase == .recording ? 0.35 + Double(recorder.peakLevel) * 0.65 : 0.5)
-                    .animation(.easeOut(duration: 0.15), value: recorder.peakLevel)
-
-                Text(statusText)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(phase == .recording ? AuraTheme.recordRed : AuraTheme.textSecondary)
+            if let context = intent.contextTitle {
+                Text(context)
+                    .font(AuraFont.bodySmall)
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    .lineLimit(1)
             }
 
             if allowanceSeconds > 0 {
-                Text("Kota: \(AuraFormat.clock(remainingAllowance)) kaldı")
-                    .font(.system(size: 12, weight: isAllowanceCritical ? .semibold : .regular))
-                    .foregroundStyle(isAllowanceCritical ? AuraTheme.warning : AuraTheme.textSecondary)
+                Text("\(AuraFormat.clock(remainingAllowance)) kota kaldı")
+                    .font(AuraFont.bodySmall)
+                    .foregroundStyle(isAllowanceCritical ? AuraTheme.warning : AuraTheme.onSurfaceVariant)
             }
         }
     }
 
     private var statusText: String {
         switch phase {
-        case .preparing:      return "Mikrofon hazırlanıyor"
-        case .recording:      return "Kaydediliyor"
-        case .paused:         return "Duraklatıldı"
-        case .processing:     return "İşleniyor"
-        case .failed(let m):  return m
+        case .preparing:     return "Hazırlanıyor"
+        case .recording:     return "Kaydediliyor"
+        case .paused:        return "Duraklatıldı"
+        case .processing:    return "İşleniyor"
+        case .failed(let m): return m
         }
     }
 
-    // MARK: Dalga Formu
+    // MARK: Sayaç
 
-    private var waveformBlock: some View {
-        LiveWaveformView(
-            levels: recorder.audioLevels,
-            tint: phase == .recording ? AuraTheme.recordRed : accent,
-            isActive: phase == .recording
-        )
-        .frame(height: 150)
-        .padding(.vertical, 18)
+    private var durationCounter: some View {
+        Text(AuraFormat.clock(recorder.currentDuration))
+            .font(AuraFont.durationDisplay)
+            .tracking(AuraFont.durationTracking)
+            .monospacedDigit()
+            .foregroundStyle(AuraTheme.onSurface)
+            .contentTransition(.numericText(countsDown: false))
+            .animation(.linear(duration: 0.15), value: Int(recorder.currentDuration))
+            .padding(.vertical, AuraTheme.Spacing.stackLG)
+            .accessibilityLabel("Kayıt süresi")
+            .accessibilityValue(AuraFormat.clock(recorder.currentDuration))
     }
 
-    // MARK: Şablon Seçici
+    // MARK: Dalga formu
 
-    private var templatePicker: some View {
-        HStack(spacing: 8) {
+    private var waveform: some View {
+        LiveWaveformView(
+            levels: recorder.audioLevels,
+            tint: isLive ? AuraTheme.error : accent,
+            isActive: isLive,
+            barWidth: 4,
+            spacing: 4
+        )
+        .frame(height: 96)
+    }
+
+    // MARK: Şablon seçici
+
+    private var templateSelector: some View {
+        HStack(spacing: 4) {
             ForEach(SummaryTemplate.allCases) { candidate in
                 Button {
                     template = candidate
                 } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: candidate.systemImage)
-                            .font(.system(size: 10, weight: .bold))
-                        Text(candidate.shortTitle)
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background {
-                        Capsule().fill(template == candidate ? accent.opacity(0.18) : AuraTheme.surface)
-                    }
-                    .overlay {
-                        Capsule().strokeBorder(
-                            template == candidate ? accent.opacity(0.5) : AuraTheme.hairline,
-                            lineWidth: 1
-                        )
-                    }
-                    .foregroundStyle(template == candidate ? accent : AuraTheme.textSecondary)
+                    Text(candidate.shortTitle)
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.labelCapsTracking)
+                        .foregroundStyle(template == candidate ? AuraTheme.onSurface : AuraTheme.onSurfaceVariant)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background {
+                            if template == candidate {
+                                RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                                    .fill(AuraTheme.surfaceBright)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                                            .strokeBorder(AuraTheme.hairline, lineWidth: 1)
+                                    }
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(template == candidate ? [.isButton, .isSelected] : .isButton)
             }
         }
+        .padding(4)
+        .background {
+            RoundedRectangle(cornerRadius: AuraTheme.Radius.extraLarge, style: .continuous)
+                .fill(AuraTheme.surfaceContainerLow)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: AuraTheme.Radius.extraLarge, style: .continuous)
+                .strokeBorder(AuraTheme.hairline, lineWidth: 1)
+        }
+        .animation(.spring(response: 0.28, dampingFraction: 0.8), value: template)
         .disabled(phase == .processing)
-        .padding(.bottom, 24)
+        .padding(.bottom, AuraTheme.Spacing.stackLG)
     }
 
     // MARK: Kontroller
 
     private var controls: some View {
-        HStack(spacing: 34) {
-            // Duraklat / Devam
+        HStack(spacing: AuraTheme.Spacing.stackLG) {
+            secondaryControl(icon: "trash", label: "Kaydı sil") {
+                showCancelConfirm = true
+            }
+            .disabled(phase == .processing)
+
+            // Ana buton mockup'ta duraklat/devam; durdurma yan tarafta.
             Button {
                 if phase == .paused {
                     recorder.resumeRecording()
@@ -274,77 +310,69 @@ public struct RecordingView: View {
                 }
             } label: {
                 Image(systemName: phase == .paused ? "play.fill" : "pause.fill")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(AuraTheme.textPrimary)
-                    .frame(width: 54, height: 54)
-                    .background(Circle().fill(AuraTheme.surface))
-                    .overlay { Circle().strokeBorder(AuraTheme.hairline, lineWidth: 1) }
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundStyle(AuraTheme.onError)
+                    .frame(width: 80, height: 80)
+                    .background { Circle().fill(AuraTheme.error) }
+                    .auraGlow(AuraTheme.error, radius: 24, opacity: 0.25)
             }
             .buttonStyle(.plain)
             .disabled(phase == .processing || phase == .preparing)
+            .sensoryFeedback(.impact(weight: .medium), trigger: phase)
             .accessibilityLabel(phase == .paused ? "Devam et" : "Duraklat")
 
-            // Durdur & işle
-            PulseRecordButton(
-                state: pulseState,
-                tint: accent,
-                level: recorder.peakLevel,
-                diameter: 78
-            ) {
+            secondaryControl(icon: "stop.fill", label: "Kaydı bitir") {
                 Task { await stopAndProcess() }
             }
-
-            // İptal
-            Button {
-                showCancelConfirm = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AuraTheme.textSecondary)
-                    .frame(width: 54, height: 54)
-                    .background(Circle().fill(AuraTheme.surface))
-                    .overlay { Circle().strokeBorder(AuraTheme.hairline, lineWidth: 1) }
-            }
-            .buttonStyle(.plain)
-            .disabled(phase == .processing)
-            .accessibilityLabel("Kaydı sil")
+            .disabled(phase == .processing || phase == .preparing)
         }
     }
 
-    private var pulseState: PulseRecordButton.State {
-        switch phase {
-        case .preparing:  return .disabled
-        case .recording:  return .recording
-        case .paused:     return .paused
-        case .processing: return .processing
-        case .failed:     return .idle
+    private func secondaryControl(
+        icon: String,
+        label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundStyle(AuraTheme.onSurfaceVariant)
+                .frame(width: 56, height: 56)
+                .background { Circle().fill(AuraTheme.surfaceContainer) }
+                .overlay { Circle().strokeBorder(AuraTheme.hairline, lineWidth: 1) }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 
-    // MARK: İşleme Katmanı
+    // MARK: İşleme katmanı
 
     private var processingOverlay: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
-            GlassCardView(padding: 26, borderTint: accent, isHighlighted: true) {
-                VStack(spacing: 14) {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .tint(accent)
-                        .scaleEffect(1.3)
-                    Text(processingStatus)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(AuraTheme.textPrimary)
-                    Text(intent.mode == .offlineZeroCloud
-                         ? "Tüm işlem cihazında yapılıyor — veri dışarı çıkmıyor."
-                         : "Ses şifreli kanal üzerinden işleniyor.")
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(AuraTheme.textSecondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
+            Color.black.opacity(0.6).ignoresSafeArea()
+
+            VStack(spacing: AuraTheme.Spacing.stackMD) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(accent)
+                    .scaleEffect(1.3)
+
+                Text(processingStatus)
+                    .font(AuraFont.bodyLarge)
+                    .foregroundStyle(AuraTheme.onSurface)
+                    .multilineTextAlignment(.center)
+
+                Text(intent.mode == .offlineZeroCloud
+                     ? "Tüm işlem cihazında yapılıyor — veri dışarı çıkmıyor."
+                     : "Ses şifreli kanal üzerinden işleniyor.")
+                    .font(AuraFont.bodySmall)
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 40)
+            .padding(AuraTheme.Spacing.stackLG)
+            .frame(maxWidth: .infinity)
+            .glassSurface(borderColor: accent.opacity(0.30))
+            .padding(.horizontal, 44)
         }
     }
 
