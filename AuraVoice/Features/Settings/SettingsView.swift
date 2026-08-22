@@ -227,19 +227,29 @@ public struct SettingsView: View {
             AuraSectionTitle("Sistem Durumu")
 
             VStack(spacing: 0) {
-                row(
-                    icon: "cpu",
-                    iconTint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.onSurfaceVariant,
-                    title: "Cihaz İçi Modeller",
-                    subtitle: viewModel.offlineReady
-                        ? "Offline mod hazır"
-                        : "Offline mod için model indirilmeli"
-                ) {
-                    statusPill(
-                        text: viewModel.offlineReady ? "KURULU" : "EKSİK",
-                        tint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.warning
-                    )
+                NavigationLink {
+                    ModelDownloadView()
+                } label: {
+                    row(
+                        icon: "cpu",
+                        iconTint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.onSurfaceVariant,
+                        title: "Cihaz İçi Modeller",
+                        subtitle: viewModel.offlineReady
+                            ? "Offline mod hazır"
+                            : "Offline mod için model indirilmeli"
+                    ) {
+                        HStack(spacing: 6) {
+                            statusPill(
+                                text: viewModel.offlineReady ? "KURULU" : "EKSİK",
+                                tint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.warning
+                            )
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(AuraTheme.onSurfaceVariant)
+                        }
+                    }
                 }
+                .buttonStyle(.plain)
 
                 divider
 
@@ -251,10 +261,21 @@ public struct SettingsView: View {
                         ? "Transkriptte konuşmacılar ayrılır"
                         : "Model indirilmemiş (~\(OfflineModelManager.diarizationApproximateMegabytes) MB)"
                 ) {
-                    Toggle("", isOn: $viewModel.isDiarizationEnabled)
-                        .labelsHidden()
-                        .tint(AuraTheme.primaryContainer)
-                        .disabled(!viewModel.isDiarizationInstalled)
+                    if viewModel.isDiarizationInstalled {
+                        Toggle("", isOn: $viewModel.isDiarizationEnabled)
+                            .labelsHidden()
+                            .tint(AuraTheme.primaryContainer)
+                    } else {
+                        NavigationLink {
+                            ModelDownloadView()
+                        } label: {
+                            Text("İNDİR")
+                                .font(AuraFont.labelCaps)
+                                .tracking(AuraFont.labelCapsTracking)
+                                .foregroundStyle(AuraTheme.primary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 divider

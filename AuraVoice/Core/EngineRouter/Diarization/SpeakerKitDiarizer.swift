@@ -110,6 +110,28 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
         engine = nil
     }
 
+    /// Ayrıştırma modelini indirir ve kurulumu kaydeder.
+    ///
+    /// SpeakerKit, `modelFolder` verilen bir yapılandırmayla ilk kez
+    /// kurulduğunda modeli kendisi indirir; ayrı bir indirme API'si yok.
+    /// Bu yüzden kurulum = motoru bir kez ayağa kaldırmak.
+    public func install(progress: DiarizationProgress? = nil) async throws {
+        progress?(0.05)
+        do {
+            try FileManager.default.createDirectory(
+                at: OfflineModelManager.diarizationFolder,
+                withIntermediateDirectories: true
+            )
+            let config = PyannoteConfig(modelFolder: OfflineModelManager.diarizationFolder.path)
+            let engine = try await SpeakerKit(config)
+            self.engine = engine
+        } catch {
+            throw AuraError.engineFailure("Ayrıştırma modeli indirilemedi: \(error.localizedDescription)")
+        }
+        await OfflineModelManager.shared.markDiarizationInstalled()
+        progress?(1.0)
+    }
+
     // MARK: - Ses okuma
 
     /// WAV dosyasını tek kanal Float dizisine okur.
