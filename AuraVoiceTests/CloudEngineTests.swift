@@ -196,7 +196,9 @@ struct CloudASRClientTests {
                 route: .userProvidedKey,
                 store: InMemoryCredentialStore(keys: [.groq: "gsk-test"])
             ),
-            session: MockURLProtocol.makeSession()
+            session: MockURLProtocol.makeSession(),
+            // Testlerde sahte WAV baytları var; AVFoundation'a girmesin.
+            preparer: PassthroughUploadPreparer()
         )
     }
 
@@ -280,7 +282,7 @@ struct CloudASRClientTests {
         }
     }
 
-    @Test("Sınırı aşan kayıt yüklenmeden reddedilir")
+    @Test("Sınırı aşan kayıt sıkıştırılamıyorsa yüklenmeden reddedilir")
     func oversizedAudioRejectedBeforeUpload() async throws {
         let audioURL = try makeTempAudio(bytes: CloudASRClient.maxUploadBytes + 1)
         defer { try? FileManager.default.removeItem(at: audioURL) }
@@ -465,7 +467,7 @@ struct OnlineProcessingEngineTests {
         defer { MockURLProtocol.setHandler(nil) }
 
         let engine = OnlineProcessingEngine(
-            asr: CloudASRClient(builder: builder, session: session),
+            asr: CloudASRClient(builder: builder, session: session, preparer: PassthroughUploadPreparer()),
             llm: CloudLLMClient(builder: builder, session: session),
             fallbackSummarizer: ExtractiveSummarizer()
         )

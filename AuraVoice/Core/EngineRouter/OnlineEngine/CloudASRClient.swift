@@ -5,10 +5,11 @@
 //  Bulut transkripsiyon — Groq (OpenAI uyumlu `audio/transcriptions` uç noktası).
 //  Whisper-large-v3, cihaz içi çıkarımdan belirgin şekilde hızlı.
 //
-//  BOYUT SINIRI: Uç nokta yüklemeyi sınırlar ve kaydımız sıkıştırılmamış PCM
-//  WAV (16 kHz mono ≈ 32 KB/sn). Yani ~13 dakikadan uzun kayıtlar sınırı aşar.
-//  Şimdilik açık bir hata veriyoruz; parçalama (chunking) ve yükleme öncesi
-//  sıkıştırma bir sonraki adımda eklenecek — sessizce başarısız olmasın.
+//  BOYUT SINIRI: Uç nokta yüklemeyi 25 MB ile sınırlıyor, kaydımız ise
+//  sıkıştırılmamış PCM WAV (16 kHz mono ≈ 32 KB/sn) — yani ham haliyle ancak
+//  ~13 dakika sığar. `AudioUploadPreparer` sınırı aşan kayıtları AAC'ye
+//  kodluyor, o da yetmezse bindirmeli parçalara bölüyor; parça transkriptleri
+//  `AudioUploadPlanner.merge` ile tek zaman eksenine geri dikiliyor.
 //
 
 import Foundation
@@ -26,15 +27,18 @@ public struct CloudASRClient: Sendable {
     private let builder: CloudRequestBuilder
     private let session: URLSession
     private let model: Model
+    private let preparer: any AudioUploadPreparing
 
     public init(
         builder: CloudRequestBuilder,
         model: Model = .whisperLargeV3,
-        session: URLSession = .shared
+        session: URLSession = .shared,
+        preparer: any AudioUploadPreparing = AudioUploadPreparer()
     ) {
         self.builder = builder
         self.model = model
         self.session = session
+        self.preparer = preparer
     }
 
     public var isConfigured: Bool {
@@ -48,16 +52,45 @@ public struct CloudASRClient: Sendable {
         languageHint: String?
     ) async throws -> TranscriptionOutput {
 
-        guard FileManager.default.fileExists(atPath: audioURL.path) else {
-            throw AuraError.engineFailure("Ses dosyası bulunamadı: \(audioURL.lastPathComponent)")
+        let upload = try await preparer.prepare(audioURL: audioURL, limitBytes: Self.maxUploadBytes)
+        defer { upload.discardTemporaryFiles() }
+
+        guard !upload.parts.isEmpty else {
+            throw AuraError.engineFailure("Yüklenecek ses parçası üretilemedi.")
         }
 
-        let audioData = try Data(contentsOf: audioURL, options: .mappedIfSafe)
-        guard audioData.count <= Self.maxUploadBytes else {
-            throw AuraError.audioTooLargeForCloud(
-                megabytes: Double(audioData.count) / 1_048_576,
-                limitMegabytes: Double(Self.maxUploadBytes) / 1_048_576
+        // Parçalar sırayla gidiyor: eşzamanlı yükleme hız sınırına takılıp
+        // tüm işi baştan yaptırma riskini getiriyor, kazancı ise mütevazı.
+        var pieces: [TranscribedChunk] = []
+        for part in upload.parts {
+            // Tek parça varsa sessizlik gerçek bir hata: kullanıcı boş not
+            // görmemeli. Çok parçalıysa aradaki sessiz bir bölüm tüm
+            // toplantıyı çöpe atmamalı.
+            let output = try await uploadPart(
+                part,
+                languageHint: languageHint,
+                allowEmpty: upload.parts.count > 1
             )
+            pieces.append(TranscribedChunk(chunk: part.chunk, output: output))
+        }
+
+        let merged = AudioUploadPlanner.merge(pieces)
+        guard !merged.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw AuraError.engineFailure("Transkript boş döndü — kayıtta konuşma algılanmadı.")
+        }
+        return merged
+    }
+
+    /// Tek parçayı yükler ve çözümler.
+    private func uploadPart(
+        _ part: PreparedUpload.Part,
+        languageHint: String?,
+        allowEmpty: Bool
+    ) async throws -> TranscriptionOutput {
+
+        let audioData = try Data(contentsOf: part.fileURL, options: .mappedIfSafe)
+        guard audioData.count <= Self.maxUploadBytes else {
+            throw AudioUploadPreparer.tooLarge(bytes: audioData.count, limitBytes: Self.maxUploadBytes)
         }
 
         var fields: [String: String] = [
@@ -74,8 +107,8 @@ public struct CloudASRClient: Sendable {
             boundary: boundary,
             fields: fields,
             fileField: "file",
-            fileName: audioURL.lastPathComponent,
-            mimeType: "audio/wav",
+            fileName: part.fileURL.lastPathComponent,
+            mimeType: part.mimeType,
             fileData: audioData
         )
 
@@ -87,7 +120,7 @@ public struct CloudASRClient: Sendable {
         )
 
         let data = try await CloudHTTP.perform(request, session: session, provider: "Groq")
-        return try Self.parse(data)
+        return try Self.parse(data, allowEmpty: allowEmpty)
     }
 
     // MARK: Yanıt çözümleme
@@ -103,7 +136,7 @@ public struct CloudASRClient: Sendable {
         let segments: [Segment]?
     }
 
-    static func parse(_ data: Data) throws -> TranscriptionOutput {
+    static func parse(_ data: Data, allowEmpty: Bool = false) throws -> TranscriptionOutput {
         let decoded: VerboseTranscription
         do {
             decoded = try JSONDecoder().decode(VerboseTranscription.self, from: data)
@@ -127,6 +160,9 @@ public struct CloudASRClient: Sendable {
 
         guard !text.isEmpty else {
             guard !segments.isEmpty else {
+                if allowEmpty {
+                    return TranscriptionOutput(text: "", segments: [], language: language)
+                }
                 throw AuraError.engineFailure("Transkript boş döndü — kayıtta konuşma algılanmadı.")
             }
             return .joining(segments: segments, language: language)
