@@ -366,7 +366,9 @@ public final class DashboardViewModel {
     private func handle(_ event: AuraNotificationEvent) {
         switch event.kind {
         case .startRecording:
-            guard ensureQuota() else { return }
+            // Bildirimden gelen "Kaydı Başlat" da aynı kapıdan geçiyor:
+            // toplantı hatırlatması model eksikken kaydı başlatmamalı.
+            guard canStartRecording(in: mode) else { return }
             recordingIntent = RecordingIntent(
                 mode: mode,
                 template: event.suggestedTemplate,
