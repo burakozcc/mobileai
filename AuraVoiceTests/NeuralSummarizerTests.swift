@@ -266,7 +266,7 @@ struct NeuralSummarizerFlowTests {
 
         // Model markdown YAZMIYOR; render tek yerden yapılıyor ki toggleTask ve
         // taskProgress sözleşmesi modelin keyfine kalmasın.
-        #expect(!document.title.isEmpty)
+        #expect(document.title?.isEmpty == false)
         #expect(document.sections.contains { $0.containsTasks })
         #expect(SummaryDocument.taskProgress(in: markdown).total == 1)
     }
