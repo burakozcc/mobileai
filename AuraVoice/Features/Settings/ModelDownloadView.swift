@@ -174,17 +174,25 @@ public final class ModelDownloadViewModel {
 
     static func subtitle(for variant: WhisperKitEngine.Variant) -> String {
         switch variant {
-        case .tiny:  return "Eski cihazlar için. En düşük pil tüketimi."
-        case .base:  return "Önerilen. İyi doğruluk ve hız dengesi."
-        case .small: return "Karmaşık terimler ve çok konuşmacılı kayıtlar için en iyisi."
+        case .tiny:
+            return "Eski cihazlar için. En düşük pil tüketimi."
+        case .base:
+            // Artık "önerilen" bu değil: Türkçe'de large sınıfıyla arasında
+            // Whisper makalesinin ölçtüğü kadar büyük fark var.
+            return "Küçük cihazlar için denge."
+        case .small:
+            return "Karmaşık terimler ve çok konuşmacılı kayıtlar için iyi."
+        case .largeV3Turbo:
+            return "Türkçe için önerilen. Şive, özel isim ve teknik terimde belirgin fark."
         }
     }
 
     static func icon(for variant: WhisperKitEngine.Variant) -> String {
         switch variant {
-        case .tiny:  return "bolt.fill"
-        case .base:  return "scalemass.fill"
-        case .small: return "diamond.fill"
+        case .tiny:         return "bolt.fill"
+        case .base:         return "scalemass.fill"
+        case .small:        return "diamond.fill"
+        case .largeV3Turbo: return "sparkles"
         }
     }
 }
