@@ -67,6 +67,14 @@ targets:
       # Konusmaci ayristirma (Pyannote v4) - ayni paketin urunu.
       - package: ArgmaxOSS
         product: SpeakerKit
+      # llama.cpp - cihaz ici noral ozetleyici.
+      # Vendor/llama.xcframework `Tools/fetch-llama.sh` ile uretiliyor.
+      # Hazir release artifact'i KULLANILAMIYOR: guncel surumlerde iOS
+      # simulator dilimi yok (PR #27252) ve testler simulatorde kosuyor.
+      # llama.framework DINAMIK kutuphane, bu yuzden embed + codeSign dogru.
+      - framework: Vendor/llama.xcframework
+        embed: true
+        codeSign: true
       # Widget uzantisi uygulamaya gomulur (XcodeGen embed adimini kendisi ekler).
       - target: AuraVoiceWidget
     settings:

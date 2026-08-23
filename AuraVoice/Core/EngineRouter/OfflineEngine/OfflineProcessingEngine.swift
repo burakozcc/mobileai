@@ -21,7 +21,8 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
         transcriber: any SpeechTranscriber = WhisperKitEngine(
             variant: OfflineModelManager.activeVariant() ?? .base
         ),
-        summarizer: any LocalSummarizer = ExtractiveSummarizer(),
+        // Nöral model kuruluysa o, değilse çıkarımsal. Karar tek yerde.
+        summarizer: any LocalSummarizer = LocalSummarizerFactory.makeDefault(),
         speakerLabeler: SpeakerLabeler = .makeDefault()
     ) {
         self.transcriber = transcriber

@@ -13,11 +13,17 @@ gerektiriyor (aşağıda).
 ## Projeyi açma
 
 `.xcodeproj` depoda tutulmuyor (pbxproj birleştirme çatışmaları yüzünden).
-Bir Mac'te:
+`llama.xcframework` de tutulmuyor (25 MB ikili). Bir Mac'te:
 
 ```bash
-brew install xcodegen && xcodegen generate && open AuraVoice.xcodeproj
+brew install xcodegen && bash Tools/fetch-llama.sh && xcodegen generate && open AuraVoice.xcodeproj
 ```
+
+`Tools/fetch-llama.sh` neden var: llama.cpp'nin **güncel** release
+artifact'ında iOS simülatör dilimi yok (PR #27252, 2026-08-17 — release iş
+akışı artık yalnızca `macos ios-device` deriyor). Testler simülatörde koştuğu
+için betik PR öncesi son sürüme (`b10456`) pinlendi, gereksiz dilimleri ve
+dSYM'leri atıyor.
 
 Testler:
 
@@ -133,9 +139,12 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
 3. **RevenueCat bağlantısı.** Paywall ekranı ve akış hazır; geriye
    `SubscriptionProvider` protokolünü uygulayan tek bir sınıf kaldı.
    App Store Connect hesabı ve RevenueCat API anahtarı gerekiyor.
-4. **Nöral cihaz içi özetleyici.** `LocalSummarizer` protokolü hazır;
-   ExecuTorch / llama.cpp / Apple Foundation Models arka ucu takılacak.
-   `ExtractiveSummarizer` yedek olarak kalacak.
+4. **Nöral özetleyici modelinin cihazda doğrulanması.** llama.cpp entegrasyonu
+   ve map-reduce boru hattı hazır; geriye Qwen3-1.7B Q4_K_M (1,11 GB) indirme
+   akışı ve gerçek Türkçe deşifreyle kalite kapısı kaldı. Qwen3.5-2B de aday
+   ama IFEval'de geride (61,2 vs 68,2) — katı `K:/D:/A:` biçimini tutturmakta
+   en kritik yetenek talimat izleme. İkisi yan yana koşulmadan seçim
+   kesinleşmemeli.
 5. **Yerelleştirme.** Metinler şu an sabit Türkçe.
 
 ### App Store için dikkat

@@ -34,6 +34,33 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      # llama.xcframework depoda tutulmuyor (25 MB ikili). Etikete gore
+      # cache'leniyor; yalnizca ilk kosu 286 MB indiriyor.
+      - name: Cache llama.xcframework
+        id: llama-cache
+        uses: actions/cache@v4
+        with:
+          path: Vendor/llama.xcframework
+          key: llama-xcframework-b10456
+
+      - name: Fetch llama.xcframework
+        if: steps.llama-cache.outputs.cache-hit != 'true'
+        run: bash Tools/fetch-llama.sh
+
+      # Guncel llama.cpp release'lerinde iOS simulator dilimi YOK (PR #27252).
+      # Testler simulatorde kostugu icin dilim eksikse derleme "no library for
+      # this platform" ile patlar -- erken ve net soyleyelim.
+      - name: Verify simulator slice
+        run: |
+          PLIST=Vendor/llama.xcframework/Info.plist
+          SLICES=$(/usr/libexec/PlistBuddy -c "Print :AvailableLibraries" "$PLIST")
+          echo "$SLICES" | grep LibraryIdentifier
+          if ! echo "$SLICES" | grep -q "ios-arm64_x86_64-simulator"; then
+            echo "::error::llama.xcframework icinde iOS simulator dilimi yok - testler linklenemez"
+            exit 1
+          fi
+          echo "Simulator dilimi dogrulandi."
+
       - name: Generate Xcode project
         run: xcodegen generate --spec project.yml
 

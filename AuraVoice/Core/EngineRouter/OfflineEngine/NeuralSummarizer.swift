@@ -313,7 +313,16 @@ public enum LocalSummarizerFactory {
     /// ASLA nöral modeli şart koşmamalı: taze kurulumda offline modun çalışması
     /// garantisi çıkarımsal özetleyicinin bağımlılıksız olmasına dayanıyor.
     public static func makeDefault(generator: (any TextGenerator)? = nil) -> any LocalSummarizer {
-        guard let generator else { return ExtractiveSummarizer() }
-        return NeuralSummarizer(generator: generator)
+        if let generator { return NeuralSummarizer(generator: generator) }
+
+        // Yarım kalmış indirme "kurulu" sayılmıyor: `isNeuralSummarizerReady`
+        // dosyanın TAM boyutta olmasını arıyor. Aksi halde her özetlemede
+        // model yüklenmeye çalışılır, patlar ve sessizce çıkarımsala düşerdi.
+        guard OfflineModelManager.isNeuralSummarizerReady() else {
+            return ExtractiveSummarizer()
+        }
+        return NeuralSummarizer(
+            generator: LlamaTextGenerator(modelURL: OfflineModelManager.neuralModelURL)
+        )
     }
 }
