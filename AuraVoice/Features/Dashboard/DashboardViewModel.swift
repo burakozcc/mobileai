@@ -54,6 +54,9 @@ public final class DashboardViewModel {
     public private(set) var scheduledReminderCount: Int = 0
 
     public private(set) var isCallActive = false
+    /// Ağ durumu. `NWPathMonitor` yolun varlığını söylüyor, karşı tarafın
+    /// cevap verdiğini değil — bu yüzden bir garanti değil ipucu.
+    public private(set) var networkReachability: NetworkReachability = .unknown
     public private(set) var isSyncing = false
 
     /// Kayıt ekranını sunmak için `sheet(item:)` ile bağlanır.
@@ -104,6 +107,7 @@ public final class DashboardViewModel {
     // aksi halde makro üreteceği @MainActor getter'a deinit'ten erişilemez.
     @ObservationIgnored private var eventTask: Task<Void, Never>?
     @ObservationIgnored private var callTask: Task<Void, Never>?
+    @ObservationIgnored private var networkToken: UUID?
 
     private enum Keys {
         static let mode = "aura.processingMode"
@@ -134,6 +138,7 @@ public final class DashboardViewModel {
     deinit {
         eventTask?.cancel()
         callTask?.cancel()
+        if let networkToken { NetworkMonitor.shared.removeObserver(networkToken) }
     }
 
     // MARK: Yaşam Döngüsü
@@ -143,6 +148,7 @@ public final class DashboardViewModel {
     public func bootstrap() async {
         observeNotificationEvents()
         observeCallStates()
+        observeNetwork()
 
         calendarStatus = calendarService.authorizationStatus
         notificationStatus = await notificationManager.authorizationStatus()
@@ -362,6 +368,14 @@ public final class DashboardViewModel {
     }
 
     // MARK: Akışlar
+
+    private func observeNetwork() {
+        guard networkToken == nil else { return }
+        NetworkMonitor.shared.start()
+        networkToken = NetworkMonitor.shared.observe { [weak self] state in
+            Task { @MainActor in self?.networkReachability = state }
+        }
+    }
 
     private func observeNotificationEvents() {
         guard eventTask == nil else { return }

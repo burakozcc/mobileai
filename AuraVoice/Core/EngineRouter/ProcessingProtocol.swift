@@ -142,6 +142,35 @@ public enum ProcessingStage: String, Sendable, CaseIterable {
 /// Aşama ve o aşamanın 0...1 ilerlemesi.
 public typealias ProcessingProgress = @Sendable (ProcessingStage, Double) -> Void
 
+public extension ProcessingResult {
+
+    /// Özetin sonuna görünür bir "Not" bölümü ekler.
+    ///
+    /// Motorun beklenenden farklı olduğu durumlar (bağlantı yokken cihaz içine
+    /// düşmek gibi) kullanıcıdan gizlenmemeli. Meta satırı (`_..._`) kullanmıyoruz
+    /// çünkü hiçbir görünüm onu render etmiyor; bu bölüm gerçek bir bölüm olarak
+    /// görünüyor ve `SummaryDocument` sözleşmesini bozmuyor.
+    func appendingEngineNote(_ text: String) -> ProcessingResult {
+        let trimmed = summaryMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
+        let annotated = trimmed.isEmpty
+            ? "**Not**
+- \(text)"
+            : "\(trimmed)
+
+**Not**
+- \(text)"
+
+        return ProcessingResult(
+            rawTranscript: rawTranscript,
+            summaryMarkdown: annotated,
+            detectedLanguage: detectedLanguage,
+            usedMinutes: usedMinutes,
+            processingTimeSeconds: processingTimeSeconds,
+            segments: segments
+        )
+    }
+}
+
 public protocol ProcessingEngineProtocol: Sendable {
     func process(request: ProcessingRequest) async throws -> ProcessingResult
     func process(request: ProcessingRequest, progress: ProcessingProgress?) async throws -> ProcessingResult

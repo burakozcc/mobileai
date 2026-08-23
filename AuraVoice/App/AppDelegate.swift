@@ -17,6 +17,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     ) -> Bool {
         NotificationManager.shared.bootstrap()
         CallObserverService.shared.start()
+        // Yol raporu ilk saniyelerde geliyor; erken başlatmak panelin açılışta
+        // "bilinmiyor" göstermesini engelliyor.
+        NetworkMonitor.shared.start()
 
         Task.detached(priority: .utility) {
             // JSON tabanlı geçici depodan SwiftData'ya bir kereye mahsus taşıma.

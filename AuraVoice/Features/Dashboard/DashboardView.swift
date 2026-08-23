@@ -246,7 +246,12 @@ public struct DashboardView: View {
     private func modeCard(_ mode: ProcessingMode) -> some View {
         let isSelected = viewModel.mode == mode
         let tint = AuraTheme.accent(for: mode)
-        let isReady = mode == .onlineCloudFast || viewModel.isOfflineModelReady
+        // Online kartı da artık gerçeği söylüyor: eskiden koşulsuz "hazır"
+        // sayılıyordu ve uçak modundaki kullanıcı 45 dakika kaydettikten sonra
+        // duvara tosluyordu.
+        let isReady = mode == .onlineCloudFast
+            ? !viewModel.networkReachability.isDefinitelyOffline
+            : viewModel.isOfflineModelReady
 
         return Button {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
@@ -303,7 +308,22 @@ public struct DashboardView: View {
             .background { Capsule().fill((isReady ? tint : AuraTheme.warning).opacity(0.10)) }
             .overlay { Capsule().strokeBorder((isReady ? tint : AuraTheme.warning).opacity(0.20), lineWidth: 1) }
         } else {
-            Color.clear.frame(height: 1)
+            let isOffline = viewModel.networkReachability.isDefinitelyOffline
+            let chipTint = isOffline ? AuraTheme.warning : tint
+
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(chipTint)
+                    .frame(width: 6, height: 6)
+                Text(isOffline ? "Bağlantı yok" : "Hazır")
+                    .font(AuraFont.labelCaps)
+                    .tracking(AuraFont.labelCapsTracking)
+            }
+            .foregroundStyle(chipTint)
+            .padding(.horizontal, AuraTheme.Spacing.stackSM)
+            .padding(.vertical, 4)
+            .background { Capsule().fill(chipTint.opacity(0.10)) }
+            .overlay { Capsule().strokeBorder(chipTint.opacity(0.20), lineWidth: 1) }
         }
     }
 

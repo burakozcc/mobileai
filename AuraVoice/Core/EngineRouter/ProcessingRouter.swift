@@ -33,15 +33,23 @@ public final class ProcessingRouter: Sendable {
     private let offlineEngine: any ProcessingEngineProtocol
     private let onlineEngine: any ProcessingEngineProtocol
     private let quotaManager: QuotaManager
+    /// Cihaz içi motorun gerçekten çalışabileceği (ASR modeli kurulu) mu.
+    private let isOfflineUsable: @Sendable () -> Bool
+    /// Ağın kesinlikle olmadığı durum. `NWPathMonitor` bir garanti değil ipucu.
+    private let isNetworkOffline: @Sendable () -> Bool
 
     public init(
         offlineEngine: any ProcessingEngineProtocol = OfflineProcessingEngine(),
         onlineEngine: any ProcessingEngineProtocol = OnlineProcessingEngine.makeDefault(),
-        quotaManager: QuotaManager = .shared
+        quotaManager: QuotaManager = .shared,
+        isOfflineUsable: @escaping @Sendable () -> Bool = { OfflineModelManager.activeVariant() != nil },
+        isNetworkOffline: @escaping @Sendable () -> Bool = { NetworkMonitor.shared.isDefinitelyOffline }
     ) {
         self.offlineEngine = offlineEngine
         self.onlineEngine = onlineEngine
         self.quotaManager = quotaManager
+        self.isOfflineUsable = isOfflineUsable
+        self.isNetworkOffline = isNetworkOffline
     }
 
     public func execute(request: ProcessingRequest) async throws -> ProcessingResult {
@@ -64,12 +72,7 @@ public final class ProcessingRouter: Sendable {
         let billableSeconds = min(request.durationSeconds, available)
 
         let startTime = CFAbsoluteTimeGetCurrent()
-        let engine: any ProcessingEngineProtocol = switch request.mode {
-        case .offlineZeroCloud: offlineEngine
-        case .onlineCloudFast:  onlineEngine
-        }
-
-        let raw = try await engine.process(request: request, progress: progress)
+        let raw = try await run(request: request, progress: progress)
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
         // Dakika yalnızca sonuç üretildikten sonra düşülür.
@@ -83,6 +86,65 @@ public final class ProcessingRouter: Sendable {
             processingTimeSeconds: elapsed,
             segments: raw.segments
         )
+    }
+
+    // MARK: Motor seçimi
+
+    /// Bulut yolu çalışmazsa cihaz içi motora düşer.
+    ///
+    /// Neden burada: kayıt zaten alınmış ve kullanıcı sonucu bekliyor. Bulut
+    /// erişilemiyorken diskte çalışır bir model dururken kaydı hataya
+    /// göndermek, ürünün asıl vaadini boşa çıkarmak olurdu.
+    private func run(
+        request: ProcessingRequest,
+        progress: ProcessingProgress?
+    ) async throws -> ProcessingResult {
+
+        guard request.mode == .onlineCloudFast else {
+            return try await offlineEngine.process(request: request, progress: progress)
+        }
+
+        // Ağ kesinlikle yoksa buluta hiç uğramıyoruz: zaman aşımlarını
+        // beklemenin tek sonucu kullanıcıyı 30 saniye oyalamak olurdu.
+        if isNetworkOffline(), isOfflineUsable() {
+            let result = try await offlineEngine.process(request: request, progress: progress)
+            return result.appendingEngineNote(Self.offlineFallbackNote)
+        }
+
+        do {
+            return try await onlineEngine.process(request: request, progress: progress)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            // Kota ve kimlik hataları yedeklenmiyor: ikisi de cihaz içi
+            // motorun çözemeyeceği, kullanıcının görmesi gereken durumlar.
+            guard Self.isRecoverableCloudFailure(error), isOfflineUsable() else { throw error }
+
+            let result = try await offlineEngine.process(request: request, progress: progress)
+            return result.appendingEngineNote(Self.offlineFallbackNote)
+        }
+    }
+
+    static let offlineFallbackNote =
+        "Buluta ulaşılamadı, bu özet cihaz içinde üretildi. Ses ve metin cihazdan çıkmadı."
+
+    /// Cihaz içi motora düşmenin anlamlı olduğu hatalar.
+    static func isRecoverableCloudFailure(_ error: any Error) -> Bool {
+        if let aura = error as? AuraError {
+            switch aura {
+            case .networkUnavailable, .cloudRateLimited, .audioTooLargeForCloud, .engineFailure:
+                return true
+            case .cloudCredentialsMissing, .cloudAuthenticationFailed, .cloudRefused,
+                 .insufficientQuota, .quotaStorageUnavailable:
+                // Bunlar cihaz içi motorun çözebileceği şeyler değil; yedeğe
+                // düşmek kullanıcıdan gerçek sebebi saklardı.
+                return false
+            default:
+                return true
+            }
+        }
+        // URLError ve benzeri taşıma hataları.
+        return error is URLError
     }
 }
 
