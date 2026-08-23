@@ -20,6 +20,32 @@
 import Foundation
 import llama
 
+/// C handle'larının ömrünü yöneten kutu.
+///
+/// Swift 6'da aktörün `deinit`'i non-Sendable saklı alanlara erişemiyor
+/// (`OpaquePointer` Sendable değil). Serbest bırakmayı buraya taşımak hem
+/// derleyiciyi memnun ediyor hem de daha sağlam: kutu yaşadığı sürece
+/// işaretçiler geçerli, kutu ölünce kaynak kesin serbest — ARC'ye emanet,
+/// elle çağrılan bir temizliğe değil.
+private final class LlamaHandles: @unchecked Sendable {
+
+    let model: OpaquePointer
+    let context: OpaquePointer
+    let vocab: OpaquePointer
+
+    init(model: OpaquePointer, context: OpaquePointer, vocab: OpaquePointer) {
+        self.model = model
+        self.context = context
+        self.vocab = vocab
+    }
+
+    deinit {
+        // Sıra önemli: bağlam modele bağlı.
+        llama_free(context)
+        llama_model_free(model)
+    }
+}
+
 public actor LlamaTextGenerator: TextGenerator {
 
     // MARK: Yapılandırma
@@ -73,20 +99,12 @@ public actor LlamaTextGenerator: TextGenerator {
     private let modelURL: URL
     private let configuration: Configuration
 
-    // `llama_vocab` / `llama_model` / `llama_context` llama.h'ta yalnızca ileri
-    // bildirim — Swift bunları OpaquePointer olarak alıyor.
-    private var model: OpaquePointer?
-    private var context: OpaquePointer?
-    private var vocab: OpaquePointer?
+    /// Yüklü model. `nil` yapmak kaynağı serbest bırakıyor (bkz. LlamaHandles).
+    private var handles: LlamaHandles?
 
     public init(modelURL: URL, configuration: Configuration = Configuration()) {
         self.modelURL = modelURL
         self.configuration = configuration
-    }
-
-    deinit {
-        if let context { llama_free(context) }
-        if let model { llama_model_free(model) }
     }
 
     // MARK: Kurulum
@@ -108,11 +126,7 @@ public actor LlamaTextGenerator: TextGenerator {
     }
 
     public func unload() {
-        if let context { llama_free(context) }
-        if let model { llama_model_free(model) }
-        context = nil
-        model = nil
-        vocab = nil
+        handles = nil
     }
 
     public func tokenCount(_ text: String) async -> Int {
@@ -197,16 +211,8 @@ public actor LlamaTextGenerator: TextGenerator {
 
     // MARK: Model
 
-    private struct Handles {
-        let model: OpaquePointer
-        let context: OpaquePointer
-        let vocab: OpaquePointer
-    }
-
-    private func loadedHandles() throws -> Handles {
-        if let model, let context, let vocab {
-            return Handles(model: model, context: context, vocab: vocab)
-        }
+    private func loadedHandles() throws -> LlamaHandles {
+        if let handles { return handles }
 
         _ = Self.bootstrap
 
@@ -245,11 +251,9 @@ public actor LlamaTextGenerator: TextGenerator {
             throw AuraError.engineFailure("Çıkarım bağlamı kurulamadı.")
         }
 
-        model = loadedModel
-        context = loadedContext
-        vocab = loadedVocab
-
-        return Handles(model: loadedModel, context: loadedContext, vocab: loadedVocab)
+        let loaded = LlamaHandles(model: loadedModel, context: loadedContext, vocab: loadedVocab)
+        handles = loaded
+        return loaded
     }
 
     // MARK: Örnekleyici
