@@ -3,7 +3,7 @@
 Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
 ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-**Durum:** 224 test / 36 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
+**Durum:** 316 test / 50 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
 Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
 Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
 gerektiriyor (aşağıda).
@@ -117,6 +117,10 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
 | Online motor (Groq Whisper + Anthropic özetleme, cihaz içi yedek) | Tam |
 | Konuşmacı ayrıştırma (SpeakerKit / Pyannote v4) | Tam, her iki modda |
 | Uzun kayıt yüklemesi (AAC sıkıştırma + bindirmeli parçalama) | Tam |
+| Offline mod: paketlenmiş tokenizer, Türkçe için large-v3-turbo | Tam |
+| Nöral cihaz içi özetleyici (llama.cpp + Qwen3-1.7B, map-reduce, GBNF) | Tam, cihazda ölçüm bekliyor |
+| Aylık kota yenilemesi + imzalı bilet altyapısı | Tam |
+| Kayıt kurtarma: işleme öncesi kalıcılaştırma, çökme sonrası tekrar deneme | Tam |
 | Takvim tetikleyicisi + eylemli bildirimler | Tam |
 | CallKit görüşme algılama | Tam |
 | SwiftData depolama, arama, göç, yetim temizliği | Tam |
