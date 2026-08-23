@@ -18,6 +18,19 @@
 
 import Foundation
 
+/// UIKit'in `handleEventsForBackgroundURLSession` ile verdiği geri çağrı
+/// `@Sendable` DEĞİL, ama aktör sınırını geçmesi ve ana iş parçacığında
+/// çağrılması gerekiyor. Kutu bu sözü açıkça üstleniyor: içindeki kapanış
+/// yalnızca ana aktörde, yalnızca bir kez çalıştırılıyor.
+public struct SystemCompletionBox: @unchecked Sendable {
+
+    let handler: () -> Void
+
+    public init(_ handler: @escaping () -> Void) {
+        self.handler = handler
+    }
+}
+
 // MARK: - İndirici
 
 public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
@@ -32,7 +45,7 @@ public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, 
     private var task: URLSessionDownloadTask?
 
     /// Uygulama arka planda uyandırıldığında sistemin verdiği geri çağrı.
-    private var systemCompletionHandler: (@Sendable () -> Void)?
+    private var systemCompletionHandler: SystemCompletionBox?
 
     private lazy var session: URLSession = {
         let configuration = URLSessionConfiguration.background(withIdentifier: Self.sessionIdentifier)
@@ -54,7 +67,7 @@ public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, 
     }
 
     /// Sistem arka plan olaylarını teslim ettiğinde AppDelegate'ten çağrılır.
-    public func attachSystemCompletionHandler(_ handler: @escaping @Sendable () -> Void) {
+    public func attachSystemCompletionHandler(_ handler: SystemCompletionBox) {
         lock.lock(); defer { lock.unlock() }
         systemCompletionHandler = handler
     }
@@ -160,7 +173,7 @@ public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, 
 
         // Sistem geri çağrısı ana iş parçacığında beklenir.
         if let handler {
-            DispatchQueue.main.async { handler() }
+            Task { @MainActor in handler.handler() }
         }
     }
 

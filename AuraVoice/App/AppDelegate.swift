@@ -51,6 +51,6 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
             completionHandler()
             return
         }
-        NeuralModelDownloader.shared.attachSystemCompletionHandler(completionHandler)
+        NeuralModelDownloader.shared.attachSystemCompletionHandler(SystemCompletionBox(completionHandler))
     }
 }
