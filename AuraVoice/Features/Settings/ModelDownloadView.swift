@@ -28,6 +28,9 @@ public final class ModelDownloadViewModel {
     public enum Kind: Equatable, Hashable, Sendable {
         case speech(WhisperKitEngine.Variant)
         case diarization
+        /// Nöral özetleyici (GGUF). İsteğe bağlı: kurulu değilse çıkarımsal
+        /// özetleyici devrede kalıyor ve offline mod yine çalışıyor.
+        case neuralSummarizer
     }
 
     public struct Row: Identifiable, Equatable, Sendable {
@@ -48,14 +51,17 @@ public final class ModelDownloadViewModel {
 
     @ObservationIgnored private let manager: OfflineModelManager
     @ObservationIgnored private let diarizer: SpeakerKitDiarizer
+    @ObservationIgnored private let neuralInstaller: NeuralModelInstaller
     @ObservationIgnored private var tasks: [Kind: Task<Void, Never>] = [:]
 
     public init(
         manager: OfflineModelManager = .shared,
-        diarizer: SpeakerKitDiarizer = SpeakerKitDiarizer()
+        diarizer: SpeakerKitDiarizer = SpeakerKitDiarizer(),
+        neuralInstaller: NeuralModelInstaller = .shared
     ) {
         self.manager = manager
         self.diarizer = diarizer
+        self.neuralInstaller = neuralInstaller
     }
 
     deinit {
@@ -98,10 +104,23 @@ public final class ModelDownloadViewModel {
                 state: currentState(for: .diarization,
                                     fallback: diarizationInstalled ? .installed : .available),
                 isRecommended: false
+            ),
+            Row(
+                id: "neural-summarizer",
+                kind: .neuralSummarizer,
+                title: "Gelişmiş Özetleyici",
+                subtitle: "Cihaz içi dil modeli. Kurmazsan özetler yine çıkar, sadece daha basit olur. Wi-Fi gerekir.",
+                iconName: "brain.head.profile",
+                megabytes: OfflineModelManager.NeuralModel.approximateMegabytes,
+                state: currentState(for: .neuralSummarizer,
+                                    fallback: OfflineModelManager.isNeuralSummarizerReady() ? .installed : .available),
+                isRecommended: false
             )
         ]
 
-        totalDiskBytes = await manager.diskUsageBytes() + manager.diarizationDiskUsageBytes()
+        totalDiskBytes = await manager.diskUsageBytes()
+            + manager.diarizationDiskUsageBytes()
+            + neuralInstaller.diskUsageBytes()
     }
 
     /// Sürmekte olan indirmenin ilerlemesini koru, yoksa diskteki duruma dön.
@@ -135,6 +154,12 @@ public final class ModelDownloadViewModel {
                             self?.setState(.downloading(fraction), for: kind)
                         }
                     }
+                case .neuralSummarizer:
+                    try await self.neuralInstaller.install { fraction in
+                        Task { @MainActor [weak self] in
+                            self?.setState(.downloading(fraction), for: kind)
+                        }
+                    }
                 }
                 self.setState(.installed, for: kind)
             } catch {
@@ -152,6 +177,7 @@ public final class ModelDownloadViewModel {
             switch kind {
             case let .speech(variant): try await manager.remove(variant: variant)
             case .diarization:         try await manager.removeDiarization()
+            case .neuralSummarizer:    try await neuralInstaller.remove()
             }
             await refresh()
         } catch {

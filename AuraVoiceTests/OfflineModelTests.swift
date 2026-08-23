@@ -131,3 +131,53 @@ struct BundledTokenizerTests {
         }
     }
 }
+
+@Suite("Noral model deposu")
+struct NeuralModelStoreTests {
+
+    @Test("Indirme adresi model deposuyla tutarli")
+    func downloadURLMatchesRepository() throws {
+        let url = try #require(OfflineModelManager.NeuralModel.downloadURL)
+        #expect(url.absoluteString.contains(OfflineModelManager.NeuralModel.repositoryID))
+        #expect(url.absoluteString.hasSuffix(OfflineModelManager.NeuralModel.fileName))
+        #expect(url.scheme == "https")
+    }
+
+    @Test("Beklenen boyut Hugging Face'in bildirdigi deger")
+    func expectedBytesMatchHuggingFace() {
+        // Tahmin degil: unsloth/Qwen3-1.7B-GGUF agac ucundan alindi.
+        #expect(OfflineModelManager.NeuralModel.expectedBytes == 1_107_409_472)
+    }
+
+    @Test("Model yokken kurulu sayilmiyor")
+    func missingModelIsNotReady() {
+        // CI'da model hic indirilmiyor; dogru cevap "kurulu degil".
+        #expect(!OfflineModelManager.isNeuralSummarizerReady())
+    }
+
+    @Test("Kurulu degilken disk kullanimi sifir")
+    func diskUsageIsZeroWhenAbsent() {
+        #expect(NeuralModelInstaller.shared.diskUsageBytes() == 0)
+    }
+
+    @Test("Model klasoru ASR modelleriyle ayni koke bagli")
+    func modelFolderLivesUnderModelsDirectory() {
+        #expect(OfflineModelManager.neuralModelFolder.path
+            .hasPrefix(OfflineModelManager.modelsDirectory.path))
+    }
+
+    @Test("Noral model offline hazirligin sarti DEGIL")
+    func neuralModelIsNotRequiredForOffline() {
+        // Taze kurulumda offline modun calismasi garantisi cikarimsal
+        // ozetleyicinin bagimliliksiz olmasina dayaniyor. Bu test o garantiyi
+        // koruyor: noral model yokken de fabrika bir ozetleyici veriyor.
+        #expect(!OfflineModelManager.isNeuralSummarizerReady())
+        _ = LocalSummarizerFactory.makeDefault()
+    }
+
+    @Test("Arka plan oturumu kimligi sabit")
+    func sessionIdentifierIsStable() {
+        // Degisirse sistemin devrettigi yarim indirmeler sahipsiz kalir.
+        #expect(NeuralModelDownloader.sessionIdentifier == "com.auravoice.neural-model-download")
+    }
+}

@@ -38,4 +38,19 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
         return true
     }
+
+    /// 1,11 GB'lık model indirmesi arka plan oturumunda sürüyor; uygulama
+    /// öldürülmüş olsa bile sistem onu yeniden başlatıp dosyayı teslim ediyor.
+    /// Bu geri çağrı bağlanmazsa sistem uygulamayı "takıldı" sayıyor.
+    func application(
+        _ application: UIApplication,
+        handleEventsForBackgroundURLSession identifier: String,
+        completionHandler: @escaping () -> Void
+    ) {
+        guard identifier == NeuralModelDownloader.sessionIdentifier else {
+            completionHandler()
+            return
+        }
+        NeuralModelDownloader.shared.attachSystemCompletionHandler(completionHandler)
+    }
 }
