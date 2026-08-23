@@ -136,14 +136,26 @@ public struct SummaryDocument: Sendable, Equatable {
 
     // MARK: - Görev işaretleme
 
-    /// Metni eşleşen ilk görev kutusunu ters çevirip yeni markdown'ı döner.
+    /// Metni eşleşen görev kutularını ters çevirip yeni markdown'ı döner.
     ///
-    /// Satır numarası yerine metinle eşleştiriyoruz: ayrıştırma sırasında
-    /// boş satırlar atlandığı için indeksler markdown'ın satır numaralarıyla
+    /// Satır numarası yerine metinle eşleştiriyoruz: ayrıştırma sırasında boş
+    /// satırlar atlandığı için indeksler markdown'ın satır numaralarıyla
     /// birebir örtüşmüyor.
+    ///
+    /// AYNI METİNLİ BİRDEN FAZLA GÖREV: hepsi birlikte çevriliyor. Eskiden
+    /// yalnızca ilki çevriliyordu ve ikinci kutuya dokunan kullanıcı
+    /// birincisinin işaretlendiğini görüyordu — kendi kaydettiği nota
+    /// güvenini bitiren cinsten bir hata. Kendi özetleyicimiz artık tekrar
+    /// üretmiyor (bkz. `ExtractiveSummarizer.render`), ama bulut özeti hâlâ
+    /// üretebilir; o durumda ikisi aynı işi anlatan tek maddedir ve birlikte
+    /// çevrilmeleri doğru davranış.
     public static func toggleTask(withText text: String, in markdown: String) -> String {
         var lines = markdown.components(separatedBy: .newlines)
         let needle = text.trimmingCharacters(in: .whitespaces)
+
+        // Hedef durum İLK eşleşmeye göre belirleniyor; aksi halde biri açık
+        // biri kapalı olan iki kutu birbirini iptal ederdi.
+        var target: Bool?
 
         for (index, rawLine) in lines.enumerated() {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
@@ -151,9 +163,11 @@ public struct SummaryDocument: Sendable, Equatable {
                   itemText == needle
             else { continue }
 
+            let newValue = target ?? !isDone
+            target = newValue
+
             let leading = rawLine.prefix(while: { $0 == " " || $0 == "\t" })
-            lines[index] = "\(leading)- [\(isDone ? " " : "x")] \(itemText)"
-            break
+            lines[index] = "\(leading)- [\(newValue ? "x" : " ")] \(itemText)"
         }
         return lines.joined(separator: "\n")
     }

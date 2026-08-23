@@ -152,13 +152,14 @@ public extension ProcessingResult {
     /// görünüyor ve `SummaryDocument` sözleşmesini bozmuyor.
     func appendingEngineNote(_ text: String) -> ProcessingResult {
         let trimmed = summaryMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
-        let annotated = trimmed.isEmpty
-            ? "**Not**
-- \(text)"
-            : "\(trimmed)
+        // Çok satırlı literal: kaçış dizisi yerine gerçek satırlar, böylece
+        // markdown burada okunduğu gibi çıkıyor.
+        let note = """
+            **Not**
+            - \(text)
+            """
 
-**Not**
-- \(text)"
+        let annotated = trimmed.isEmpty ? note : trimmed + "\n\n" + note
 
         return ProcessingResult(
             rawTranscript: rawTranscript,

@@ -77,37 +77,169 @@ public struct ExtractiveSummarizer: LocalSummarizer {
 
         let frequencies = termFrequencies(in: sentences, language: language)
 
-        var decisions: [String] = []
-        var actions: [String] = []
-        var scored: [(index: Int, sentence: String, score: Double)] = []
-
-        for (index, sentence) in sentences.enumerated() {
-            if language.decisionCues.contains(where: { normalized(sentence).contains($0) }) {
-                decisions.append(sentence)
-            } else if language.actionCues.contains(where: { normalized(sentence).contains($0) }) {
-                actions.append(sentence)
-            } else {
-                scored.append((index, sentence, score(sentence, frequencies: frequencies, language: language)))
-            }
+        // ÖNCE puanla, SONRA sınıflandır. Eskiden sıra tersti ve karar/aksiyon
+        // kovasına düşen cümlelerin puanı hiç hesaplanmıyordu; o kovalar
+        // transkript sırasına göre doldurulup `prefix(6)`/`prefix(8)` ile
+        // kesiliyordu. Uzun bir toplantının son çeyreğinde alınan karar
+        // ("cuma yayına alıyoruz") nota hiç girmiyordu.
+        let candidates = sentences.enumerated().map { index, sentence in
+            Candidate(
+                index: index,
+                sentence: sentence,
+                score: score(sentence, frequencies: frequencies, language: language),
+                kind: classify(sentence, language: language)
+            )
         }
 
-        let keyPointBudget = keyPointCount(forSeconds: input.durationSeconds, available: scored.count)
-        let keyPoints = scored
-            .sorted { $0.score > $1.score }
-            .prefix(keyPointBudget)
-            // Puana göre seçip zamana göre geri sıralıyoruz: özet konuşmanın
-            // akışını korusun.
-            .sorted { $0.index < $1.index }
-            .map(\.sentence)
+        let keyPointBudget = keyPointCount(
+            forSeconds: input.durationSeconds,
+            available: candidates.filter { $0.kind == .keyPoint }.count
+        )
+
+        let keyPoints = selectDiverse(
+            candidates.filter { $0.kind == .keyPoint },
+            limit: keyPointBudget,
+            language: language
+        )
+        let decisions = selectTop(
+            candidates.filter { $0.kind == .decision },
+            limit: sectionCount(forSeconds: input.durationSeconds, cap: 8)
+        )
+        let actions = selectTop(
+            candidates.filter { $0.kind == .action },
+            limit: sectionCount(forSeconds: input.durationSeconds, cap: 10)
+        )
+
+        guard !keyPoints.isEmpty || !decisions.isEmpty || !actions.isEmpty else {
+            return emptySummary(for: input.template, language: language)
+        }
 
         return render(
             template: input.template,
             language: language,
             durationSeconds: input.durationSeconds,
             keyPoints: keyPoints,
-            decisions: Array(decisions.prefix(6)),
-            actions: Array(actions.prefix(8))
+            decisions: decisions,
+            actions: actions
         )
+    }
+
+    // MARK: Sınıflandırma
+
+    enum CandidateKind: Sendable, Equatable {
+        case keyPoint
+        case decision
+        case action
+    }
+
+    struct Candidate: Sendable {
+        let index: Int
+        let sentence: String
+        let score: Double
+        let kind: CandidateKind
+    }
+
+    /// Cümleyi ana başlık / karar / aksiyon olarak ayırır.
+    ///
+    /// Eşleşme ham `contains` DEĞİL: "hâlâ kararsızım" normalize edildiğinde
+    /// "kararsizim" oluyor ve içinde "karar" geçtiği için Kararlar bölümüne
+    /// giriyordu. Artık token öneki aranıyor ve olumsuzlama görülüyor.
+    static func classify(_ sentence: String, language: Language) -> CandidateKind {
+        let normalizedSentence = normalized(sentence)
+        let tokens = allTokens(in: normalizedSentence)
+
+        // Olumsuzlanmış cümle karar da aksiyon da değil: "bu konuda karar
+        // veremedik" bir karar, "cuma yayına almayalım" bir görev değil.
+        guard !language.negationMarkers.contains(where: { marker in
+            tokens.contains(where: { $0 == marker })
+        }) else {
+            return .keyPoint
+        }
+
+        if matchesCue(language.decisionCues, tokens: tokens, sentence: normalizedSentence) {
+            return .decision
+        }
+        if matchesCue(language.actionCues, tokens: tokens, sentence: normalizedSentence) {
+            return .action
+        }
+        return .keyPoint
+    }
+
+    /// Normalize edilmiş cümlenin bütün kelimeleri (durak kelimeler dahil).
+    static func allTokens(in normalizedSentence: String) -> [String] {
+        normalizedSentence
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .map(String.init)
+    }
+
+    /// Tek kelimelik ipuçları TOKEN ÖNEKİ, çok kelimeliler ardışık dizi olarak
+    /// aranıyor.
+    ///
+    /// Önek eşleşmesi Türkçe için şart: "göndereceğim" de "gonderec" ipucunu
+    /// karşılamalı. Ama kökün kendisi tehlikeliyse ("karar" → "kararsızım")
+    /// o kök listeden çıkarıldı; yerine ayrık biçimleri kondu.
+    static func matchesCue(_ cues: [String], tokens: [String], sentence: String) -> Bool {
+        for cue in cues {
+            if cue.contains(" ") {
+                if sentence.contains(cue) { return true }
+            } else if tokens.contains(where: { $0.hasPrefix(cue) }) {
+                return true
+            }
+        }
+        return false
+    }
+
+    // MARK: Seçim
+
+    /// Puana göre en iyiler, sonra konuşma sırasına geri dizilir.
+    static func selectTop(_ candidates: [Candidate], limit: Int) -> [String] {
+        guard limit > 0 else { return [] }
+        return candidates
+            .sorted { $0.score > $1.score }
+            .prefix(limit)
+            .sorted { $0.index < $1.index }
+            .map(\.sentence)
+    }
+
+    /// Seçilmiş maddelerle bu orandan az yenilik getiren aday tekrar sayılıyor.
+    static let minimumNovelty = 0.34
+
+    /// Puana göre seçerken tekrarı cezalandırır.
+    ///
+    /// Saf TF puanlaması en çok tekrar eden tek konuya toplanıyordu: 45
+    /// dakikalık bir toplantının bütün maddeleri aynı şeyi anlatabiliyordu.
+    static func selectDiverse(_ candidates: [Candidate], limit: Int, language: Language) -> [String] {
+        guard limit > 0 else { return [] }
+
+        let ordered = candidates.sorted { $0.score > $1.score }
+        var selected: [Candidate] = []
+        var usedTerms: Set<String> = []
+
+        for candidate in ordered {
+            guard selected.count < limit else { break }
+            let terms = Set(words(in: candidate.sentence, language: language))
+            guard !terms.isEmpty else { continue }
+
+            let novelty = Double(terms.subtracting(usedTerms).count) / Double(terms.count)
+            // İlk madde koşulsuz alınıyor; sonrakiler yeterince yeni olmalı.
+            if !selected.isEmpty, novelty < minimumNovelty { continue }
+
+            selected.append(candidate)
+            usedTerms.formUnion(terms)
+        }
+
+        // Çeşitlilik filtresi bütçeyi dolduramadıysa kalanları puana göre ekle:
+        // az madde göstermek, tekrar göstermekten daha kötü değil ama boş
+        // bölüm göstermek ikisinden de kötü.
+        if selected.count < limit {
+            let chosen = Set(selected.map(\.index))
+            for candidate in ordered where !chosen.contains(candidate.index) {
+                guard selected.count < limit else { break }
+                selected.append(candidate)
+            }
+        }
+
+        return selected.sorted { $0.index < $1.index }.map(\.sentence)
     }
 
     // MARK: Cümleleme
@@ -116,6 +248,28 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// Noktalama gelmezse bu uzunlukta zorla böleriz.
     static let hardWrapLength = 320
 
+    /// 12 karakter eşiğinin altında kalan ama gerçek cümle olan parçalar.
+    ///
+    /// "Onaylandı." (10), "Anlaştık." (9), "Kabul." (6) — bir toplantının en
+    /// net kararları tam da bu kısalıkta söyleniyor ve eşik onları sessizce
+    /// atıyordu. Kısaltmalardan ayırmak için en uzun harf dizisine bakıyoruz:
+    /// "Dr." → 2 harf (kısaltma), "Kabul." → 5 harf (cümle).
+    static func isCompleteShortSentence(_ text: String) -> Bool {
+        guard text.count >= 6, let last = text.last, ".!?…".contains(last) else { return false }
+
+        var longestRun = 0
+        var run = 0
+        for character in text {
+            if character.isLetter {
+                run += 1
+                longestRun = max(longestRun, run)
+            } else {
+                run = 0
+            }
+        }
+        return longestRun >= 4
+    }
+
     public static func sentences(from text: String) -> [String] {
         let terminators: Set<Character> = [".", "!", "?", "…", "\n", ";"]
         var result: [String] = []
@@ -123,7 +277,7 @@ public struct ExtractiveSummarizer: LocalSummarizer {
 
         func flush() {
             let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.count >= minimumSentenceLength {
+            if trimmed.count >= minimumSentenceLength || isCompleteShortSentence(trimmed) {
                 result.append(trimmed)
                 current = ""
             }
@@ -141,7 +295,9 @@ public struct ExtractiveSummarizer: LocalSummarizer {
         }
 
         let tail = current.trimmingCharacters(in: .whitespacesAndNewlines)
-        if tail.count >= minimumSentenceLength { result.append(tail) }
+        if tail.count >= minimumSentenceLength || isCompleteShortSentence(tail) {
+            result.append(tail)
+        }
         return result
     }
 
@@ -180,9 +336,17 @@ public struct ExtractiveSummarizer: LocalSummarizer {
 
     static func keyPointCount(forSeconds seconds: Double, available: Int) -> Int {
         guard available > 0 else { return 0 }
-        // Her ~3 dakikaya bir madde, 3...7 arasında sınırlı.
+        // Her ~3 dakikaya bir madde. Üst sınır 7'ydi: 45 dakikalık toplantı da
+        // 7 dakikalık da aynı sayıda madde alıyordu.
         let byDuration = Int((seconds / 180).rounded(.up))
-        return min(available, max(3, min(7, byDuration)))
+        return min(available, max(3, min(12, byDuration)))
+    }
+
+    /// Karar ve aksiyon bölümleri için süreye ölçekli bütçe.
+    static func sectionCount(forSeconds seconds: Double, cap: Int) -> Int {
+        // Her ~6 dakikaya bir madde; kısa kayıtta da en az 3.
+        let byDuration = Int((seconds / 360).rounded(.up))
+        return max(3, min(cap, byDuration))
     }
 
     // MARK: Markdown
@@ -199,31 +363,56 @@ public struct ExtractiveSummarizer: LocalSummarizer {
         lines.append("### \(language.heading(for: template))")
         lines.append("_\(language.metaLine(durationSeconds: durationSeconds))_")
 
-        if !keyPoints.isEmpty {
+        // Aynı cümle iki bölümde ya da bir bölümde iki kez görünmemeli.
+        // Özellikle aksiyonlarda kritik: özdeş iki `- [ ]` satırı kullanıcıya
+        // bağımsız iki kutu gibi görünür ama aynı satırı işaretler.
+        var seen: Set<String> = []
+        func unique(_ items: [String]) -> [String] {
+            items.compactMap { item in
+                let cleaned = cleanup(item)
+                let key = MeetingKeywordMatcher.normalize(cleaned)
+                guard !key.isEmpty, !seen.contains(key) else { return nil }
+                seen.insert(key)
+                return cleaned
+            }
+        }
+
+        let uniqueKeyPoints = unique(keyPoints)
+        let uniqueDecisions = unique(decisions)
+        let uniqueActions = unique(actions)
+
+        if !uniqueKeyPoints.isEmpty {
             lines.append("")
             lines.append("**\(language.keyPointsTitle(for: template))**")
-            lines.append(contentsOf: keyPoints.map { "- \(cleanup($0))" })
+            lines.append(contentsOf: uniqueKeyPoints.map { "- \($0)" })
         }
 
-        if !decisions.isEmpty {
+        if !uniqueDecisions.isEmpty {
             lines.append("")
             lines.append("**\(language.decisionsTitle)**")
-            lines.append(contentsOf: decisions.map { "- \(cleanup($0))" })
+            lines.append(contentsOf: uniqueDecisions.map { "- \($0)" })
         }
 
-        if !actions.isEmpty {
+        if !uniqueActions.isEmpty {
             lines.append("")
             lines.append("**\(language.actionsTitle)**")
-            lines.append(contentsOf: actions.map { "- [ ] \(cleanup($0))" })
+            lines.append(contentsOf: uniqueActions.map { "- [ ] \($0)" })
         }
 
         return lines.joined(separator: "\n")
     }
 
+    /// Özetlenecek konuşma bulunamadığında gösterilen belge.
+    ///
+    /// Açıklama meta satırında (`_..._`) DEĞİL, madde olarak yazılıyor:
+    /// hiçbir görünüm meta satırını render etmiyor, dolayısıyla gerçek sebep
+    /// ("mikrofon bir şey almadı") kullanıcıya hiç ulaşmıyordu — yerine
+    /// jenerik "özet üretilmemiş" kartı çıkıyordu.
     static func emptySummary(for template: SummaryTemplate, language: Language) -> String {
         """
         ### \(language.heading(for: template))
-        _\(language.emptyNotice)_
+
+        - \(language.emptyNotice)
         """
     }
 
@@ -260,22 +449,49 @@ public extension ExtractiveSummarizer {
             isTurkish ? Self.turkishStopwords : Self.englishStopwords
         }
 
+        /// Karar ipuçları.
+        ///
+        /// Çıplak "karar" BİLEREK yok: token öneki olarak arandığı için
+        /// "kararsızım", "kararsız kaldık" gibi tam tersi anlamdaki cümleleri
+        /// Kararlar bölümüne sokuyordu. Yerine ayrık biçimleri var.
         public var decisionCues: [String] {
             isTurkish
-                ? ["karar", "kararlastir", "anlastik", "onaylandi", "kabul edildi",
+                ? ["kararlastir", "karar verildi", "karar verdik", "karar alindi",
+                   "karara bagl", "anlastik", "onaylandi", "onayland", "kabul edildi",
                    "netlesti", "belirlendi", "sonuclandi", "mutabik"]
                 : ["decided", "agreed", "approved", "conclusion", "resolved",
                    "we will go with", "consensus"]
         }
 
+        /// Cümleyi karar/aksiyon olmaktan çıkaran işaretler.
+        ///
+        /// "bu konuda karar veremedik" bir karar değil; "cuma yayına almayalım"
+        /// tikleyebilir bir görev değil. Token eşitliğiyle aranıyor —
+        /// önek olsaydı "yokluk" gibi kelimeler yanlış eşleşirdi.
+        public var negationMarkers: [String] {
+            isTurkish
+                ? ["degil", "yok", "veremedik", "alamadik", "edemedik", "yapamadik",
+                   "kararsiz", "kararsizim", "belirsiz", "netlesmedi", "olmadi",
+                   "olmayacak", "ertelendi", "vazgectik"]
+                : ["not", "never", "unclear", "undecided", "cannot", "couldn t",
+                   "didn t", "won t", "postponed"]
+        }
+
+        /// Aksiyon ipuçları.
+        ///
+        /// Çıplak "gerekiyor" ve "should" BİLEREK yok: "bence buna sonra
+        /// bakmamız gerekiyor" tikleyebilir bir göreve dönüşüyordu ve kullanıcı
+        /// "0/8 aksiyon tamamlandı" görüyordu. Gelecek zaman ekleri ("-acak")
+        /// kök hâlinde tutuldu ki Türkçe çekimleri önekle yakalansın.
         public var actionCues: [String] {
             isTurkish
-                ? ["yapacak", "hazirlayacak", "gonderecek", "paylasacak", "iletecek",
-                   "bakacak", "takip", "sorumlu", "gorev", "atandi", "son tarih",
-                   "deadline", "gerekiyor", "yapilmali", "hazirlanmali", "kontrol et"]
+                ? ["yapac", "hazirlayac", "gonderec", "paylasac", "iletec",
+                   "bakac", "takip edec", "sorumlu", "gorevlendir", "atandi",
+                   "son tarih", "deadline", "yapilmali", "hazirlanmali",
+                   "kontrol edec", "ustlendi"]
                 : ["action item", "todo", "to-do", "follow up", "follow-up",
-                   "will send", "will prepare", "need to", "needs to", "should",
-                   "assign", "responsible", "deadline", "due by", "let us"]
+                   "will send", "will prepare", "will review", "assign",
+                   "responsible", "deadline", "due by"]
         }
 
         public func heading(for template: SummaryTemplate) -> String {
