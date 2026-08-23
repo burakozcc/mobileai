@@ -82,8 +82,15 @@ public struct ExtractiveSummarizer: LocalSummarizer {
         // transkript sırasına göre doldurulup `prefix(6)`/`prefix(8)` ile
         // kesiliyordu. Uzun bir toplantının son çeyreğinde alınan karar
         // ("cuma yayına alıyoruz") nota hiç girmiyordu.
-        let candidates = sentences.enumerated().map { index, sentence in
-            Candidate(
+        // Aynı cümlenin tekrarları bütçe SEÇİMİNDEN önce eleniyor. Sonra
+        // elenseydi üç kez "Onaylandı." diyen bir konuşmacı üç slotu da aynı
+        // cümleye harcar, render tekrarları atar ve az farkla altta kalan
+        // gerçek kararlar hiç seçilmemiş olurdu.
+        var seenSentences: Set<String> = []
+        let candidates = sentences.enumerated().compactMap { index, sentence -> Candidate? in
+            let key = normalized(sentence)
+            guard !key.isEmpty, seenSentences.insert(key).inserted else { return nil }
+            return Candidate(
                 index: index,
                 sentence: sentence,
                 score: score(sentence, frequencies: frequencies, language: language),
@@ -150,9 +157,7 @@ public struct ExtractiveSummarizer: LocalSummarizer {
 
         // Olumsuzlanmış cümle karar da aksiyon da değil: "bu konuda karar
         // veremedik" bir karar, "cuma yayına almayalım" bir görev değil.
-        guard !language.negationMarkers.contains(where: { marker in
-            tokens.contains(where: { $0 == marker })
-        }) else {
+        guard !isNegated(normalizedSentence, tokens: tokens, language: language) else {
             return .keyPoint
         }
 
@@ -163,6 +168,29 @@ public struct ExtractiveSummarizer: LocalSummarizer {
             return .action
         }
         return .keyPoint
+    }
+
+    /// Cümle olumsuzlanmış mı.
+    ///
+    /// Üç ayrı eşleşme semantiği var ve karıştırmak pahalıya patlıyor:
+    ///
+    /// · ÖNEK — Türkçe çekim: "değiliz", "değilim", "değildi" hepsi `degil`
+    ///   ile yakalanmalı. Token eşitliği bunların hiçbirini görmüyordu ve
+    ///   "Mutabık değiliz." açık bir anlaşmazlıkken Kararlar bölümüne karar
+    ///   olarak yazılıyordu.
+    /// · TAM EŞLEŞME — İngilizce "not": önek aransaydı "note", "nothing",
+    ///   "notice" kelimeleri her cümleyi olumsuz sayardı.
+    /// · CÜMLE İÇİ — "karar yok" gibi çok kelimeli kalıplar.
+    ///
+    /// Çıplak "yok" BİLEREK yok: Türkçe toplantı dilinde ağırlıklı olarak
+    /// OLUMLAMA taşıyor ("Sorun yok, cuma yayına alıyoruz", "İtiraz yok,
+    /// onaylandı") ve gerçek kararları Kararlar bölümünden atıyordu.
+    static func isNegated(_ normalizedSentence: String, tokens: [String], language: Language) -> Bool {
+        if language.negationPhrases.contains(where: { normalizedSentence.contains($0) }) { return true }
+        if language.negationExact.contains(where: { tokens.contains($0) }) { return true }
+        return language.negationPrefixes.contains { prefix in
+            tokens.contains { $0.hasPrefix(prefix) }
+        }
     }
 
     /// Normalize edilmiş cümlenin bütün kelimeleri (durak kelimeler dahil).
@@ -182,12 +210,30 @@ public struct ExtractiveSummarizer: LocalSummarizer {
         for cue in cues {
             if cue.contains(" ") {
                 if sentence.contains(cue) { return true }
+            } else if cue.hasSuffix("c") {
+                // Fiil kökü ("yapac", "gonderec"): ekin ÇEKİMLİ gelecek zaman
+                // olması şart. Serbest önek eşleşmesi "yapacağımızı hâlâ
+                // bilmiyoruz" cümlesini tikleyebilir bir göreve çeviriyordu.
+                if tokens.contains(where: { token in
+                    guard token.hasPrefix(cue), token.count > cue.count else { return false }
+                    return finiteFutureSuffixes.contains(String(token.dropFirst(cue.count)))
+                }) { return true }
             } else if tokens.contains(where: { $0.hasPrefix(cue) }) {
                 return true
             }
         }
         return false
     }
+
+    /// Fiil kökünden sonra gelebilecek ÇEKİMLİ gelecek zaman ekleri.
+    ///
+    /// Kapalı küme, çünkü adlaşmış biçimler görev değil: "yapacağımızı"
+    /// (-agimizi), "yapacağını" (-agini), "yapacaksak" (-aksak) burada yok.
+    /// Ünlü uyumunun iki kolu da var (-acak / -ecek).
+    static let finiteFutureSuffixes: Set<String> = [
+        "ak", "aksin", "agim", "agiz", "aklar",
+        "ek", "eksin", "egim", "egiz", "ekler"
+    ]
 
     // MARK: Seçim
 
@@ -235,6 +281,10 @@ public struct ExtractiveSummarizer: LocalSummarizer {
             let chosen = Set(selected.map(\.index))
             for candidate in ordered where !chosen.contains(candidate.index) {
                 guard selected.count < limit else { break }
+                // Ana döngüdeki anlamlı-kelime kapısı burada da geçerli.
+                // Olmadığında "Tamam." / "Evet." gibi tek durak kelimelik
+                // parçalar Ana Başlıklar'a madde olarak giriyordu.
+                guard !words(in: candidate.sentence, language: language).isEmpty else { continue }
                 selected.append(candidate)
             }
         }
@@ -256,6 +306,10 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// "Dr." → 2 harf (kısaltma), "Kabul." → 5 harf (cümle).
     static func isCompleteShortSentence(_ text: String) -> Bool {
         guard text.count >= 6, let last = text.last, ".!?…".contains(last) else { return false }
+        // Sonlandırıcıdan önce HARF olmalı. Olmazsa ondalık/sürüm noktası
+        // cümleyi ortadan bölüyor: "Sürüm 2.1 yayınlandı." ilk noktada
+        // "Sürüm 2." olarak kesilip ayrı madde oluyordu.
+        guard text.dropLast().last?.isLetter == true else { return false }
 
         var longestRun = 0
         var run = 0
@@ -463,18 +517,38 @@ public extension ExtractiveSummarizer {
                    "we will go with", "consensus"]
         }
 
-        /// Cümleyi karar/aksiyon olmaktan çıkaran işaretler.
-        ///
-        /// "bu konuda karar veremedik" bir karar değil; "cuma yayına almayalım"
-        /// tikleyebilir bir görev değil. Token eşitliğiyle aranıyor —
-        /// önek olsaydı "yokluk" gibi kelimeler yanlış eşleşirdi.
-        public var negationMarkers: [String] {
+        /// Önek aranan olumsuzluk işaretleri (Türkçe çekim: "değiliz").
+        public var negationPrefixes: [String] {
             isTurkish
-                ? ["degil", "yok", "veremedik", "alamadik", "edemedik", "yapamadik",
-                   "kararsiz", "kararsizim", "belirsiz", "netlesmedi", "olmadi",
-                   "olmayacak", "ertelendi", "vazgectik"]
-                : ["not", "never", "unclear", "undecided", "cannot", "couldn t",
-                   "didn t", "won t", "postponed"]
+                ? ["degil", "veremedik", "alamadik", "edemedik", "yapamadik",
+                   "kalamadik", "kararsiz", "belirsiz", "netlesmedi", "olmadi",
+                   "olmayacak", "vazgectik", "verilmedi", "bilmiyoruz"]
+                : []
+        }
+
+        /// Tam eşleşme aranan işaretler.
+        ///
+        /// İngilizce'de önek felaket olurdu: "not" → "note", "nothing",
+        /// "notice". Kesme işareti normalize sırasında düştüğü için
+        /// "couldn't" → ["couldn", "t"] token'larına ayrılıyor.
+        public var negationExact: [String] {
+            isTurkish
+                ? []
+                : ["not", "never", "no", "cannot", "couldn", "didn", "wont",
+                   "unclear", "undecided", "postponed"]
+        }
+
+        /// Cümle içinde aranan çok kelimeli kalıplar.
+        ///
+        /// Çıplak "yok" listeden çıkarıldı: Türkçe toplantı dilinde ağırlıklı
+        /// olarak OLUMLAMA taşıyor ("İtiraz yok, onaylandı") ve gerçek
+        /// kararları Kararlar bölümünden atıyordu. Gerçekten olumsuz olan
+        /// kullanımları burada, bağlamıyla birlikte duruyor.
+        public var negationPhrases: [String] {
+            isTurkish
+                ? ["karar yok", "netlik yok", "karar verilmedi", "karar ertelendi",
+                   "karara varilamadi"]
+                : ["no decision", "not decided", "no agreement"]
         }
 
         /// Aksiyon ipuçları.
@@ -486,9 +560,10 @@ public extension ExtractiveSummarizer {
         public var actionCues: [String] {
             isTurkish
                 ? ["yapac", "hazirlayac", "gonderec", "paylasac", "iletec",
-                   "bakac", "takip edec", "sorumlu", "gorevlendir", "atandi",
-                   "son tarih", "deadline", "yapilmali", "hazirlanmali",
-                   "kontrol edec", "ustlendi"]
+                   "guncelleyec", "olusturac", "yazac", "arayac", "bakac",
+                   "takip edec", "kontrol edec", "sorumlu", "gorevlendir",
+                   "atandi", "son tarih", "deadline", "yapilmali",
+                   "hazirlanmali", "ustlendi"]
                 : ["action item", "todo", "to-do", "follow up", "follow-up",
                    "will send", "will prepare", "will review", "assign",
                    "responsible", "deadline", "due by"]

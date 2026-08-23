@@ -206,10 +206,15 @@ struct ProcessingRouterTests {
             usedMinutes: 0,
             processingTimeSeconds: 0
         )
+        // Ortam sabitleniyor: `.onlineCloudFast` yolu artik canli NWPathMonitor
+        // ve diskteki model durumunu okuyor. Sabitlenmezse bu test kosucunun
+        // agina ve Application Support icerigine bagli olurdu.
         let router = ProcessingRouter(
-            offlineEngine: StubEngine(output: nil),      // offline seçilirse hata verir
+            offlineEngine: StubEngine(output: nil),      // offline secilirse hata verir
             onlineEngine: StubEngine(output: onlineOnly),
-            quotaManager: quota
+            quotaManager: quota,
+            isOfflineUsable: { false },
+            isNetworkOffline: { false }
         )
 
         let request = ProcessingRequest(

@@ -36,6 +36,8 @@ public final class NetworkMonitor: @unchecked Sendable {
 
     private let monitor = NWPathMonitor()
     private let queue = DispatchQueue(label: "com.auravoice.network-monitor")
+    /// Gözlemci teslimatları seri: sıra garantisi olmadan bayat durum yazılıyordu.
+    private let delivery = DispatchQueue(label: "com.auravoice.network-delivery")
     private let lock = NSLock()
 
     private var state: NetworkReachability = .unknown
@@ -63,9 +65,9 @@ public final class NetworkMonitor: @unchecked Sendable {
         guard state != new else { lock.unlock(); return }
         state = new
         let handlers = Array(observers.values)
+        // Teslimat kilit İÇİNDE kuyruğa alınıyor; sıra böyle garanti ediliyor.
+        delivery.async { for handler in handlers { handler(new) } }
         lock.unlock()
-
-        for handler in handlers { handler(new) }
     }
 
     // MARK: Okuma
@@ -85,12 +87,20 @@ public final class NetworkMonitor: @unchecked Sendable {
     @discardableResult
     public func observe(_ handler: @escaping @Sendable (NetworkReachability) -> Void) -> UUID {
         let token = UUID()
+
         lock.lock()
         observers[token] = handler
         let current = state
+        // Tohum değeri de aynı seri kuyruğa, kilit içinde bırakılıyor.
+        //
+        // Kilit dışında gönderilseydi araya giren bir `apply` yeni handler'a
+        // güncel durumu iletir, ardından bu satır ESKİ değeri üstüne yazardı.
+        // `apply` değişmeyen durumda erken döndüğü için yol bir daha
+        // değişmezse bu bir daha düzelmiyordu: uçak modunda açılan uygulama
+        // Online kartını yeşil "Hazır" rozetiyle takılı bırakıyordu.
+        delivery.async { handler(current) }
         lock.unlock()
 
-        handler(current)
         return token
     }
 
@@ -98,18 +108,4 @@ public final class NetworkMonitor: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         observers.removeValue(forKey: token)
     }
-}
-
-// MARK: - Test ikamesi
-
-/// Testlerde ve önizlemede gerçek `NWPathMonitor` yerine geçen sabit durum.
-public struct StaticReachability: Sendable {
-
-    public let value: NetworkReachability
-
-    public init(_ value: NetworkReachability) {
-        self.value = value
-    }
-
-    public var isDefinitelyOffline: Bool { value.isDefinitelyOffline }
 }

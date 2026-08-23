@@ -308,14 +308,16 @@ public struct DashboardView: View {
             .background { Capsule().fill((isReady ? tint : AuraTheme.warning).opacity(0.10)) }
             .overlay { Capsule().strokeBorder((isReady ? tint : AuraTheme.warning).opacity(0.20), lineWidth: 1) }
         } else {
-            let isOffline = viewModel.networkReachability.isDefinitelyOffline
-            let chipTint = isOffline ? AuraTheme.warning : tint
+            // Kural tek yerde: `isReady` zaten `modeCard` içinde ağ durumundan
+            // hesaplanıyor. Burada yeniden hesaplamak iki ifadenin birbirinden
+            // bağımsız değişmesine ve derleyicinin uyarmamasına yol açıyordu.
+            let chipTint = isReady ? tint : AuraTheme.warning
 
             HStack(spacing: 5) {
                 Circle()
                     .fill(chipTint)
                     .frame(width: 6, height: 6)
-                Text(isOffline ? "Bağlantı yok" : "Hazır")
+                Text(isReady ? "Hazır" : "Bağlantı yok")
                     .font(AuraFont.labelCaps)
                     .tracking(AuraFont.labelCapsTracking)
             }

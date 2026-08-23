@@ -105,8 +105,11 @@ public final class ProcessingRouter: Sendable {
         }
 
         // Ağ kesinlikle yoksa buluta hiç uğramıyoruz: zaman aşımlarını
-        // beklemenin tek sonucu kullanıcıyı 30 saniye oyalamak olurdu.
-        if isNetworkOffline(), isOfflineUsable() {
+        // beklemenin tek sonucu kullanıcıyı yarım dakika oyalamak olurdu.
+        // Bu kural KOŞULSUZ — cihaz içi model de yoksa buluta gitmek yine
+        // boşuna, kullanıcının görmesi gereken şey gerçek sebep.
+        if isNetworkOffline() {
+            guard isOfflineUsable() else { throw AuraError.networkUnavailable }
             let result = try await offlineEngine.process(request: request, progress: progress)
             return result.appendingEngineNote(Self.offlineFallbackNote)
         }
@@ -131,16 +134,22 @@ public final class ProcessingRouter: Sendable {
     /// Cihaz içi motora düşmenin anlamlı olduğu hatalar.
     static func isRecoverableCloudFailure(_ error: any Error) -> Bool {
         if let aura = error as? AuraError {
+            // `default` BİLEREK yok: yeni bir hata türü eklendiğinde bu
+            // switch derleme hatası versin. Eskiden `default: return true`
+            // vardı ve sayılmayan altı case'in hepsi sessizce "yedeklenebilir"
+            // sayılıyordu — en kötüsü `.offlineModelMissing`, çünkü bulut yolu
+            // onu bildirdiğinde router "modelim yok" diyen motoru çağırıyordu.
             switch aura {
             case .networkUnavailable, .cloudRateLimited, .audioTooLargeForCloud, .engineFailure:
                 return true
             case .cloudCredentialsMissing, .cloudAuthenticationFailed, .cloudRefused,
-                 .insufficientQuota, .quotaStorageUnavailable:
+                 .insufficientQuota, .quotaStorageUnavailable, .offlineModelMissing,
+                 .diarizationModelMissing, .microphonePermissionDenied,
+                 .calendarPermissionDenied, .notificationPermissionDenied,
+                 .audioEngineFailure:
                 // Bunlar cihaz içi motorun çözebileceği şeyler değil; yedeğe
                 // düşmek kullanıcıdan gerçek sebebi saklardı.
                 return false
-            default:
-                return true
             }
         }
         // URLError ve benzeri taşıma hataları.

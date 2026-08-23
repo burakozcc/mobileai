@@ -18,10 +18,12 @@ import Foundation
 private struct RecordingEngine: ProcessingEngineProtocol {
 
     let summary: String
-    let failure: (any Error)?
+    /// `any Error` yerine somut tip: protokol `Sendable` ve `Error`'ın
+    /// Sendable'a rafine edilip edilmediği derleyici sürümüne göre değişiyor.
+    let failure: AuraError?
     let calls: CallCounter
 
-    init(summary: String, failure: (any Error)? = nil, calls: CallCounter = CallCounter()) {
+    init(summary: String, failure: AuraError? = nil, calls: CallCounter = CallCounter()) {
         self.summary = summary
         self.failure = failure
         self.calls = calls
@@ -160,11 +162,11 @@ struct CloudFallbackTests {
 
     @Test("Anahtar eksikse yedeklenmiyor")
     func missingCredentialsAreNotMasked() async {
-        let online = RecordingEngine(summary: "", failure: AuraError.cloudCredentialsMissing)
+        let online = RecordingEngine(summary: "", failure: AuraError.cloudCredentialsMissing(provider: "Groq"))
         let offline = RecordingEngine(summary: "### Cihaz\n- madde")
         let (router, _) = makeRouter(online: online, offline: offline)
 
-        await #expect(throws: AuraError.cloudCredentialsMissing) {
+        await #expect(throws: AuraError.cloudCredentialsMissing(provider: "Groq")) {
             _ = try await router.execute(request: makeRequest())
         }
     }
@@ -178,6 +180,25 @@ struct CloudFallbackTests {
         await #expect(throws: AuraError.networkUnavailable) {
             _ = try await router.execute(request: makeRequest())
         }
+    }
+
+    @Test("Ağ yok ve model yoksa buluta hiç gidilmiyor")
+    func offlineWithoutModelSkipsCloudEntirely() async {
+        // Eskiden bu köşe buluta düşüyordu: kural `isNetworkOffline() &&
+        // isOfflineUsable()` ile VE'liydi ve kullanıcı, ortadan kaldırmak için
+        // yazılan 30 saniyelik zaman aşımını yine bekliyordu.
+        let cloudCalls = CallCounter()
+        let online = RecordingEngine(summary: "### Bulut", calls: cloudCalls)
+        let offline = RecordingEngine(summary: "### Cihaz\n- madde")
+        let (router, _) = makeRouter(
+            online: online, offline: offline,
+            offlineUsable: false, networkOffline: true
+        )
+
+        await #expect(throws: AuraError.networkUnavailable) {
+            _ = try await router.execute(request: makeRequest())
+        }
+        #expect(cloudCalls.count == 0)
     }
 
     @Test("Offline mod buluta hiç uğramıyor")
@@ -237,9 +258,16 @@ struct RecoverableCloudFailureTests {
 
     @Test("Kimlik ve kota hataları yedeklenemez")
     func permanentFailuresAreNotRecoverable() {
-        #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.cloudCredentialsMissing))
+        #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.cloudCredentialsMissing(provider: "Groq")))
         #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.cloudAuthenticationFailed(provider: "Groq")))
         #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.insufficientQuota(requiredSeconds: 60, availableSeconds: 0)))
+    }
+
+    @Test("Cihaz içi model eksikliği yedeklenemez")
+    func missingLocalModelIsNotRecoverable() {
+        // Eskiden `default: return true` vardı ve bulut yolu bunu
+        // bildirdiğinde router "modelim yok" diyen motoru çağırıyordu.
+        #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.offlineModelMissing))
     }
 
     @Test("Sağlayıcı reddi yedeklenemez")

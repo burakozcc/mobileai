@@ -301,3 +301,105 @@ struct SummaryFlowTests {
         #expect(SummaryDocument.taskProgress(in: markdown).total >= 1)
     }
 }
+
+// MARK: - İnceleme sonrası eklenen korumalar
+
+@Suite("Olumsuzlama ayrımı")
+struct NegationNuanceTests {
+
+    @Test("\"yok\" olumlama taşıdığında karar korunuyor")
+    func affirmativeYokKeepsDecision() {
+        // Çıplak "yok" olumsuzluk işareti sayılıyordu ve Türkçe toplantı
+        // dilinde ağırlıklı olarak OLUMLAMA taşıyor.
+        #expect(Summarizer.classify("İtiraz yok, onaylandı.", language: turkish) == .decision)
+        #expect(Summarizer.classify("Sorun yok, anlaştık.", language: turkish) == .decision)
+    }
+
+    @Test("Gerçek olumsuz kalıplar hâlâ yakalanıyor")
+    func realNegativePhrasesStillCaught() {
+        #expect(Summarizer.classify("Bu konuda karar yok.", language: turkish) == .keyPoint)
+        #expect(Summarizer.classify("Karar ertelendi.", language: turkish) == .keyPoint)
+    }
+
+    @Test("Türkçe çekimli olumsuzluk yakalanıyor")
+    func inflectedNegationIsCaught() {
+        // Token eşitliği "değiliz"i görmüyordu; açık bir anlaşmazlık Kararlar
+        // bölümüne karar olarak yazılıyordu.
+        #expect(Summarizer.classify("Bu konuda mutabık değiliz.", language: turkish) == .keyPoint)
+        #expect(Summarizer.classify("Ben mutabık değilim.", language: turkish) == .keyPoint)
+    }
+
+    @Test("İngilizce olumsuzluk tam eşleşmeyle aranıyor")
+    func englishNegationUsesExactMatch() {
+        let english = Summarizer.Language(code: "en")
+        // Önek aransaydı "note" kelimesi her cümleyi olumsuz yapardı.
+        #expect(Summarizer.classify("We decided to note the risk.", language: english) == .decision)
+        #expect(Summarizer.classify("We have not decided yet.", language: english) == .keyPoint)
+    }
+}
+
+@Suite("Gelecek zaman eki")
+struct FutureTenseCueTests {
+
+    @Test("Çekimli gelecek zaman görev sayılıyor", arguments: [
+        "Pazarlama takvimi güncelleyecek.",
+        "Raporu ben hazırlayacağım.",
+        "Dosyayı yarın göndereceğiz."
+    ])
+    func finiteFutureIsATask(sentence: String) {
+        #expect(Summarizer.classify(sentence, language: turkish) == .action)
+    }
+
+    @Test("Adlaşmış yan cümle görev sayılmıyor", arguments: [
+        "Ne yapacağımızı hâlâ bilmiyoruz.",
+        "Ne yapacağını sormadık."
+    ])
+    func nominalisedClauseIsNotATask(sentence: String) {
+        // Serbest önek eşleşmesi bunları tikleyebilir göreve çeviriyordu.
+        #expect(Summarizer.classify(sentence, language: turkish) != .action)
+    }
+}
+
+@Suite("Cümleleme kenar durumları")
+struct SentenceSplittingEdgeTests {
+
+    @Test("Sürüm numarası cümleyi bölmüyor")
+    func versionNumberDoesNotSplit() {
+        // "Sürüm 2.1 yayınlandı." ilk noktada "Sürüm 2." olarak kesiliyordu.
+        let sentences = Summarizer.sentences(from: "Sürüm 2.1 yayınlandı ve ekip memnun.")
+        #expect(sentences.count == 1)
+    }
+
+    @Test("Ondalık sayı cümle sayılmıyor")
+    func decimalIsNotASentence() {
+        #expect(!Summarizer.isCompleteShortSentence("Sürüm 2."))
+    }
+
+    @Test("Tek durak kelimelik parça madde olmuyor")
+    func stopwordOnlyFragmentIsNotAnItem() {
+        // Çeşitlilik filtresinin doldurma döngüsünde anlamlı-kelime kapısı
+        // yoktu ve "Tamam." Ana Başlıklar'a madde olarak giriyordu.
+        let markdown = summary("Tamam. Evet. Bugün lansman takvimini uzun uzun konuştuk ve netleştirdik.")
+        #expect(!markdown.contains("- Tamam."))
+        #expect(!markdown.contains("- Evet."))
+    }
+}
+
+@Suite("Tekrarlanan cümle bütçesi")
+struct RepeatedSentenceBudgetTests {
+
+    @Test("Aynı cümlenin tekrarı slot harcamıyor")
+    func repeatsDoNotConsumeBudget() {
+        // Tekilleştirme bütçe seçiminden SONRA yapılsaydı üç kez "Onaylandı."
+        // diyen konuşmacı üç slotu da harcar, gerçek kararlar hiç seçilmezdi.
+        let transcript = """
+        Onaylandı. Onaylandı. Onaylandı. \
+        Bütçe artışı konusunda anlaştık bugün. \
+        Lansman tarihini öne çekmeye karar verdik.
+        """
+        let document = SummaryDocument.parse(summary(transcript, seconds: 1_800))
+        let decisions = document.sections.first { $0.title == "Kararlar" }?.items ?? []
+
+        #expect(decisions.count >= 3)
+    }
+}

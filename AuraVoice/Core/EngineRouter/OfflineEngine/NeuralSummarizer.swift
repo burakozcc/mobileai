@@ -270,8 +270,14 @@ public struct NeuralSummarizer: LocalSummarizer {
                     available: final.keyPoints.count
                 )
             )),
-            decisions: Array(final.decisions.prefix(6)),
-            actions: Array(final.actions.prefix(8))
+            // Bütçeler çıkarımsal özetleyiciyle AYNI olmalı: aynı kayıt,
+            // hangi motorun özetlediğine göre farklı sayıda madde vermemeli.
+            decisions: Array(final.decisions.prefix(
+                ExtractiveSummarizer.sectionCount(forSeconds: input.durationSeconds, cap: 8)
+            )),
+            actions: Array(final.actions.prefix(
+                ExtractiveSummarizer.sectionCount(forSeconds: input.durationSeconds, cap: 10)
+            ))
         )
     }
 

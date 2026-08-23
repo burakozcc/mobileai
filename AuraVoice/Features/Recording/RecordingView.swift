@@ -488,7 +488,7 @@ public struct RecordingView: View {
                     .progressViewStyle(.linear)
                     .tint(accent)
 
-                Text(progressModel.stage.label(for: intent.mode))
+                Text(progressModel.stage.label)
                     .font(AuraFont.bodyLarge)
                     .foregroundStyle(AuraTheme.onSurface)
                     .multilineTextAlignment(.center)

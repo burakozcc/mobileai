@@ -49,9 +49,11 @@ struct KeyPointBudgetTests {
         #expect(ExtractiveSummarizer.keyPointCount(forSeconds: 60, available: 20) == 3)
     }
 
-    @Test("Uzun kayıtta en fazla 7 madde")
+    @Test("Uzun kayıtta en fazla 12 madde")
     func longRecordingIsCapped() {
-        #expect(ExtractiveSummarizer.keyPointCount(forSeconds: 7200, available: 50) == 7)
+        // Tavan bilerek 7'den 12'ye çıkarıldı: 45 dakikalık toplantı da
+        // 7 dakikalık da aynı sayıda madde alıyordu.
+        #expect(ExtractiveSummarizer.keyPointCount(forSeconds: 7200, available: 50) == 12)
     }
 
     @Test("Mevcut cümle sayısını aşmaz")

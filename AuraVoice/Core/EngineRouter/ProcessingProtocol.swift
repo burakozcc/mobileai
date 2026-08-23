@@ -123,18 +123,25 @@ public struct ProcessingResult: Sendable {
 /// uygulamayı öldürüyordu.
 public enum ProcessingStage: String, Sendable, CaseIterable {
 
+    /// Buluta yükleme.
+    case uploading
+    /// Cihaz içi transkripsiyon.
     case transcribing
     case diarizing
     case summarizing
 
-    public func label(for mode: ProcessingMode) -> String {
+    /// Etiket MODDAN BAĞIMSIZ.
+    ///
+    /// Eskiden seçilen moda bakılıyordu ve bulut erişilemediğinde cihaz içine
+    /// düşen bir kayıt boyunca ekranda "Buluta yükleniyor" yazıyordu —
+    /// özetin sonuna eklenen "ses cihazdan çıkmadı" notunun tam tersi.
+    /// Aşamayı gerçekte çalışan motor bildiriyor.
+    public var label: String {
         switch self {
-        case .transcribing:
-            return mode == .offlineZeroCloud ? "Cihaz içi transkripsiyon" : "Buluta yükleniyor"
-        case .diarizing:
-            return "Konuşmacılar ayrıştırılıyor"
-        case .summarizing:
-            return "Özet çıkarılıyor"
+        case .uploading:    return "Buluta yükleniyor"
+        case .transcribing: return "Cihaz içi transkripsiyon"
+        case .diarizing:    return "Konuşmacılar ayrıştırılıyor"
+        case .summarizing:  return "Özet çıkarılıyor"
         }
     }
 }
