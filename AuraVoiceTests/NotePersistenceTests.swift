@@ -148,7 +148,7 @@ struct NoteStatePersistenceTests {
         defer { try? FileManager.default.removeItem(at: url) }
 
         _ = try await manager.insert(pendingNote(fileName: fileName))
-        _ = try await manager.pruneOrphanedRecordings()
+        _ = try await manager.pruneOrphanedRecordings(allowEphemeralStore: true)
 
         // İşleme henüz bitmedi ama not var: dosya durmalı.
         #expect(FileManager.default.fileExists(atPath: url.path))
@@ -172,10 +172,31 @@ struct NoteStatePersistenceTests {
         }
 
         AudioRecorderService.markActive(url)
-        _ = try await manager.pruneOrphanedRecordings()
+        _ = try await manager.pruneOrphanedRecordings(allowEphemeralStore: true)
 
         #expect(FileManager.default.fileExists(atPath: url.path))
         #expect(AudioRecorderService.activeRecordingFileName() == fileName)
+    }
+
+    @Test("Bellek içi konteynerde temizlik hiç çalışmıyor")
+    func ephemeralStoreNeverPrunes() async throws {
+        // Kalıcı store açılamadığında veritabanı BOŞ oluyor ve diskteki her
+        // dosya yetim görünüyor. Koruma olmasaydı tek bir açılış kullanıcının
+        // bütün kayıtlarını silerdi. (Diğer testler `allowEphemeralStore: true`
+        // ile temizlik mantığının kendisini sınıyor; bu test korumayı sınıyor.)
+        let manager = try makeManager()
+        let directory = DatabaseManager.recordingsDirectory
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let url = directory.appendingPathComponent("rec_guard_\(UUID().uuidString).wav")
+        try Data([0x52, 0x49, 0x46, 0x46]).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        AudioRecorderService.clearActive()
+        let removed = try await manager.pruneOrphanedRecordings()
+
+        #expect(removed == 0)
+        #expect(FileManager.default.fileExists(atPath: url.path))
     }
 
     @Test("Gerçek yetim dosya hâlâ siliniyor")
@@ -189,7 +210,7 @@ struct NoteStatePersistenceTests {
         defer { try? FileManager.default.removeItem(at: url) }
 
         AudioRecorderService.clearActive()
-        _ = try await manager.pruneOrphanedRecordings()
+        _ = try await manager.pruneOrphanedRecordings(allowEphemeralStore: true)
 
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }

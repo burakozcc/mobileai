@@ -225,16 +225,20 @@ public actor DatabaseManager: NoteRepository {
 
     /// Veritabanında karşılığı kalmamış ses dosyalarını temizler.
     @discardableResult
-    public func pruneOrphanedRecordings() throws -> Int {
+    /// - Parameter allowEphemeralStore: Bellek içi konteynerde de temizlik
+    ///   yapılsın mı. Yalnızca testler için: üretimde bellek içi konteyner
+    ///   "kalıcı store açılamadı" demek ve o durumda veritabanı boş olduğu
+    ///   için diskteki HER dosya yetim görünür.
+    public func pruneOrphanedRecordings(allowEphemeralStore: Bool = false) throws -> Int {
         // Bellek içi konteynerde veritabanı BOŞ; her dosya yetim görünür ve
         // temizlik kullanıcının bütün kayıtlarını siler.
         //
         // Global bayrağa DEĞİL, bu örneğin gerçekten kullandığı konteynere
         // bakıyoruz: `pruneOrphanedRecordings` bir örnek metodu ve testler
         // kendi bellek içi konteynerlerini enjekte ediyor.
-        guard !modelContainer.configurations.contains(where: \.isStoredInMemoryOnly) else {
-            return 0
-        }
+        guard allowEphemeralStore
+                || !modelContainer.configurations.contains(where: \.isStoredInMemoryOnly)
+        else { return 0 }
 
         let directory = Self.recordingsDirectory
         guard let files = try? FileManager.default.contentsOfDirectory(

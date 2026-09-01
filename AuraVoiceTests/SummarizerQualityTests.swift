@@ -380,8 +380,16 @@ struct SentenceSplittingEdgeTests {
         // Çeşitlilik filtresinin doldurma döngüsünde anlamlı-kelime kapısı
         // yoktu ve "Tamam." Ana Başlıklar'a madde olarak giriyordu.
         let markdown = summary("Tamam. Evet. Bugün lansman takvimini uzun uzun konuştuk ve netleştirdik.")
-        #expect(!markdown.contains("- Tamam."))
-        #expect(!markdown.contains("- Evet."))
+
+        // TAM SATIR karşılaştırması. Alt-dize araması meşru bir maddeyi
+        // ("- Evet. Bugün lansman takvimini…") yakalayıp testi yanlış yere
+        // kırıyordu.
+        let bullets = markdown
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        #expect(!bullets.contains("- Tamam."))
+        #expect(!bullets.contains("- Evet."))
     }
 }
 
