@@ -357,3 +357,106 @@ struct TicketVerifierSetupTests {
 
 /// Test paketinin bundle'ına erişmek için işaretçi sınıf.
 private final class TicketBundleMarker {}
+
+// MARK: - Bozdurma ekranı
+
+@MainActor
+@Suite("Bilet ekranı", .serialized)
+struct TicketRedemptionViewModelTests {
+
+    private func makeViewModel(store: SecureTicketStore?) -> TicketRedemptionViewModel {
+        TicketRedemptionViewModel(makeStore: { store })
+    }
+
+    @Test("Anahtar yoksa özellik kapalı görünüyor")
+    func unavailableWithoutKey() {
+        // `Info.plist`'te AuraTicketPublicKey boş; `makeDefault` nil dönüyor
+        // ve uygulama çalışmaya devam ediyor.
+        let viewModel = makeViewModel(store: nil)
+        viewModel.prepare()
+        #expect(!viewModel.isAvailable)
+    }
+
+    @Test("Anahtar yokken bozdurma açık hata veriyor")
+    func redeemWithoutStoreFails() async {
+        let viewModel = makeViewModel(store: nil)
+        viewModel.prepare()
+        viewModel.payload = "{}"
+
+        await viewModel.redeem()
+
+        guard case let .failure(reason) = viewModel.outcome else {
+            Issue.record("Anahtar yokken başarı dönemez: \(viewModel.outcome)")
+            return
+        }
+        #expect(!reason.isEmpty)
+    }
+
+    @Test("Boş girdi sunucuya hiç gitmiyor")
+    func emptyPayloadIsRejectedLocally() async {
+        let signer = TicketSigner()
+        let quota = makeQuota()
+        let viewModel = makeViewModel(store: makeStore(signer: signer, quota: quota))
+        viewModel.prepare()
+        viewModel.payload = "   \n  "
+
+        await viewModel.redeem()
+
+        #expect(viewModel.outcome != .idle)
+        #expect(quota.getRemainingMinutes() == 0)
+    }
+
+    @Test("Geçerli bilet bakiyeye ekleniyor ve alan temizleniyor")
+    func validTicketIsRedeemed() async throws {
+        let signer = TicketSigner()
+        let quota = makeQuota()
+        let viewModel = makeViewModel(store: makeStore(signer: signer, quota: quota))
+        viewModel.prepare()
+
+        let signed = try signer.sign(makeTicket(minutes: 45))
+        viewModel.payload = String(decoding: try signed.encoded(), as: UTF8.self)
+
+        await viewModel.redeem()
+
+        #expect(viewModel.outcome == .success(minutes: 45))
+        // Alan temizlenmezse kullanıcı aynı bileti tekrar göndermeye çalışır.
+        #expect(viewModel.payload.isEmpty)
+        #expect(quota.getRemainingMinutes() == 45)
+    }
+
+    @Test("Aynı bilet ikinci kez kabul edilmiyor")
+    func replayIsRejectedInUI() async throws {
+        let signer = TicketSigner()
+        let quota = makeQuota()
+        let store = makeStore(signer: signer, quota: quota)
+        let viewModel = makeViewModel(store: store)
+        viewModel.prepare()
+
+        let signed = try signer.sign(makeTicket(minutes: 45))
+        let text = String(decoding: try signed.encoded(), as: UTF8.self)
+
+        viewModel.payload = text
+        await viewModel.redeem()
+
+        viewModel.payload = text
+        await viewModel.redeem()
+
+        guard case let .failure(reason) = viewModel.outcome else {
+            Issue.record("Tekrar kullanım kabul edilemez: \(viewModel.outcome)")
+            return
+        }
+        #expect(reason == TicketError.alreadyRedeemed.errorDescription)
+        #expect(quota.getRemainingMinutes() == 45)
+    }
+
+    @Test("Bozuk metin okunabilir hata veriyor")
+    func malformedPayloadIsReported() async {
+        let signer = TicketSigner()
+        let viewModel = makeViewModel(store: makeStore(signer: signer, quota: makeQuota()))
+        viewModel.prepare()
+        viewModel.payload = "bu bir bilet değil"
+
+        await viewModel.redeem()
+        #expect(viewModel.outcome == .failure(TicketError.malformed.errorDescription ?? ""))
+    }
+}

@@ -109,6 +109,13 @@ targets:
         UIUserInterfaceStyle: Dark
         ITSAppUsesNonExemptEncryption: false
 
+        # Ed25519 dakika bileti dogrulama anahtari (base64, 32 bayt ACIK anahtar).
+        # BOS BIRAKILDI: sunucu hazir olmadigi icin ozellik kapali ve
+        # `SecureTicketStore.makeDefault()` nil donuyor. Anahtar gizli degil
+        # (acik anahtar), ama derleme zamani sabiti olmasi sunucu anahtarini
+        # degistirmek icin yeni bir surum gerektirdigi anlamina geliyor -- kasitli.
+        AuraTicketPublicKey: ""
+
         # --- İzin metinleri (App Store reddi almamak için gerekçe net yazıldı)
         NSMicrophoneUsageDescription: >-
           Toplantı ve görüşmelerini kaydedip özet çıkarabilmek için mikrofona

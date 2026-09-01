@@ -392,6 +392,27 @@ public struct SettingsView: View {
 
                 divider
 
+                // İmzalı bilet, kotası biten kullanıcının OFFLINE dakika
+                // yükleyebildiği tek yol. Ekran olmadan tüm Ed25519 katmanı
+                // ölü koddu.
+                NavigationLink {
+                    TicketRedemptionView()
+                } label: {
+                    row(
+                        icon: "ticket.fill",
+                        iconTint: AuraTheme.secondary,
+                        title: "Dakika Bileti Kullan",
+                        subtitle: "Bağlantı olmadan da çalışır"
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    }
+                }
+                .buttonStyle(.plain)
+
+                divider
+
                 // Depolama sonsuza kadar büyüyordu ve yer açmanın tek yolu
                 // notu — dolayısıyla transkripti — silmekti.
                 Button {

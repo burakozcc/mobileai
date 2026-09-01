@@ -21,6 +21,12 @@ public final class ModelDownloadViewModel {
     public enum RowState: Equatable, Sendable {
         case available
         case downloading(Double)
+        /// İndirme bitti, model açılabiliyor mu diye deneniyor.
+        ///
+        /// Ayrı bir faz çünkü doğrulama 627 MB'lık bir modeli belleğe alıyor:
+        /// aynı çubuğun altında yapılsaydı ilerleme %100'de dakikalarca
+        /// donuk durur, kullanıcı takıldığını sanırdı.
+        case verifying
         case installed
         case failed(String)
     }
@@ -151,6 +157,8 @@ public final class ModelDownloadViewModel {
             // Disk artık kurulu diyorsa gerçeği kazanır (kullanıcı tekrar
             // denemiş ve başarmış olabilir).
             return fallback == .installed ? fallback : existing
+        case .verifying:
+            return existing
         case .available, .installed:
             return fallback
         }
@@ -172,6 +180,9 @@ public final class ModelDownloadViewModel {
                             self?.setState(.downloading(fraction), for: kind)
                         }
                     }
+                    // Ağ hâlâ varken açılabildiğini doğrula.
+                    self.setState(.verifying, for: kind)
+                    try await self.manager.verifyInstallation(variant: variant)
                 case .diarization:
                     try await self.diarizer.install { fraction in
                         Task { @MainActor [weak self] in
@@ -527,6 +538,17 @@ public struct ModelDownloadView: View {
                     .frame(maxWidth: 180, alignment: .trailing)
             }
 
+        case .verifying:
+            HStack(spacing: 6) {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AuraTheme.primary)
+                Text("DOĞRULANIYOR")
+                    .font(AuraFont.labelCaps)
+                    .tracking(AuraFont.labelCapsTracking)
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
+            }
+
         case .downloading:
             Button {
                 viewModel.cancel(row.kind)
@@ -595,8 +617,10 @@ public struct ModelDownloadView: View {
 }
 
 private extension ModelDownloadViewModel.Row {
+    /// İndirme ya da doğrulama sürüyor.
     var isDownloading: Bool {
         if case .downloading = state { return true }
+        if case .verifying = state { return true }
         return false
     }
 }

@@ -235,6 +235,28 @@ public actor OfflineModelManager {
 
     // MARK: - Kaldırma
 
+    /// İndirilen modelin gerçekten YÜKLENEBİLDİĞİNİ doğrular.
+    ///
+    /// NEDEN İNDİRME ANINDA: yükleme ilk kez kayıt sonunda deneniyordu ve
+    /// orada başarısız olması, kullanıcının 45 dakikalık toplantıyı
+    /// kaydettikten sonra "Model yüklenemedi" duyması demekti. Ağ HÂLÂ
+    /// varken denemek, sorunu kullanıcı uçağa binmeden önce yüzeye çıkarıyor.
+    ///
+    /// Başarısızlıkta kurulum kaydı ve dosyalar siliniyor: "kurulu ama
+    /// açılmıyor" diye bir ara durum kalmamalı — Ayarlar yeşil "KURULU"
+    /// gösterirken her kayıt patlardı.
+    public func verifyInstallation(variant: WhisperKitEngine.Variant) async throws {
+        do {
+            try await WhisperKitEngine(variant: variant).prepare()
+        } catch {
+            try? remove(variant: variant)
+            Self.discardIncompleteSpeechDownload(variant: variant)
+            throw AuraError.engineFailure(
+                "Model indirildi ama açılamadı, dosyalar temizlendi. Tekrar deneyin."
+            )
+        }
+    }
+
     public func remove(variant: WhisperKitEngine.Variant) throws {
         let records = Self.installations()
         if let record = records.first(where: { $0.variant == variant.rawValue }) {
