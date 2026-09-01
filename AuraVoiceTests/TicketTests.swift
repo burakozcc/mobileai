@@ -413,7 +413,9 @@ struct TicketRedemptionViewModelTests {
         let viewModel = makeViewModel(store: makeStore(signer: signer, quota: quota))
         viewModel.prepare()
 
-        let signed = try signer.sign(makeTicket(minutes: 45))
+        // Ekran `redeem(payload:)`'i cihaz saatiyle çağırıyor; sabit `anchor`
+        // tarihli bilet süresi dolmuş gelirdi.
+        let signed = try signer.sign(makeTicket(minutes: 45, issuedAt: Date()))
         viewModel.payload = String(decoding: try signed.encoded(), as: UTF8.self)
 
         await viewModel.redeem()
@@ -432,7 +434,7 @@ struct TicketRedemptionViewModelTests {
         let viewModel = makeViewModel(store: store)
         viewModel.prepare()
 
-        let signed = try signer.sign(makeTicket(minutes: 45))
+        let signed = try signer.sign(makeTicket(minutes: 45, issuedAt: Date()))
         let text = String(decoding: try signed.encoded(), as: UTF8.self)
 
         viewModel.payload = text
