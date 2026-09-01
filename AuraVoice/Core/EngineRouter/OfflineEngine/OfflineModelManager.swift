@@ -18,6 +18,68 @@ public actor OfflineModelManager {
 
     public static let shared = OfflineModelManager()
 
+
+    // MARK: - İndirme artıkları
+
+    /// WhisperKit'in kullandığı Hugging Face deposu.
+    nonisolated static var speechRepositoryID: String { "argmaxinc/whisperkit-coreml" }
+
+    /// Anlık görüntülerin indiği kök.
+    ///
+    /// KAYNAKTAN DOĞRULANDI, tahmin değil: `WhisperKit.download` bir
+    /// `HubApi(downloadBase:)` kurup `snapshot(from:matching:)` çağırıyor;
+    /// `HubApi.localRepoLocation` ise `downloadBase/<repo.type>/<repo.id>`
+    /// döndürüyor (swift-transformers, HubApi.swift:618-620).
+    nonisolated static func speechRepositoryRoot(in directory: URL = modelsDirectory) -> URL {
+        directory
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent(speechRepositoryID, isDirectory: true)
+    }
+
+    /// Bir varyantın diskteki BÜTÜN izleri.
+    ///
+    /// İki klasör yetiyor çünkü yarım dosyalar ve metadata, anlık görüntüyle
+    /// AYNI göreli yolu izliyor: `<kök>/.cache/huggingface/download/<varyant>/…`
+    /// (HubApi.swift:895-900, `metadataDestination` ve `incompleteDestination`).
+    /// Bu yüzden temizlik varyantla sınırlı kalıyor ve komşu bir modeli
+    /// bozamıyor — kör bir `.cache` silme öyle olmazdı.
+    nonisolated static func speechArtifacts(
+        for variant: WhisperKitEngine.Variant,
+        in directory: URL = modelsDirectory
+    ) -> [URL] {
+        let root = speechRepositoryRoot(in: directory)
+        return [
+            root.appendingPathComponent(variant.rawValue, isDirectory: true),
+            root
+                .appendingPathComponent(".cache", isDirectory: true)
+                .appendingPathComponent("huggingface", isDirectory: true)
+                .appendingPathComponent("download", isDirectory: true)
+                .appendingPathComponent(variant.rawValue, isDirectory: true)
+        ]
+    }
+
+    /// İptal ya da hata sonrası yarım kalmış indirmeyi siler.
+    ///
+    /// KURULU varyanta asla dokunmuyor: sicilde kaydı varsa dosyalar çalışan
+    /// bir modele ait ve silmek kullanıcının indirdiği 627 MB'ı çöpe atardı.
+    @discardableResult
+    nonisolated static func discardIncompleteSpeechDownload(
+        variant: WhisperKitEngine.Variant,
+        in directory: URL = modelsDirectory
+    ) -> Int64 {
+        guard !isDownloaded(variant: variant, in: directory) else { return 0 }
+
+        let fileManager = FileManager.default
+        var freed: Int64 = 0
+
+        for url in speechArtifacts(for: variant, in: directory) {
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+            freed += directorySize(at: url)
+            try? fileManager.removeItem(at: url)
+        }
+        return freed
+    }
+
     // MARK: - Kurulum kaydı
 
     public struct Installation: Codable, Sendable, Identifiable, Hashable {
@@ -144,6 +206,12 @@ public actor OfflineModelManager {
                 }
             )
         } catch {
+            // Yarım kalan dosyaları BURADA siliyoruz. `remove(variant:)`
+            // yalnızca sicile yazılmış klasörleri siliyor, iptal edilen
+            // indirme ise hiç sicile girmiyor — o baytlar sonsuza kadar
+            // diskte kalıyordu.
+            Self.discardIncompleteSpeechDownload(variant: variant)
+
             // İptal kullanıcının kararı; sarmalanırsa çağıran onu hatadan
             // ayırt edemiyor ve satırda kalıcı kırmızı bir uyarı bırakıyor.
             if error is CancellationError { throw error }
@@ -182,8 +250,14 @@ public actor OfflineModelManager {
         try persist([])
     }
 
+    /// Konuşma modellerinin diskte GERÇEKTEN kapladığı yer.
+    ///
+    /// Eskiden sicildeki kayıtların `sizeBytes` toplamıydı; iptal edilen bir
+    /// indirmenin yarım dosyaları hiç sicile girmediği için Ayarlar'daki
+    /// toplamda görünmüyordu bile. Kullanıcı 300 MB'ın nereye gittiğini
+    /// göremiyordu. Artık ağaç geziliyor.
     public func diskUsageBytes() -> Int64 {
-        Self.installations().reduce(0) { $0 + $1.sizeBytes }
+        Self.directorySize(at: Self.speechRepositoryRoot())
     }
 
     // MARK: - Yardımcılar

@@ -235,15 +235,10 @@ public final class ModelDownloadViewModel {
     /// İptal ya da hata sonrası yarım kalan dosyaları temizler.
     private func discardPartialDownload(_ kind: Kind) async {
         switch kind {
-        case .speech:
-            // BİLİNEN EKSİK: iptal edilen bir konuşma modeli indirmesinin
-            // yarım dosyaları diskte kalıyor. `install` hatayı sarmalayıp
-            // `modelsDirectory`'ye dokunmadan fırlatıyor, `remove(variant:)`
-            // ise yalnızca sicile yazılmış klasörleri siliyor — iptal edilen
-            // indirme hiç sicile girmiyor. WhisperKit'in kendi snapshot
-            // dizinini güvenle silecek bir API doğrulanana kadar buraya
-            // dokunmuyoruz; yanlış dizini silmek kurulu modeli bozardı.
-            break
+        case let .speech(variant):
+            // Yerleşim swift-transformers kaynağından doğrulandı; temizlik
+            // varyantla sınırlı ve kurulu bir modele asla dokunmuyor.
+            OfflineModelManager.discardIncompleteSpeechDownload(variant: variant)
         case .diarization:
             try? await manager.removeDiarization()
         case .neuralSummarizer:

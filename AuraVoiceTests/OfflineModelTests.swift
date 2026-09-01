@@ -181,3 +181,77 @@ struct NeuralModelStoreTests {
         #expect(NeuralModelDownloader.sessionIdentifier == "com.auravoice.neural-model-download")
     }
 }
+
+@Suite("Yarım kalan indirme temizliği", .serialized)
+struct IncompleteDownloadCleanupTests {
+
+    /// Gerçek model dizinine dokunmamak için izole bir kök.
+    private func makeRoot() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("aura-models-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    private func writeArtifacts(for variant: Variant, in root: URL, bytes: Int = 2_048) throws {
+        for folder in OfflineModelManager.speechArtifacts(for: variant, in: root) {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data(repeating: 0x41, count: bytes)
+                .write(to: folder.appendingPathComponent("parca.bin"))
+        }
+    }
+
+    @Test("Yerleşim swift-transformers'ın kullandığı yol")
+    func layoutMatchesHubApi() throws {
+        // HubApi.localRepoLocation = downloadBase/<repo.type>/<repo.id>
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let repoRoot = OfflineModelManager.speechRepositoryRoot(in: root)
+        #expect(repoRoot.path.hasSuffix("models/argmaxinc/whisperkit-coreml"))
+
+        let artifacts = OfflineModelManager.speechArtifacts(for: .base, in: root)
+        #expect(artifacts.count == 2)
+        #expect(artifacts[0].lastPathComponent == Variant.base.rawValue)
+        // Yarım dosyalar ve metadata aynı göreli yolu izliyor.
+        #expect(artifacts[1].path.contains(".cache/huggingface/download"))
+        #expect(artifacts[1].lastPathComponent == Variant.base.rawValue)
+    }
+
+    @Test("Yarım kalan indirme siliniyor")
+    func removesIncompleteDownload() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try writeArtifacts(for: .base, in: root)
+        let freed = OfflineModelManager.discardIncompleteSpeechDownload(variant: .base, in: root)
+
+        #expect(freed >= 4_096)
+        for folder in OfflineModelManager.speechArtifacts(for: .base, in: root) {
+            #expect(!FileManager.default.fileExists(atPath: folder.path))
+        }
+    }
+
+    @Test("Temizlik komşu varyantı bozmuyor")
+    func doesNotTouchOtherVariants() throws {
+        // Kör bir `.cache` silme bunu bozardı; temizlik varyantla sınırlı.
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        try writeArtifacts(for: .base, in: root)
+        try writeArtifacts(for: .small, in: root)
+
+        OfflineModelManager.discardIncompleteSpeechDownload(variant: .base, in: root)
+
+        for folder in OfflineModelManager.speechArtifacts(for: .small, in: root) {
+            #expect(FileManager.default.fileExists(atPath: folder.path))
+        }
+    }
+
+    @Test("Silinecek bir şey yoksa iş yapılmıyor")
+    func noOpWhenNothingOnDisk() throws {
+        let root = try makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        #expect(OfflineModelManager.discardIncompleteSpeechDownload(variant: .tiny, in: root) == 0)
+    }
+}
