@@ -3,7 +3,7 @@
 Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
 ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-**Durum:** 370 test / 64 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
+**Durum:** 384 test / 67 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
 Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
 Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
 gerektiriyor (aşağıda).
@@ -136,8 +136,12 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
 
 ## Kalanlar
 
+Kodlama tarafında denetimin bulduğu 8 blocker + 17 orta + 8 küçük bulgunun
+tamamı kapandı. Kalanların hepsi ya bir Mac'e ya da bir ürün kararına bağlı.
+
 1. **Uygulamayı bir kez çalıştırmak.** Mac gerekiyor; ekran görüntüsü ve
-   cihazda doğrulama henüz yok.
+   cihazda doğrulama henüz yok. CI derlemeyi ve 384 testi doğruluyor, ama
+   gerçek bir modelle tek bir çıkarım yapılmadı.
 2. **Backend proxy.** `.proxy` rotası ve bilet imzalama için. Bilet doğrulama
    tarafı hazır, imzalayan taraf yok.
 3. **RevenueCat bağlantısı.** Paywall ekranı ve akış hazır; geriye
