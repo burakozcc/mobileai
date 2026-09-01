@@ -126,9 +126,16 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
             let engine = try await SpeakerKit(config)
             self.engine = engine
         } catch {
+            if error is CancellationError { throw error }
             throw AuraError.engineFailure("Ayrıştırma modeli indirilemedi: \(error.localizedDescription)")
         }
-        await OfflineModelManager.shared.markDiarizationInstalled()
+        guard await OfflineModelManager.shared.markDiarizationInstalled() else {
+            // İşaret yazılmadıysa ağırlıklar eksik inmiş demektir. Sessiz
+            // dönmek, satırın "KURULU" yazıp hemen "İndir"e geri dönmesine ve
+            // kullanıcının her denemede ~92 MB'ı yeniden indirmesine yol
+            // açıyordu.
+            throw AuraError.engineFailure("Ayrıştırma ağırlıkları eksik indi, tekrar deneyin.")
+        }
         progress?(1.0)
     }
 

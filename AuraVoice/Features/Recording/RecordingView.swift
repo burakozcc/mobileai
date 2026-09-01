@@ -136,7 +136,9 @@ public struct RecordingView: View {
                 if case .failed(let message) = phase {
                     failurePanel(message)
                 } else {
-                    if recorder.resumeDidFail { interruptionBanner }
+                    // Şerit yalnızca canlı kayıtta anlamlı: işleme fazında
+                    // kaplamanın altında asılı kalıyordu.
+                    if recorder.resumeDidFail, recorder.isRecording { interruptionBanner }
                     templateSelector
                     controls
                 }
@@ -158,6 +160,10 @@ public struct RecordingView: View {
         // Eskiden `RecordingView` `recorder.isPaused`'ı hiç gözlemiyordu ve
         // motor duraklamışken ekran "Kaydediliyor" yazmaya devam ediyordu.
         .onChange(of: recorder.isPaused) { _, paused in
+            // Durdurma da `isPaused = false` yayınlıyor; onu "devam etti"
+            // sanmak, kayıt biterken ekranı kısa süre "KAYDEDİLİYOR"a
+            // çeviriyordu.
+            guard recorder.isRecording else { return }
             if paused, phase == .recording { phase = .paused }
             if !paused, phase == .paused { phase = .recording }
         }
@@ -367,8 +373,11 @@ public struct RecordingView: View {
             // Ana buton mockup'ta duraklat/devam; durdurma yan tarafta.
             Button {
                 if phase == .paused {
-                    recorder.resumeRecording()
-                    phase = .recording
+                    // Fazı KOŞULSUZ `.recording` yapmak m7'yi aynen geri
+                    // getiriyordu: devam başarısızsa hiçbir @Published değer
+                    // değişmiyor, gözlemciler tetiklenmiyor ve ekran
+                    // "KAYDEDİLİYOR" yazarken WAV'a tek bayt gitmiyordu.
+                    phase = recorder.resumeRecording() ? .recording : .paused
                 } else {
                     recorder.pauseRecording()
                     phase = .paused

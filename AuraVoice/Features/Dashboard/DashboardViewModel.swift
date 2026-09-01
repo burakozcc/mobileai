@@ -167,9 +167,12 @@ public final class DashboardViewModel {
         isOfflineModelReady = OfflineModelManager.isOfflineReady()
 
         // Widget kotayı kendi hesaplamıyor; buradan besleniyor.
+        // `isOfflineModelReady` üç satır önce okundu; varsayılan argüman aynı
+        // JSON okuma + dosya kontrolünü MainActor'da bir kez daha yapardı.
         QuotaSnapshotPublisher.publish(
             remainingMinutes: remainingMinutes,
-            planMinutes: planMonthlyMinutes
+            planMinutes: planMonthlyMinutes,
+            offlineAvailable: isOfflineModelReady
         )
 
         do {
@@ -361,7 +364,8 @@ public final class DashboardViewModel {
         // yayınlansaydı widget bir saate kadar eski bakiyeyi gösterirdi.
         QuotaSnapshotPublisher.publish(
             remainingMinutes: remainingMinutes,
-            planMinutes: planMonthlyMinutes
+            planMinutes: planMonthlyMinutes,
+            offlineAvailable: isOfflineModelReady
         )
     }
 

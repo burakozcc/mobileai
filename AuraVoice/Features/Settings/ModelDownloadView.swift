@@ -52,16 +52,19 @@ public final class ModelDownloadViewModel {
     @ObservationIgnored private let manager: OfflineModelManager
     @ObservationIgnored private let diarizer: SpeakerKitDiarizer
     @ObservationIgnored private let neuralInstaller: NeuralModelInstaller
+    @ObservationIgnored private let quota: QuotaManager
     @ObservationIgnored private var tasks: [Kind: Task<Void, Never>] = [:]
 
     public init(
         manager: OfflineModelManager = .shared,
         diarizer: SpeakerKitDiarizer = SpeakerKitDiarizer(),
-        neuralInstaller: NeuralModelInstaller = .shared
+        neuralInstaller: NeuralModelInstaller = .shared,
+        quota: QuotaManager = .shared
     ) {
         self.manager = manager
         self.diarizer = diarizer
         self.neuralInstaller = neuralInstaller
+        self.quota = quota
     }
 
     deinit {
@@ -121,6 +124,16 @@ public final class ModelDownloadViewModel {
         totalDiskBytes = await manager.diskUsageBytes()
             + manager.diarizationDiskUsageBytes()
             + neuralInstaller.diskUsageBytes()
+
+        // Widget cihaz içi kaydın mümkün olup olmadığını kendi hesaplayamıyor.
+        // Ayarlar'dan ilk modeli indiren kullanıcı için bu yayın olmadan
+        // widget, uygulama arka plana atılıp geri getirilene kadar bayat
+        // kalıyordu.
+        QuotaSnapshotPublisher.publish(
+            remainingMinutes: quota.getRemainingMinutes(),
+            planMinutes: quota.planMonthlyMinutes(),
+            offlineAvailable: OfflineModelManager.isOfflineReady()
+        )
     }
 
     /// Sürmekte olan indirmenin ilerlemesini ve BAŞARISIZ durumu koru.
@@ -174,8 +187,9 @@ public final class ModelDownloadViewModel {
                 }
                 self.setState(.installed, for: kind)
             } catch {
-                if error is CancellationError {
-                    // İptal kullanıcının kendi kararı; hata gibi sunmuyoruz.
+                // `Task.isCancelled` yapısal güvence: alt katman iptali
+                // sarmalarsa bile kullanıcının ✕'i hata gibi sunulmasın.
+                if error is CancellationError || Task.isCancelled {
                     self.setState(.available, for: kind)
                 } else {
                     let reason = Self.readableReason(for: error)
@@ -203,14 +217,18 @@ public final class ModelDownloadViewModel {
     }
 
     public func cancel(_ kind: Kind) {
-        tasks[kind]?.cancel()
-        tasks[kind] = nil
+        guard let running = tasks[kind] else { return }
+        running.cancel()
         setState(.available, for: kind)
 
-        // Yarım kalan dosyalar diskte kalmamalı: Ayarlar'daki toplam disk
-        // kullanımında görünüp geri kazanılamıyorlardı.
-        Task { [weak self] in
-            await self?.discardPartialDownload(kind)
+        // Handle ŞİMDİ silinmiyor. Silinseydi `download`'ın yeniden giriş
+        // kapısı anında açılır, kullanıcı hemen tekrar "İndir"e basabilir ve
+        // kuyruğa alınmış temizlik YENİ indirmenin klasörünü silerdi.
+        tasks[kind] = Task { [weak self] in
+            _ = await running.value
+            guard let self else { return }
+            await self.discardPartialDownload(kind)
+            self.tasks[kind] = nil
         }
     }
 
@@ -218,7 +236,14 @@ public final class ModelDownloadViewModel {
     private func discardPartialDownload(_ kind: Kind) async {
         switch kind {
         case .speech:
-            break // WhisperKit kendi snapshot temizliğini yapıyor.
+            // BİLİNEN EKSİK: iptal edilen bir konuşma modeli indirmesinin
+            // yarım dosyaları diskte kalıyor. `install` hatayı sarmalayıp
+            // `modelsDirectory`'ye dokunmadan fırlatıyor, `remove(variant:)`
+            // ise yalnızca sicile yazılmış klasörleri siliyor — iptal edilen
+            // indirme hiç sicile girmiyor. WhisperKit'in kendi snapshot
+            // dizinini güvenle silecek bir API doğrulanana kadar buraya
+            // dokunmuyoruz; yanlış dizini silmek kurulu modeli bozardı.
+            break
         case .diarization:
             try? await manager.removeDiarization()
         case .neuralSummarizer:
@@ -425,7 +450,10 @@ public struct ModelDownloadView: View {
                         Text(row.title)
                             .font(AuraFont.bodyLarge.weight(.semibold))
                             .foregroundStyle(isActive ? AuraTheme.primary : AuraTheme.onSurface)
-                        if row.isRecommended && row.state == .available {
+                        // `.failed` artık kalıcı olduğu için `== .available`
+                        // koşulu rozeti sonsuza kadar gizliyordu; öneri geri
+                        // çekilmiş gibi okunuyordu.
+                        if row.isRecommended, row.state != .installed, !row.isDownloading {
                             Text("ÖNERİLEN")
                                 .font(.system(size: 9, weight: .bold))
                                 .tracking(0.5)
@@ -462,23 +490,47 @@ public struct ModelDownloadView: View {
     }
 
     @ViewBuilder
+    private func downloadButton(
+        _ row: ModelDownloadViewModel.Row,
+        title: String,
+        tint: Color
+    ) -> some View {
+        Button(title) { viewModel.download(row.kind) }
+            .font(AuraFont.labelCaps)
+            .foregroundStyle(tint)
+            .padding(.horizontal, AuraTheme.Spacing.gutter)
+            .padding(.vertical, 7)
+            .background {
+                RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                    .fill(AuraTheme.surfaceContainerHigh)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
+                    .strokeBorder(tint.opacity(0.30), lineWidth: 1)
+            }
+            .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
     private func actionControl(_ row: ModelDownloadViewModel.Row) -> some View {
         switch row.state {
-        case .available, .failed:
-            Button("İndir") { viewModel.download(row.kind) }
-                .font(AuraFont.labelCaps)
-                .foregroundStyle(AuraTheme.onSurface)
-                .padding(.horizontal, AuraTheme.Spacing.gutter)
-                .padding(.vertical, 7)
-                .background {
-                    RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
-                        .fill(AuraTheme.surfaceContainerHigh)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: AuraTheme.Radius.large, style: .continuous)
-                        .strokeBorder(AuraTheme.hairline, lineWidth: 1)
-                }
-                .buttonStyle(.plain)
+        case .available:
+            downloadButton(row, title: "İndir", tint: AuraTheme.onSurface)
+
+        case .failed(let reason):
+            // Başarısızlık GÖRÜNÜR olmalı. Eskiden bu satır `.available` ile
+            // aynı çiziliyordu: `RowState.failed(String)` içindeki sebep hiçbir
+            // yerde okunmuyordu ve kullanıcının gördüğü tek iz, kapanınca
+            // kaybolan tek seferlik bir uyarıydı.
+            VStack(alignment: .trailing, spacing: 4) {
+                downloadButton(row, title: "TEKRAR DENE", tint: AuraTheme.warning)
+                Text(reason)
+                    .font(AuraFont.labelCaps)
+                    .foregroundStyle(AuraTheme.warning)
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .frame(maxWidth: 180, alignment: .trailing)
+            }
 
         case .downloading:
             Button {

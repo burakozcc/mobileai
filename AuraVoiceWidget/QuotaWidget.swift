@@ -63,10 +63,15 @@ struct QuotaWidgetView: View {
 
     private var fraction: Double { entry.snapshot?.fraction ?? 0 }
     private var isEmpty: Bool { entry.snapshot?.isEmpty ?? true }
-    /// Kaydın gerçekten başlayabileceği durum: kota var VE cihaz içi model
-    /// kurulu. Yalnızca kotaya bakmak, modeli olmayan kullanıcıya çalışan bir
-    /// düğme göstermek olurdu.
-    private var canRecord: Bool { !isEmpty && (entry.snapshot?.offlineAvailable ?? false) }
+    /// Kayıt başlatılabilir mi.
+    ///
+    /// Yalnızca KOTA kapısı var. Model kapısını buraya koymak yanlıştı: bu
+    /// düğme mod belirtmeyen bir istek gönderiyor ve uygulama tarafında model
+    /// yalnızca Zero-Cloud için şart. Bulutta çalışan, modeli bilerek
+    /// indirmemiş kullanıcı gri ve açıklamasız bir düğme görüyordu — oysa aynı
+    /// işlem uygulamada sorunsuz çalışıyor. Model kapısı Kontrol Merkezi'ndeki
+    /// Zero-Cloud düğmesine ait.
+    private var canRecord: Bool { !isEmpty }
     private var accent: Color { WidgetTheme.accent(for: fraction, isEmpty: isEmpty) }
 
     var body: some View {

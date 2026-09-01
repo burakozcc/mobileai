@@ -137,6 +137,9 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         Self.markActive(fileURL)
         self.isRecording = true
         self.isPaused = false
+        // Önceki kaydın uyarısı yeni kayda taşınmasın.
+        self.resumeDidFail = false
+        self.pausedByInterruption = false
         self.currentDuration = 0
         self.audioLevels = AudioWaveformProcessor.emptyWindow(resolution: Self.waveformResolution)
         self.peakLevel = 0
@@ -145,20 +148,39 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         return fileURL
     }
 
+    /// Kullanıcının kendi duraklatması.
     public func pauseRecording() {
+        pauseRecording(byInterruption: false)
+    }
+
+    /// - Parameter byInterruption: Duraklatmayı sistem mi yaptı.
+    ///   Kesintinin bitmesi YALNIZCA sistemin duraklattığı kaydı geri
+    ///   başlatmalı; kullanıcının bilerek kapattığı mikrofonu geri açmak
+    ///   izin verilmemiş bir kayıt demek.
+    private func pauseRecording(byInterruption: Bool) {
         guard isRecording, !isPaused, let engine else { return }
+        pausedByInterruption = byInterruption
         engine.pause()
         sink?.setPaused(true)
         isPaused = true
     }
 
-    public func resumeRecording() {
-        guard isRecording, isPaused, let engine else { return }
+    @discardableResult
+    public func resumeRecording() -> Bool {
+        guard isRecording, isPaused, let engine else { return false }
+
+        // `.shouldResume` gelmeyen kesintide oturum geri alınmamıştı; elle
+        // devam denemesinde tekrar deniyoruz, aksi halde `engine.start()`
+        // sessizce patlıyor ve kullanıcı ekranın yalanını görüyor.
+        try? AVAudioSession.sharedInstance().setActive(true, options: [])
+
         do {
             try engine.start()
             sink?.setPaused(false)
             isPaused = false
             resumeDidFail = false
+            pausedByInterruption = false
+            return true
         } catch {
             // Motor geri gelmezse kaydı kapatmak yerine duraklatılmış bırakıyoruz;
             // kullanıcı durdurup mevcut sesi işleyebilir. Ama bunu SESSİZCE
@@ -166,6 +188,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
             // demekti — arayüz bayraktan haberdar olmalı.
             resumeDidFail = true
             print("[AuraVoice] Kayıt devam ettirilemedi: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -242,13 +265,23 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         }
     }
 
+    /// Duraklatmayı KİM yaptı.
+    ///
+    /// Kullanıcı bilerek duraklattıysa kesintinin bitmesi kaydı geri
+    /// başlatmamalı: `sink?.setPaused(false)` kullanıcının kapattığı mikrofonu
+    /// geri açardı ve ekran, izin verilmemiş bir kaydı onaylar hâle gelirdi.
+    private var pausedByInterruption = false
+
     private func handleInterruption(rawType: UInt?, rawOptions: UInt?) {
         guard let rawType, let type = AVAudioSession.InterruptionType(rawValue: rawType) else { return }
         switch type {
         case .began:
             // Gelen arama / Siri: motoru duraklat, dosyayı koru.
-            pauseRecording()
+            pauseRecording(byInterruption: true)
         case .ended:
+            // Kayıt yokken ya da duraklatmayı kullanıcı yaptıysa dokunma.
+            guard isRecording, pausedByInterruption else { return }
+            pausedByInterruption = false
             // `.shouldResume` OKUNMALI. Sistem bazı kesintilerden sonra devam
             // edilmemesini söylüyor (başka bir uygulama sesi ele geçirdi);
             // koşulsuz `engine.start()` çağırmak sessizce başarısız oluyor ve

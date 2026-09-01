@@ -144,6 +144,9 @@ public actor OfflineModelManager {
                 }
             )
         } catch {
+            // İptal kullanıcının kararı; sarmalanırsa çağıran onu hatadan
+            // ayırt edemiyor ve satırda kalıcı kırmızı bir uyarı bırakıyor.
+            if error is CancellationError { throw error }
             throw AuraError.engineFailure("Model indirilemedi: \(error.localizedDescription)")
         }
 

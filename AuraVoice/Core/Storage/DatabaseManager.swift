@@ -49,10 +49,20 @@ public enum AuraModelContainer {
         // güncellemede tüm notların "kaybolması" demek. `cloudKitDatabase` de
         // aynı sebeple `.none`: bu uygulamanın vaadi verinin cihazdan
         // çıkmaması, sessizce iCloud'a senkronlanması değil.
+        // `groupContainer` BİLEREK `.automatic`.
+        //
+        // Bir önceki hâlim `.none` yapıyordu ve bu, store'u App Group
+        // konteynerinden uygulamanın kendi dizinine TAŞIYORDU — migrasyon
+        // olmadan. Yani önlemek için yazdığım veri kaybını üreten şey tam
+        // olarak o satırdı. `.automatic` yetkiye bakıp doğru konumu seçiyor
+        // ve App Group yetkisi verilmemiş cihazda da düzgün çalışıyor.
+        //
+        // `cloudKitDatabase` ise açıkça `.none` kalıyor: bu uygulamanın vaadi
+        // verinin cihazdan çıkmaması, sessizce iCloud'a senkronlanması değil.
         let diskConfig = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            groupContainer: .none,
+            groupContainer: .automatic,
             cloudKitDatabase: .none
         )
         do {
@@ -63,7 +73,7 @@ public enum AuraModelContainer {
             let memoryConfig = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: true,
-                groupContainer: .none,
+                groupContainer: .automatic,
                 cloudKitDatabase: .none
             )
             // Bellek içi konteyner da açılamıyorsa kurtarılacak bir durum yok.
@@ -185,9 +195,20 @@ public actor DatabaseManager: NoteRepository {
               let data = try? Data(contentsOf: legacyURL)
         else { return 0 }
 
+        // Bellek içi konteynerde taşımak, JSON'u silip notları tamamen
+        // uçurmak demek: insert bellekte "başarılı" oluyor, dosya siliniyor,
+        // bir sonraki sağlıklı açılışta notlar iki yerde de yok.
+        guard !modelContainer.configurations.contains(where: \.isStoredInMemoryOnly) else {
+            return 0
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let legacyNotes = (try? decoder.decode([NoteSummary].self, from: data)) ?? []
+        // Çözümlenemeyen dosyayı SİLMİYORUZ: kullanıcının tek kopyası bu.
+        guard let legacyNotes = try? decoder.decode([NoteSummary].self, from: data) else {
+            print("[AuraVoice] Eski not dosyası çözümlenemedi, korunuyor.")
+            return 0
+        }
 
         for note in legacyNotes {
             // Aynı notu iki kez eklememek için kimlik kontrolü.
@@ -205,9 +226,15 @@ public actor DatabaseManager: NoteRepository {
     /// Veritabanında karşılığı kalmamış ses dosyalarını temizler.
     @discardableResult
     public func pruneOrphanedRecordings() throws -> Int {
-        // Bellek içi konteynere düşüldüyse veritabanı BOŞ. O durumda her dosya
-        // yetim görünür ve temizlik kullanıcının bütün kayıtlarını siler.
-        guard !AuraModelContainer.isEphemeral else { return 0 }
+        // Bellek içi konteynerde veritabanı BOŞ; her dosya yetim görünür ve
+        // temizlik kullanıcının bütün kayıtlarını siler.
+        //
+        // Global bayrağa DEĞİL, bu örneğin gerçekten kullandığı konteynere
+        // bakıyoruz: `pruneOrphanedRecordings` bir örnek metodu ve testler
+        // kendi bellek içi konteynerlerini enjekte ediyor.
+        guard !modelContainer.configurations.contains(where: \.isStoredInMemoryOnly) else {
+            return 0
+        }
 
         let directory = Self.recordingsDirectory
         guard let files = try? FileManager.default.contentsOfDirectory(
