@@ -356,6 +356,13 @@ public final class DashboardViewModel {
             }
         }
         remainingSeconds = quotaManager.getRemainingSeconds()
+
+        // Kayıt bittiğinde widget'ı hemen tazele. Yalnızca `refresh()` içinde
+        // yayınlansaydı widget bir saate kadar eski bakiyeyi gösterirdi.
+        QuotaSnapshotPublisher.publish(
+            remainingMinutes: remainingMinutes,
+            planMinutes: planMonthlyMinutes
+        )
     }
 
     public func delete(_ note: NoteSummary) async {

@@ -136,6 +136,7 @@ public struct RecordingView: View {
                 if case .failed(let message) = phase {
                     failurePanel(message)
                 } else {
+                    if recorder.resumeDidFail { interruptionBanner }
                     templateSelector
                     controls
                 }
@@ -152,6 +153,17 @@ public struct RecordingView: View {
         .task {
             await beginRecording()
             if !reduceMotion { isBreathing = true }
+        }
+        // Sistem kaynaklı duraklama (gelen arama, Siri) ekrana yansımalı.
+        // Eskiden `RecordingView` `recorder.isPaused`'ı hiç gözlemiyordu ve
+        // motor duraklamışken ekran "Kaydediliyor" yazmaya devam ediyordu.
+        .onChange(of: recorder.isPaused) { _, paused in
+            if paused, phase == .recording { phase = .paused }
+            if !paused, phase == .paused { phase = .recording }
+        }
+        .onChange(of: recorder.resumeDidFail) { _, failed in
+            // Kesinti bitti ama motor geri gelemedi: kayıt fiilen durdu.
+            if failed, phase == .recording { phase = .paused }
         }
         .onChange(of: recorder.currentDuration) { _, duration in
             // Kota bittiği anda kaydı otomatik kapat — kullanıcı ödemediği
@@ -379,6 +391,35 @@ public struct RecordingView: View {
             }
             .disabled(phase == .processing || phase == .preparing)
         }
+    }
+
+    // MARK: Kesinti uyarısı
+
+    /// Kesinti sonrası motor geri gelemediğinde gösterilir.
+    ///
+    /// Sessiz bırakıldığında kullanıcı konuşmaya devam ediyor, WAV'a hiçbir
+    /// şey yazılmıyor ve bunu ancak kaydı bitirince anlıyordu.
+    private var interruptionBanner: some View {
+        HStack(alignment: .top, spacing: AuraTheme.Spacing.gutter) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 15))
+                .foregroundStyle(AuraTheme.warning)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Kayıt kesildi")
+                    .font(AuraFont.bodySmall.weight(.semibold))
+                    .foregroundStyle(AuraTheme.onSurface)
+                Text("Başka bir uygulama mikrofonu aldı. Devam etmek için oynat tuşuna bas ya da kaydı bitir.")
+                    .font(AuraFont.bodySmall)
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(AuraTheme.Spacing.gutter)
+        .glassSurface(borderColor: AuraTheme.warning.opacity(0.30))
+        .padding(.bottom, AuraTheme.Spacing.stackSM)
     }
 
     // MARK: Hata kurtarma

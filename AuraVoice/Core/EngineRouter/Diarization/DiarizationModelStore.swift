@@ -25,18 +25,46 @@ public extension OfflineModelManager {
     /// Yaklaşık indirme boyutu (kullanıcıya gösterilir).
     nonisolated static var diarizationApproximateMegabytes: Int { 92 }
 
+    /// Ağırlıkların gerçekten diskte olduğu kabul edilebilmesi için gereken
+    /// en küçük boyut.
+    ///
+    /// Pyannote paketi ~92 MB; 20 MB'ın altı kesinlikle yarım kalmış bir
+    /// indirmedir. Tam boyutu şart koşmuyoruz çünkü paket sürümle değişebilir.
+    nonisolated static var diarizationMinimumBytes: Int64 { 20 * 1024 * 1024 }
+
+    /// Kurulu mu.
+    ///
+    /// İşaret dosyasının VARLIĞI yetmiyordu: `markDiarizationInstalled`
+    /// klasörü kendisi yaratıyor ve 1 baytlık işareti yazıyor, içeriği ise
+    /// hiç denetlenmiyordu. SpeakerKit ağırlıkları başka bir yere koyduğunda
+    /// Ayarlar "KURULU" diyor, `isAvailable` true dönüyor ve her ayrıştırma
+    /// denemesi `SpeakerLabeler` tarafından sessizce yutuluyordu — kullanıcı
+    /// hiç konuşmacı etiketi görmüyordu ve sebebini öğrenemiyordu.
     nonisolated static func isDiarizationInstalled() -> Bool {
         let fm = FileManager.default
-        return fm.fileExists(atPath: diarizationMarker.path)
-            && fm.fileExists(atPath: diarizationFolder.path)
+        guard fm.fileExists(atPath: diarizationMarker.path),
+              fm.fileExists(atPath: diarizationFolder.path)
+        else { return false }
+
+        return directorySize(at: diarizationFolder) >= diarizationMinimumBytes
     }
 
     /// Kurulum tamamlandığında çağrılır.
+    ///
+    /// İşareti yazmadan ÖNCE ağırlıkların gerçekten indiğini doğruluyor;
+    /// aksi halde boş bir klasör "kurulu" sayılırdı.
     @discardableResult
     func markDiarizationInstalled() -> Bool {
         let fm = FileManager.default
         do {
             try fm.createDirectory(at: Self.diarizationFolder, withIntermediateDirectories: true)
+            Self.excludeFromBackup(Self.diarizationFolder)
+
+            guard Self.directorySize(at: Self.diarizationFolder) >= Self.diarizationMinimumBytes else {
+                print("[AuraVoice] Ayrıştırma modeli eksik indirilmiş, kurulu sayılmıyor.")
+                return false
+            }
+
             try Data([1]).write(to: Self.diarizationMarker, options: .atomic)
             return true
         } catch {

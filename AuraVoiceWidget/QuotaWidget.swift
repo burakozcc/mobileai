@@ -22,7 +22,12 @@ struct QuotaEntry: TimelineEntry, Sendable {
     /// Uygulama hiç açılmadıysa gösterilecek nötr değer.
     static let placeholder = QuotaEntry(
         date: Date(timeIntervalSince1970: 0),
-        snapshot: SharedQuotaSnapshot(remainingMinutes: 30, planMinutes: 30, updatedAt: Date(timeIntervalSince1970: 0))
+        snapshot: SharedQuotaSnapshot(
+            remainingMinutes: 30,
+            planMinutes: 30,
+            updatedAt: Date(timeIntervalSince1970: 0),
+            offlineAvailable: true
+        )
     )
 }
 
@@ -58,6 +63,10 @@ struct QuotaWidgetView: View {
 
     private var fraction: Double { entry.snapshot?.fraction ?? 0 }
     private var isEmpty: Bool { entry.snapshot?.isEmpty ?? true }
+    /// Kaydın gerçekten başlayabileceği durum: kota var VE cihaz içi model
+    /// kurulu. Yalnızca kotaya bakmak, modeli olmayan kullanıcıya çalışan bir
+    /// düğme göstermek olurdu.
+    private var canRecord: Bool { !isEmpty && (entry.snapshot?.offlineAvailable ?? false) }
     private var accent: Color { WidgetTheme.accent(for: fraction, isEmpty: isEmpty) }
 
     var body: some View {
@@ -134,11 +143,11 @@ struct QuotaWidgetView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 7)
-                .background(isEmpty ? WidgetTheme.onSurfaceVariant.opacity(0.25) : accent, in: Capsule())
-                .foregroundStyle(isEmpty ? WidgetTheme.onSurfaceVariant : WidgetTheme.onPrimaryContainer)
+                .background(canRecord ? accent : WidgetTheme.onSurfaceVariant.opacity(0.25), in: Capsule())
+                .foregroundStyle(canRecord ? WidgetTheme.onPrimaryContainer : WidgetTheme.onSurfaceVariant)
             }
             .buttonStyle(.plain)
-            .disabled(isEmpty)
+            .disabled(!canRecord)
         }
     }
 }

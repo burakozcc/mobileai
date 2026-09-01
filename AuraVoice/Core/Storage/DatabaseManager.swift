@@ -42,16 +42,42 @@ public enum AuraModelContainer {
         // kaybederdi.
         ensureApplicationSupportExists()
 
-        let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // Konteyner AÇIKÇA sabitleniyor.
+        //
+        // `groupContainer` varsayılanı `.automatic` ve uygulamanın App Group
+        // yetkisi var; store'un nereye açılacağını tesadüfe bırakmak, bir
+        // güncellemede tüm notların "kaybolması" demek. `cloudKitDatabase` de
+        // aynı sebeple `.none`: bu uygulamanın vaadi verinin cihazdan
+        // çıkmaması, sessizce iCloud'a senkronlanması değil.
+        let diskConfig = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            groupContainer: .none,
+            cloudKitDatabase: .none
+        )
         do {
             return try ModelContainer(for: schema, configurations: [diskConfig])
         } catch {
             print("[AuraVoice] Kalıcı store açılamadı, bellek içi moda düşülüyor: \(error)")
-            let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+            isEphemeral = true
+            let memoryConfig = ModelConfiguration(
+                schema: schema,
+                isStoredInMemoryOnly: true,
+                groupContainer: .none,
+                cloudKitDatabase: .none
+            )
             // Bellek içi konteyner da açılamıyorsa kurtarılacak bir durum yok.
             return try! ModelContainer(for: schema, configurations: [memoryConfig])
         }
     }()
+
+    /// Kalıcı store açılamadı ve bellek içi konteynere düşüldü.
+    ///
+    /// Bu durumda uygulama ÇALIŞIYOR görünüyor ama her not uygulama kapanınca
+    /// yok oluyor. Sessiz bırakmak kabul edilemez; ayrıca yetim temizliği bu
+    /// bayrağa bakıp hiçbir şey silmemeli — boş bir veritabanında diskteki TÜM
+    /// kayıtlar yetim görünür.
+    public nonisolated(unsafe) private(set) static var isEphemeral = false
 
     private static func ensureApplicationSupportExists() {
         let fm = FileManager.default
@@ -179,6 +205,10 @@ public actor DatabaseManager: NoteRepository {
     /// Veritabanında karşılığı kalmamış ses dosyalarını temizler.
     @discardableResult
     public func pruneOrphanedRecordings() throws -> Int {
+        // Bellek içi konteynere düşüldüyse veritabanı BOŞ. O durumda her dosya
+        // yetim görünür ve temizlik kullanıcının bütün kayıtlarını siler.
+        guard !AuraModelContainer.isEphemeral else { return 0 }
+
         let directory = Self.recordingsDirectory
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil

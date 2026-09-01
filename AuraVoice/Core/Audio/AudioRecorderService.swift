@@ -35,6 +35,12 @@ public final class AudioRecorderService: NSObject, ObservableObject {
     @Published public private(set) var audioLevels: [Float]
     /// Anlık tepe seviye — kayıt butonunun nabız animasyonunu besler.
     @Published public private(set) var peakLevel: Float = 0
+    /// Kesinti bitti ama motor geri gelemedi.
+    ///
+    /// Bu bayrak olmadan ekran "Kaydediliyor" göstermeye devam ederken WAV'a
+    /// hiçbir şey yazılmıyordu: Siri ya da alarm kesintisinden sonra kullanıcı
+    /// konuşmaya devam ediyor, kayıt sessizce ölüyordu.
+    @Published public private(set) var resumeDidFail = false
 
     // MARK: - Yapılandırma
 
@@ -152,9 +158,13 @@ public final class AudioRecorderService: NSObject, ObservableObject {
             try engine.start()
             sink?.setPaused(false)
             isPaused = false
+            resumeDidFail = false
         } catch {
             // Motor geri gelmezse kaydı kapatmak yerine duraklatılmış bırakıyoruz;
-            // kullanıcı durdurup mevcut sesi işleyebilir.
+            // kullanıcı durdurup mevcut sesi işleyebilir. Ama bunu SESSİZCE
+            // yapmak, ekranda "Kaydediliyor" yazarken hiçbir şey yazmamak
+            // demekti — arayüz bayraktan haberdar olmalı.
+            resumeDidFail = true
             print("[AuraVoice] Kayıt devam ettirilemedi: \(error.localizedDescription)")
         }
     }
@@ -225,21 +235,36 @@ public final class AudioRecorderService: NSObject, ObservableObject {
             queue: .main
         ) { [weak self] notification in
             let raw = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            let rawOptions = notification.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt
             MainActor.assumeIsolated {
-                self?.handleInterruption(rawType: raw)
+                self?.handleInterruption(rawType: raw, rawOptions: rawOptions)
             }
         }
     }
 
-    private func handleInterruption(rawType: UInt?) {
+    private func handleInterruption(rawType: UInt?, rawOptions: UInt?) {
         guard let rawType, let type = AVAudioSession.InterruptionType(rawValue: rawType) else { return }
         switch type {
         case .began:
             // Gelen arama / Siri: motoru duraklat, dosyayı koru.
             pauseRecording()
         case .ended:
-            try? AVAudioSession.sharedInstance().setActive(true, options: [])
-            resumeRecording()
+            // `.shouldResume` OKUNMALI. Sistem bazı kesintilerden sonra devam
+            // edilmemesini söylüyor (başka bir uygulama sesi ele geçirdi);
+            // koşulsuz `engine.start()` çağırmak sessizce başarısız oluyor ve
+            // kayıt ölü devam ediyordu.
+            let options = AVAudioSession.InterruptionOptions(rawValue: rawOptions ?? 0)
+            guard options.contains(.shouldResume) else {
+                resumeDidFail = true
+                return
+            }
+            do {
+                try AVAudioSession.sharedInstance().setActive(true, options: [])
+                resumeRecording()
+            } catch {
+                resumeDidFail = true
+                print("[AuraVoice] Ses oturumu geri alınamadı: \(error.localizedDescription)")
+            }
         @unknown default:
             break
         }

@@ -23,20 +23,23 @@ public enum QuotaSnapshotPublisher {
     public static func publish(
         remainingMinutes: Double,
         planMinutes: Double,
+        offlineAvailable: Bool = OfflineModelManager.isOfflineReady(),
         now: Date = Date()
     ) -> Bool {
 
         let existing = SharedQuotaSnapshot.read()
         if let existing,
            abs(existing.remainingMinutes - remainingMinutes) < 0.01,
-           abs(existing.planMinutes - planMinutes) < 0.01 {
+           abs(existing.planMinutes - planMinutes) < 0.01,
+           existing.offlineAvailable == offlineAvailable {
             return false
         }
 
         SharedQuotaSnapshot(
             remainingMinutes: max(0, remainingMinutes),
             planMinutes: max(0, planMinutes),
-            updatedAt: now
+            updatedAt: now,
+            offlineAvailable: offlineAvailable
         ).write()
 
         WidgetCenter.shared.reloadAllTimelines()

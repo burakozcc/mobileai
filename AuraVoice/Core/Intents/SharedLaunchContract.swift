@@ -93,11 +93,36 @@ public struct SharedQuotaSnapshot: Codable, Sendable, Equatable {
     public let remainingMinutes: Double
     public let planMinutes: Double
     public let updatedAt: Date
+    /// Cihaz içi kayıt şu an mümkün mü (model kurulu ve kota var).
+    ///
+    /// Widget bunu kendi hesaplayamıyor: model kurulumu uygulamanın
+    /// konteynerinde. Alan yokken düğme yalnızca kotaya bakıyordu.
+    public let offlineAvailable: Bool
 
-    public init(remainingMinutes: Double, planMinutes: Double, updatedAt: Date = Date()) {
+    public init(
+        remainingMinutes: Double,
+        planMinutes: Double,
+        updatedAt: Date = Date(),
+        offlineAvailable: Bool = false
+    ) {
         self.remainingMinutes = remainingMinutes
         self.planMinutes = planMinutes
         self.updatedAt = updatedAt
+        self.offlineAvailable = offlineAvailable
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case remainingMinutes, planMinutes, updatedAt, offlineAvailable
+    }
+
+    /// Eski anlık görüntülerde alan yok; varsayılanla açılıyor ki uygulama
+    /// güncellendiğinde widget çözümleme hatası vermesin.
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        remainingMinutes = try container.decode(Double.self, forKey: .remainingMinutes)
+        planMinutes = try container.decode(Double.self, forKey: .planMinutes)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        offlineAvailable = try container.decodeIfPresent(Bool.self, forKey: .offlineAvailable) ?? false
     }
 
     /// 0...1 — plan tanımsızsa dolu göstermek yerine boş gösteriyoruz ki

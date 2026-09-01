@@ -123,13 +123,24 @@ public final class ModelDownloadViewModel {
             + neuralInstaller.diskUsageBytes()
     }
 
-    /// Sürmekte olan indirmenin ilerlemesini koru, yoksa diskteki duruma dön.
+    /// Sürmekte olan indirmenin ilerlemesini ve BAŞARISIZ durumu koru.
+    ///
+    /// `.failed` korunmazsa satır sessizce "İndir"e dönüyordu: kullanıcının
+    /// gördüğü tek iz tek seferlik bir uyarıydı, o da kapanınca hatanın hiç
+    /// olmadığı izlenimi kalıyordu.
     private func currentState(for kind: Kind, fallback: RowState) -> RowState {
-        if let existing = rows.first(where: { $0.kind == kind })?.state,
-           case .downloading = existing {
+        guard let existing = rows.first(where: { $0.kind == kind })?.state else { return fallback }
+
+        switch existing {
+        case .downloading:
             return existing
+        case .failed:
+            // Disk artık kurulu diyorsa gerçeği kazanır (kullanıcı tekrar
+            // denemiş ve başarmış olabilir).
+            return fallback == .installed ? fallback : existing
+        case .available, .installed:
+            return fallback
         }
-        return fallback
     }
 
     // MARK: Eylemler
@@ -163,9 +174,15 @@ public final class ModelDownloadViewModel {
                 }
                 self.setState(.installed, for: kind)
             } catch {
-                let reason = (error as? AuraError)?.errorDescription ?? error.localizedDescription
-                self.setState(.failed(reason), for: kind)
-                self.errorMessage = reason
+                if error is CancellationError {
+                    // İptal kullanıcının kendi kararı; hata gibi sunmuyoruz.
+                    self.setState(.available, for: kind)
+                } else {
+                    let reason = Self.readableReason(for: error)
+                    self.setState(.failed(reason), for: kind)
+                    self.errorMessage = reason
+                    await self.discardPartialDownload(kind)
+                }
             }
             self.tasks[kind] = nil
             await self.refresh()
@@ -189,11 +206,50 @@ public final class ModelDownloadViewModel {
         tasks[kind]?.cancel()
         tasks[kind] = nil
         setState(.available, for: kind)
+
+        // Yarım kalan dosyalar diskte kalmamalı: Ayarlar'daki toplam disk
+        // kullanımında görünüp geri kazanılamıyorlardı.
+        Task { [weak self] in
+            await self?.discardPartialDownload(kind)
+        }
+    }
+
+    /// İptal ya da hata sonrası yarım kalan dosyaları temizler.
+    private func discardPartialDownload(_ kind: Kind) async {
+        switch kind {
+        case .speech:
+            break // WhisperKit kendi snapshot temizliğini yapıyor.
+        case .diarization:
+            try? await manager.removeDiarization()
+        case .neuralSummarizer:
+            OfflineModelManager.discardIncompleteNeuralModel()
+        }
+        await refresh()
     }
 
     private func setState(_ state: RowState, for kind: Kind) {
         guard let index = rows.firstIndex(where: { $0.kind == kind }) else { return }
         rows[index].state = state
+    }
+
+    /// Ağ hatalarını kullanıcının anlayacağı bir cümleye çevirir.
+    static func readableReason(for error: any Error) -> String {
+        if let aura = error as? AuraError {
+            return aura.errorDescription ?? "\(aura)"
+        }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost:
+                return AuraError.networkUnavailable.errorDescription ?? "Bağlantı yok."
+            case .dataNotAllowed:
+                return "İndirme Wi-Fi gerektiriyor; hücresel veriyle indirilmiyor."
+            case .cancelled:
+                return "İndirme iptal edildi."
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
     }
 
     // MARK: Metinler
