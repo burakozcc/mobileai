@@ -3,7 +3,7 @@
 Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
 ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-**Durum:** 316 test / 50 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
+**Durum:** 370 test / 64 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
 Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
 Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
 gerektiriyor (aşağıda).

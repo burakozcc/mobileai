@@ -285,3 +285,99 @@ struct InterruptedProcessingTests {
         #expect(states.allSatisfy { $0 == .failed })
     }
 }
+
+// MARK: - Yer geri kazanma
+
+@Suite("Ses silme", .serialized)
+struct DiscardProcessedAudioTests {
+
+    private func makeManager() throws -> DatabaseManager {
+        DatabaseManager(modelContainer: try AuraModelContainer.inMemory())
+    }
+
+    private func makeAudio(_ name: String) throws -> URL {
+        let directory = DatabaseManager.recordingsDirectory
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent(name)
+        try Data(repeating: 0x41, count: 4_096).write(to: url)
+        return url
+    }
+
+    private func note(state: NoteProcessingState, fileName: String) -> NoteSummary {
+        NoteSummary(
+            title: "Toplantı",
+            durationSeconds: 600,
+            mode: .offlineZeroCloud,
+            template: .meetingNotes,
+            summaryMarkdown: "### X\n- madde",
+            rawTranscript: "metin",
+            audioFileName: fileName,
+            processingState: state
+        )
+    }
+
+    @Test("İşlenmiş kaydın sesi siliniyor, notu kalıyor")
+    func removesAudioKeepsNote() async throws {
+        let manager = try makeManager()
+        let name = "rec_ready_\(UUID().uuidString).wav"
+        let url = try makeAudio(name)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        _ = try await manager.insert(note(state: .ready, fileName: name))
+        let result = try await manager.discardProcessedAudio()
+
+        #expect(result.removedFiles == 1)
+        #expect(result.freedBytes == 4_096)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+
+        // Asıl değer transkript ve özet; onlar duruyor.
+        let stored = try await manager.all().first
+        #expect(stored != nil)
+        #expect(stored?.rawTranscript == "metin")
+        // Ölü bir dosya adı bırakmıyoruz.
+        #expect(stored?.audioFileName == nil)
+    }
+
+    @Test("İşlenmeyi bekleyen kaydın sesine dokunulmuyor", arguments: [
+        NoteProcessingState.processing, .failed
+    ])
+    func keepsAudioForPendingNotes(state: NoteProcessingState) async throws {
+        // Bu notlar için ses, tekrar denemenin TEK girdisi.
+        let manager = try makeManager()
+        let name = "rec_pending_\(UUID().uuidString).wav"
+        let url = try makeAudio(name)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        _ = try await manager.insert(note(state: state, fileName: name))
+        let result = try await manager.discardProcessedAudio()
+
+        #expect(result.removedFiles == 0)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        #expect(try await manager.all().first?.audioFileName == name)
+    }
+
+    @Test("Yazılmakta olan dosyaya dokunulmuyor")
+    func skipsActiveRecording() async throws {
+        let manager = try makeManager()
+        let name = "rec_active_\(UUID().uuidString).wav"
+        let url = try makeAudio(name)
+        defer {
+            AudioRecorderService.clearActive()
+            try? FileManager.default.removeItem(at: url)
+        }
+
+        _ = try await manager.insert(note(state: .ready, fileName: name))
+        AudioRecorderService.markActive(url)
+
+        #expect(try await manager.discardProcessedAudio().removedFiles == 0)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("Silinecek ses yoksa iş yapılmıyor")
+    func noOpWhenNothingToRemove() async throws {
+        let manager = try makeManager()
+        let result = try await manager.discardProcessedAudio()
+        #expect(result.removedFiles == 0)
+        #expect(result.freedBytes == 0)
+    }
+}

@@ -225,6 +225,46 @@ public actor DatabaseManager: NoteRepository {
 
     /// Veritabanında karşılığı kalmamış ses dosyalarını temizler.
     @discardableResult
+    /// Notları koruyarak ses dosyalarını siler.
+    ///
+    /// Depolama sonsuza kadar büyüyordu ve tek geri kazanma yolu notu —
+    /// dolayısıyla transkripti — silmekti. Ses işlendikten sonra ana değer
+    /// transkript ve özet; kullanıcı yeri geri isterse ikisini kaybetmemeli.
+    ///
+    /// İŞLENMEMİŞ notların sesine DOKUNULMUYOR: `.processing` ve `.failed`
+    /// durumundaki notlar için ses, tekrar denemenin tek girdisi.
+    @discardableResult
+    public func discardProcessedAudio() throws -> (removedFiles: Int, freedBytes: Int64) {
+        let entities = try modelContext.fetch(FetchDescriptor<NoteEntity>())
+
+        var removed = 0
+        var freed: Int64 = 0
+        let fileManager = FileManager.default
+        let activeFile = AudioRecorderService.activeRecordingFileName()
+
+        for entity in entities {
+            guard entity.processingStateRaw == NoteProcessingState.ready.rawValue,
+                  let fileName = entity.audioFileName,
+                  fileName != activeFile
+            else { continue }
+
+            let url = Self.audioURL(for: fileName)
+            guard fileManager.fileExists(atPath: url.path) else { continue }
+
+            let size = (try? url.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            try? fileManager.removeItem(at: url)
+
+            // Referans da kaldırılıyor: kalan bir ad, olmayan bir dosyayı
+            // işaret edip not detayında ölü bir oynatma düğmesi bırakırdı.
+            entity.audioFileName = nil
+            removed += 1
+            freed += Int64(size)
+        }
+
+        if removed > 0 { try modelContext.save() }
+        return (removed, freed)
+    }
+
     /// - Parameter allowEphemeralStore: Bellek içi konteynerde de temizlik
     ///   yapılsın mı. Yalnızca testler için: üretimde bellek içi konteyner
     ///   "kalıcı store açılamadı" demek ve o durumda veritabanı boş olduğu

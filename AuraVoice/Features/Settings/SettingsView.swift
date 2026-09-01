@@ -146,6 +146,19 @@ public final class SettingsViewModel {
         }
     }
 
+    /// İşlenmiş kayıtların sesini siler, notları korur.
+    public func discardProcessedAudio() async {
+        do {
+            let result = try await DatabaseManager.shared.discardProcessedAudio()
+            errorMessage = result.removedFiles > 0
+                ? "\(result.removedFiles) kaydın sesi silindi, \(OfflineModelManager.formatted(bytes: result.freedBytes)) yer açıldı. Transkript ve özetler duruyor."
+                : "Silinecek ses bulunamadı. İşlenmeyi bekleyen kayıtların sesine dokunulmuyor."
+            await refresh()
+        } catch {
+            errorMessage = "Sesler silinemedi: \(error.localizedDescription)"
+        }
+    }
+
     // MARK: Eşlemeler
 
     static func map(_ status: AVAudioApplication.recordPermission) -> PermissionState {
@@ -179,6 +192,8 @@ public final class SettingsViewModel {
 // MARK: - Görünüm
 
 public struct SettingsView: View {
+
+    @State private var showAudioDiscardConfirm = false
 
     @State private var viewModel = SettingsViewModel()
 
@@ -374,6 +389,38 @@ public struct SettingsView: View {
                     }
                 }
                 .buttonStyle(.plain)
+
+                divider
+
+                // Depolama sonsuza kadar büyüyordu ve yer açmanın tek yolu
+                // notu — dolayısıyla transkripti — silmekti.
+                Button {
+                    showAudioDiscardConfirm = true
+                } label: {
+                    row(
+                        icon: "waveform.slash",
+                        iconTint: AuraTheme.warning,
+                        title: "Sesleri Sil, Notları Koru",
+                        subtitle: "İşlenmiş kayıtların sesi silinir; transkript ve özet kalır"
+                    ) {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AuraTheme.onSurfaceVariant)
+                    }
+                }
+                .buttonStyle(.plain)
+                .confirmationDialog(
+                    "İşlenmiş kayıtların sesi silinsin mi?",
+                    isPresented: $showAudioDiscardConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Sesleri sil", role: .destructive) {
+                        Task { await viewModel.discardProcessedAudio() }
+                    }
+                    Button("Vazgeç", role: .cancel) {}
+                } message: {
+                    Text("Transkript ve özetler korunur, geri alınamaz. İşlenmeyi bekleyen kayıtların sesine dokunulmaz — onlar için ses, tekrar denemenin tek girdisi.")
+                }
             }
             .glassSurface()
         }

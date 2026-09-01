@@ -150,6 +150,14 @@ public final class DashboardViewModel {
         observeCallStates()
         observeNetwork()
 
+        // Kalıcı store açılamadıysa uygulama ÇALIŞIYOR görünüyor ama her not
+        // uygulama kapanınca yok oluyor. Sessiz bırakmak, kullanıcının geçmişi
+        // silinmiş sanmasına ve yeni notlarının da kaybolduğunu fark
+        // etmemesine yol açardı.
+        if AuraModelContainer.isEphemeral {
+            errorMessage = "Kayıt veritabanı açılamadı. Bu oturumda aldığın notlar kalıcı olmayacak — uygulamayı yeniden başlatmayı dene."
+        }
+
         calendarStatus = calendarService.authorizationStatus
         notificationStatus = await notificationManager.authorizationStatus()
         isCallActive = CallObserverService.shared.hasActiveCall
