@@ -156,7 +156,7 @@ public final class SettingsViewModel {
                 : "Temizlenecek dosya bulunamadı."
             await refresh()
         } catch {
-            errorMessage = "Temizlik başarısız: \(error.localizedDescription)"
+            errorMessage = String(localized: "Temizlik başarısız: \(error.localizedDescription)")
         }
     }
 
@@ -169,7 +169,7 @@ public final class SettingsViewModel {
                 : "Silinecek ses bulunamadı. İşlenmeyi bekleyen kayıtların sesine dokunulmuyor."
             await refresh()
         } catch {
-            errorMessage = "Sesler silinemedi: \(error.localizedDescription)"
+            errorMessage = String(localized: "Sesler silinemedi: \(error.localizedDescription)")
         }
     }
 
@@ -336,7 +336,7 @@ public struct SettingsView: View {
                             iconTint: AuraTheme.secondary,
                             title: "Kurumsal Anahtar",
                             subtitle: viewModel.enterpriseAccess.organizationName
-                                ?? "Kurumun sağlayıcı anahtarı"
+                                ?? String(localized: "Kurumun sağlayıcı anahtarı")
                         ) {
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 13, weight: .semibold))

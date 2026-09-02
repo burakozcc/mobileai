@@ -87,7 +87,7 @@ public final class NoteDetailViewModel {
         do {
             try await repository.insert(edited)
         } catch {
-            errorMessage = "Değişiklik kaydedilemedi: \(error.localizedDescription)"
+            errorMessage = String(localized: "Değişiklik kaydedilemedi: \(error.localizedDescription)")
         }
     }
 }

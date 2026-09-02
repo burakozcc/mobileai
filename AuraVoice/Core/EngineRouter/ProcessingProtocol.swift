@@ -216,36 +216,37 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case let .insufficientQuota(required, available):
-            return "Yetersiz dakika bakiyesi. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available))."
+            return String(localized: "Yetersiz dakika bakiyesi. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available)).")
         case .quotaStorageUnavailable:
-            return "Dakika bakiyen güvenli depoya yazılamadı. Cihazı yeniden başlatıp tekrar dene."
+            return String(localized: "Dakika bakiyen güvenli depoya yazılamadı. Cihazı yeniden başlatıp tekrar dene.")
         case .microphonePermissionDenied:
-            return "Mikrofon izni verilmedi. Ayarlar › AuraVoice üzerinden açabilirsin."
+            return String(localized: "Mikrofon izni verilmedi. Ayarlar › AuraVoice üzerinden açabilirsin.")
         case .calendarPermissionDenied:
-            return "Takvim izni verilmedi. Toplantı algılama devre dışı."
+            return String(localized: "Takvim izni verilmedi. Toplantı algılama devre dışı.")
         case .notificationPermissionDenied:
-            return "Bildirim izni verilmedi. Toplantı hatırlatmaları gönderilemez."
+            return String(localized: "Bildirim izni verilmedi. Toplantı hatırlatmaları gönderilemez.")
         case let .audioEngineFailure(detail):
-            return "Ses motoru başlatılamadı: \(detail)"
+            return String(localized: "Ses motoru başlatılamadı: \(detail)")
         case .offlineModelMissing:
-            return "Cihaz içi model indirilmemiş. Offline mod için modeli indir."
+            return String(localized: "Cihaz içi model indirilmemiş. Offline mod için modeli indir.")
         case .diarizationModelMissing:
-            return "Konuşmacı ayrıştırma modeli indirilmemiş. Ayarlar'dan indirebilirsin."
+            return String(localized: "Konuşmacı ayrıştırma modeli indirilmemiş. Ayarlar'dan indirebilirsin.")
         case .networkUnavailable:
-            return "İnternet bağlantısı yok. Offline moda geçebilirsin."
+            return String(localized: "İnternet bağlantısı yok. Offline moda geçebilirsin.")
         case let .engineFailure(detail):
-            return "İşleme hatası: \(detail)"
+            return String(localized: "İşleme hatası: \(detail)")
         case let .cloudCredentialsMissing(provider):
-            return "\(provider) erişimi yapılandırılmamış. Ayarlar'dan oturum aç veya offline moda geç."
+            return String(localized: "\(provider) erişimi yapılandırılmamış. Ayarlar'dan oturum aç veya offline moda geç.")
         case let .cloudAuthenticationFailed(provider):
-            return "\(provider) kimlik doğrulaması reddetti. Oturumun düşmüş olabilir."
+            return String(localized: "\(provider) kimlik doğrulaması reddetti. Oturumun düşmüş olabilir.")
         case let .cloudRateLimited(provider):
-            return "\(provider) hız sınırına takıldı. Birazdan tekrar dene ya da offline modu kullan."
+            return String(localized: "\(provider) hız sınırına takıldı. Birazdan tekrar dene ya da offline modu kullan.")
         case let .cloudRefused(category):
-            return "Sağlayıcı bu içeriği işlemeyi reddetti (\(category)). Offline mod bu kısıtlamaya tabi değil."
+            return String(localized: "Sağlayıcı bu içeriği işlemeyi reddetti (\(category)). Offline mod bu kısıtlamaya tabi değil.")
         case let .audioTooLargeForCloud(megabytes, limit):
+            // Biçim belirteçleri korunuyor, çevrilen şey şablonun kendisi.
             return String(
-                format: "Kayıt bulut için çok büyük (%.0f MB / %.0f MB sınırı). Offline mod bu kaydı işleyebilir.",
+                format: String(localized: "Kayıt bulut için çok büyük (%.0f MB / %.0f MB sınırı). Offline mod bu kaydı işleyebilir."),
                 megabytes, limit
             )
         }

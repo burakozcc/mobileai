@@ -10,6 +10,10 @@ name: AuraVoice
 
 options:
   bundleIdPrefix: com.auravoice
+  # Kaynak metinler Turkce. Varsayilan `en` birakilirsa Xcode Turkce
+  # sabitleri Ingilizce anahtar sanar ve ileride eklenecek `en` cevirisi
+  # Turkce metnin uzerine Turkce yazmaya calisir.
+  developmentLanguage: tr
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true

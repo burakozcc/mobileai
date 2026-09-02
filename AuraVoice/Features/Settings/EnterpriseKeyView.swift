@@ -96,7 +96,7 @@ public final class EnterpriseKeyViewModel {
 
         let candidate = keyInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !candidate.isEmpty else {
-            outcome = .failed("Önce anahtarı gir.")
+            outcome = .failed(String(localized: "Önce anahtarı gir."))
             return
         }
 
@@ -116,7 +116,7 @@ public final class EnterpriseKeyViewModel {
                 outcome = .failed(reason)
             }
         } catch let error as AuraError {
-            outcome = .failed(error.errorDescription ?? "Anahtar kaydedilemedi.")
+            outcome = .failed(error.errorDescription ?? String(localized: "Anahtar kaydedilemedi."))
         } catch {
             outcome = .failed(error.localizedDescription)
         }
@@ -132,7 +132,7 @@ public final class EnterpriseKeyViewModel {
             installedSuffix = nil
             outcome = .idle
         } catch let error as AuraError {
-            outcome = .failed(error.errorDescription ?? "Anahtar silinemedi.")
+            outcome = .failed(error.errorDescription ?? String(localized: "Anahtar silinemedi."))
         } catch {
             outcome = .failed(error.localizedDescription)
         }
@@ -203,7 +203,7 @@ public struct EnterpriseKeyView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: AuraTheme.Spacing.stackSM) {
             Text(viewModel.access.organizationName.map { "\($0) için sağlayıcı anahtarı." }
-                 ?? "Kurumun sağlayıcı anahtarı.")
+                 ?? String(localized: "Kurumun sağlayıcı anahtarı."))
                 .font(AuraFont.bodyLarge)
                 .foregroundStyle(AuraTheme.onSurface)
             Text("Anahtar sunucuda kuruma bağlı olarak saklanır; bu cihaza yazılmaz. Uygulama her durumda AuraVoice sunucusu üzerinden çalışmaya devam eder.")

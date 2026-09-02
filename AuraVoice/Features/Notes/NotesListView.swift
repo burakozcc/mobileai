@@ -78,7 +78,7 @@ public final class NotesListViewModel {
         do {
             notes = try await repository.all()
         } catch {
-            errorMessage = "Kayıtlar okunamadı: \(error.localizedDescription)"
+            errorMessage = String(localized: "Kayıtlar okunamadı: \(error.localizedDescription)")
         }
     }
 
@@ -86,7 +86,7 @@ public final class NotesListViewModel {
         do {
             notes = try await repository.delete(id: note.id)
         } catch {
-            errorMessage = "Not silinemedi: \(error.localizedDescription)"
+            errorMessage = String(localized: "Not silinemedi: \(error.localizedDescription)")
         }
     }
 }

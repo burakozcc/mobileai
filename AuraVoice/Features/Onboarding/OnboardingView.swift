@@ -105,7 +105,7 @@ public final class OnboardingViewModel {
         let granted = await AudioRecorderService.requestMicrophonePermission()
         isMicrophoneGranted = granted
         if !granted {
-            errorMessage = "Mikrofon izni olmadan kayıt alınamaz. Ayarlar › AuraVoice üzerinden açabilirsin."
+            errorMessage = String(localized: "Mikrofon izni olmadan kayıt alınamaz. Ayarlar › AuraVoice üzerinden açabilirsin.")
         }
     }
 

@@ -163,26 +163,26 @@ public enum TicketError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .malformed:
-            return "Dakika bileti okunamadı."
+            return String(localized: "Dakika bileti okunamadı.")
         case .unsupportedVersion:
-            return "Bilet biçimi bu sürüm tarafından desteklenmiyor. Uygulamayı güncelleyin."
+            return String(localized: "Bilet biçimi bu sürüm tarafından desteklenmiyor. Uygulamayı güncelleyin.")
         case .invalidSignature:
-            return "Dakika biletinin imzası geçersiz."
+            return String(localized: "Dakika biletinin imzası geçersiz.")
         case .expired(let date):
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             formatter.timeStyle = .short
-            return "Dakika biletinin süresi dolmuş (\(formatter.string(from: date)))."
+            return String(localized: "Dakika biletinin süresi dolmuş (\(formatter.string(from: date))).")
         case .wrongDevice:
-            return "Bu dakika bileti başka bir cihaz için düzenlenmiş."
+            return String(localized: "Bu dakika bileti başka bir cihaz için düzenlenmiş.")
         case .nonPositiveMinutes:
-            return "Bilet geçerli bir dakika miktarı içermiyor."
+            return String(localized: "Bilet geçerli bir dakika miktarı içermiyor.")
         case .alreadyRedeemed:
-            return "Bu dakika bileti zaten kullanılmış."
+            return String(localized: "Bu dakika bileti zaten kullanılmış.")
         case .verifierUnavailable:
-            return "Bilet doğrulama anahtarı bulunamadı."
+            return String(localized: "Bilet doğrulama anahtarı bulunamadı.")
         case .storageUnavailable:
-            return "Bilet kaydı güvenli depoya yazılamadı, dakikalar eklenmedi."
+            return String(localized: "Bilet kaydı güvenli depoya yazılamadı, dakikalar eklenmedi.")
         }
     }
 }

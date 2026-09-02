@@ -155,7 +155,7 @@ public final class DashboardViewModel {
         // silinmiş sanmasına ve yeni notlarının da kaybolduğunu fark
         // etmemesine yol açardı.
         if AuraModelContainer.isEphemeral {
-            errorMessage = "Kayıt veritabanı açılamadı. Bu oturumda aldığın notlar kalıcı olmayacak — uygulamayı yeniden başlatmayı dene."
+            errorMessage = String(localized: "Kayıt veritabanı açılamadı. Bu oturumda aldığın notlar kalıcı olmayacak — uygulamayı yeniden başlatmayı dene.")
         }
 
         calendarStatus = calendarService.authorizationStatus
@@ -187,7 +187,7 @@ public final class DashboardViewModel {
             notes = try await repository.all()
             minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
         } catch {
-            errorMessage = "Kayıtlar okunamadı: \(error.localizedDescription)"
+            errorMessage = String(localized: "Kayıtlar okunamadı: \(error.localizedDescription)")
         }
 
         calendarStatus = calendarService.authorizationStatus
@@ -353,7 +353,7 @@ public final class DashboardViewModel {
                 minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
             } catch {
                 // Kota zaten düşüldü; notu kaybettiğimizi kullanıcıdan gizlemeyelim.
-                errorMessage = "Not kaydedilemedi: \(error.localizedDescription)"
+                errorMessage = String(localized: "Not kaydedilemedi: \(error.localizedDescription)")
             }
         } else {
             // Kayıt ekranı hata ya da iptalle kapandı. İşleme başlamışsa not
@@ -363,7 +363,7 @@ public final class DashboardViewModel {
                 notes = try await repository.all()
                 minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
             } catch {
-                errorMessage = "Kayıtlar okunamadı: \(error.localizedDescription)"
+                errorMessage = String(localized: "Kayıtlar okunamadı: \(error.localizedDescription)")
             }
         }
         remainingSeconds = quotaManager.getRemainingSeconds()
@@ -382,7 +382,7 @@ public final class DashboardViewModel {
             notes = try await repository.delete(id: note.id)
             minutesUsedThisMonth = try await repository.minutesUsedThisMonth()
         } catch {
-            errorMessage = "Not silinemedi: \(error.localizedDescription)"
+            errorMessage = String(localized: "Not silinemedi: \(error.localizedDescription)")
         }
     }
 

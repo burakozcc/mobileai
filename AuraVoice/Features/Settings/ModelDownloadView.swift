@@ -223,7 +223,7 @@ public final class ModelDownloadViewModel {
             }
             await refresh()
         } catch {
-            errorMessage = "Silinemedi: \(error.localizedDescription)"
+            errorMessage = String(localized: "Silinemedi: \(error.localizedDescription)")
         }
     }
 
@@ -271,7 +271,7 @@ public final class ModelDownloadViewModel {
         if let urlError = error as? URLError {
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost:
-                return AuraError.networkUnavailable.errorDescription ?? "Bağlantı yok."
+                return AuraError.networkUnavailable.errorDescription ?? String(localized: "Bağlantı yok.")
             case .dataNotAllowed:
                 return "İndirme Wi-Fi gerektiriyor; hücresel veriyle indirilmiyor."
             case .cancelled:

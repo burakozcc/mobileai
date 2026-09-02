@@ -54,13 +54,13 @@ public final class TicketRedemptionViewModel {
     public func redeem() async {
         guard !isWorking else { return }
         guard let store else {
-            outcome = .failure(TicketError.verifierUnavailable.errorDescription ?? "Bilet doğrulama kapalı.")
+            outcome = .failure(TicketError.verifierUnavailable.errorDescription ?? String(localized: "Bilet doğrulama kapalı."))
             return
         }
 
         let trimmed = payload.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            outcome = .failure("Önce bilet metnini yapıştır.")
+            outcome = .failure(String(localized: "Önce bilet metnini yapıştır."))
             return
         }
 
@@ -72,9 +72,9 @@ public final class TicketRedemptionViewModel {
             payload = ""
             outcome = .success(minutes: ticket.minutes)
         } catch let error as TicketError {
-            outcome = .failure(error.errorDescription ?? "Bilet kabul edilmedi.")
+            outcome = .failure(error.errorDescription ?? String(localized: "Bilet kabul edilmedi."))
         } catch let error as AuraError {
-            outcome = .failure(error.errorDescription ?? "Bilet kabul edilmedi.")
+            outcome = .failure(error.errorDescription ?? String(localized: "Bilet kabul edilmedi."))
         } catch {
             outcome = .failure(error.localizedDescription)
         }

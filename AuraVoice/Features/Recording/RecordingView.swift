@@ -588,7 +588,7 @@ public struct RecordingView: View {
 
         let granted = await AudioRecorderService.requestMicrophonePermission()
         guard granted else {
-            phase = .failed(AuraError.microphonePermissionDenied.errorDescription ?? "Mikrofon izni yok")
+            phase = .failed(AuraError.microphonePermissionDenied.errorDescription ?? String(localized: "Mikrofon izni yok"))
             return
         }
 
