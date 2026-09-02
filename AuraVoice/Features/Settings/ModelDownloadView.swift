@@ -616,7 +616,7 @@ public struct ModelDownloadView: View {
     }
 }
 
-private extension ModelDownloadViewModel.Row {
+extension ModelDownloadViewModel.Row {
     /// 1.221 MB yerine "~1,2 GB": dört haneli megabayt okunmuyor.
     static func sizeLabel(megabytes: Int) -> String {
         guard megabytes >= 1_024 else { return "~\(megabytes) MB" }
