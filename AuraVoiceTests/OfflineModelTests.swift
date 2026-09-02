@@ -145,8 +145,10 @@ struct NeuralModelStoreTests {
 
     @Test("Beklenen boyut Hugging Face'in bildirdigi deger")
     func expectedBytesMatchHuggingFace() {
-        // Tahmin degil: unsloth/Qwen3-1.7B-GGUF agac ucundan alindi.
-        #expect(OfflineModelManager.NeuralModel.expectedBytes == 1_107_409_472)
+        // Tahmin degil: unsloth/Qwen3.5-2B-GGUF agac ucundan alindi.
+        // Bu deger indirilen dosyanin butunlugunu dogruluyor; modeli
+        // degistirirken buradaki sayiyi da HF'den yeniden almak sart.
+        #expect(OfflineModelManager.NeuralModel.expectedBytes == 1_280_835_840)
     }
 
     @Test("Model yokken kurulu sayilmiyor")

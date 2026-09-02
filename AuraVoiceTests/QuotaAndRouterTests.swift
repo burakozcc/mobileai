@@ -171,14 +171,17 @@ struct ProcessingRouterTests {
         #expect(abs(quota.getRemainingSeconds() - 600) < 0.001)
     }
 
-    @Test("Başarılı işlem kotayı kayıt süresi kadar düşer")
-    func successConsumesExactDuration() async throws {
+    @Test("Başarılı işlem kotayı faturalandırma artışına yuvarlayarak düşer")
+    func successConsumesBillableDuration() async throws {
         let (router, quota) = makeRouter(balanceSeconds: 600, engineOutput: stubResult)
 
         let result = try await router.execute(request: dummyRequest)
 
-        #expect(abs(quota.getRemainingSeconds() - 590) < 0.001)
-        #expect(abs(result.usedMinutes - (10.0 / 60.0)) < 0.0001)
+        // 10 saniyelik kayıt 6 saniyelik artışa yukarı yuvarlanıyor: 12 saniye.
+        // Saniye saniye faturalamak kullanıcıya anlamsız kesirler gösteriyor,
+        // dakikaya yuvarlamak ise 61 saniye için iki dakika almak demek.
+        #expect(abs(quota.getRemainingSeconds() - 588) < 0.001)
+        #expect(abs(result.usedMinutes - (12.0 / 60.0)) < 0.0001)
         // Şablondaki `now - now` hatasının geri gelmediğini doğrular.
         #expect(result.processingTimeSeconds > 0)
     }
