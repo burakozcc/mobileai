@@ -331,16 +331,53 @@ struct CloudLLMClientTests {
 
     @Test("Sistem prompt'u uydurmayı yasaklar")
     func systemPromptForbidsFabrication() {
-        let prompt = CloudLLMClient.systemPrompt(template: .meetingNotes, language: "tr")
+        let prompt = CloudLLMClient.systemPrompt(
+            template: .meetingNotes,
+            language: SummaryLanguage(code: "tr")
+        )
         #expect(prompt.contains("olmayan hiçbir bilgiyi ekleme"))
         #expect(prompt.contains("Markdown"))
     }
 
     @Test("Şablona göre iskelet değişir")
     func skeletonVariesByTemplate() {
-        #expect(CloudLLMClient.skeleton(for: .meetingNotes).contains("Kararlar"))
-        #expect(CloudLLMClient.skeleton(for: .phoneCallSummary).contains("Takip Edilecekler"))
-        #expect(CloudLLMClient.skeleton(for: .quickNotes).contains("Öne Çıkanlar"))
+        let tr = SummaryLanguage(code: "tr")
+        #expect(CloudLLMClient.skeleton(for: .meetingNotes, language: tr).contains("Kararlar"))
+        #expect(CloudLLMClient.skeleton(for: .meetingNotes, language: tr).contains("Aksiyonlar"))
+        #expect(CloudLLMClient.skeleton(for: .phoneCallSummary, language: tr).contains("Görüşme Özeti"))
+        #expect(CloudLLMClient.skeleton(for: .quickNotes, language: tr).contains("Hızlı Not"))
+        // Hızlı notta karar/aksiyon bölümü yok.
+        #expect(!CloudLLMClient.skeleton(for: .quickNotes, language: tr).contains("Kararlar"))
+    }
+
+    @Test("İskelet başlıkları deşifrenin dilinden geliyor")
+    func skeletonFollowsTranscriptLanguage() {
+        // Almanca bir kayıt için modele TÜRKÇE başlıklı bir iskelet
+        // gösteriliyordu; kullanıcı Almanca toplantısının özetini "Kararlar"
+        // başlığı altında görüyordu.
+        let de = CloudLLMClient.skeleton(for: .meetingNotes, language: SummaryLanguage(code: "de"))
+        #expect(de.contains("Decisions"))
+        #expect(de.contains("Action Items"))
+        #expect(!de.contains("Kararlar"))
+        #expect(!de.contains("Aksiyonlar"))
+    }
+
+    @Test("Türkçe dışındaki dilde sistem prompt'u hedef dili adıyla söyler")
+    func systemPromptNamesTargetLanguage() {
+        let de = CloudLLMClient.systemPrompt(
+            template: .meetingNotes,
+            language: SummaryLanguage(code: "de")
+        )
+        #expect(de.contains("German"))
+        #expect(de.contains("Markdown"))
+        // Talimatın tamamı İngilizce: Türkçe kurallar sızmamalı.
+        #expect(!de.contains("Kurallar"))
+
+        let ja = CloudLLMClient.systemPrompt(
+            template: .meetingNotes,
+            language: SummaryLanguage(code: "ja")
+        )
+        #expect(ja.contains("Japanese"))
     }
 
     @Test("Kullanıcı prompt'u transkripti ve süreyi taşır")
@@ -348,7 +385,8 @@ struct CloudLLMClientTests {
         let prompt = CloudLLMClient.userPrompt(
             transcript: "lansman konuşuldu",
             template: .meetingNotes,
-            durationSeconds: 600
+            durationSeconds: 600,
+            language: SummaryLanguage(code: "tr")
         )
         #expect(prompt.contains("10 dakika"))
         #expect(prompt.contains("lansman konuşuldu"))

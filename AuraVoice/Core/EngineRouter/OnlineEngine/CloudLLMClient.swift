@@ -143,17 +143,22 @@ public struct CloudLLMClient: Sendable {
             throw AuraError.engineFailure("Özetlenecek transkript boş.")
         }
 
+        // Dil bir kere çözülüyor ve hem isteme hem de sondaki
+        // uyarıya aynı kaynaktan gidiyor.
+        let target = SummaryLanguage(code: language)
+
         let request = MessagesRequest(
             model: model.rawValue,
             max_tokens: maxTokens,
-            system: Self.systemPrompt(template: template, language: language),
+            system: Self.systemPrompt(template: template, language: target),
             messages: [
                 .init(
                     role: "user",
                     content: Self.userPrompt(
                         transcript: trimmed,
                         template: template,
-                        durationSeconds: durationSeconds
+                        durationSeconds: durationSeconds,
+                        language: target
                     )
                 )
             ],
@@ -196,23 +201,48 @@ public struct CloudLLMClient: Sendable {
         if decoded.stop_reason == "max_tokens" {
             // Kesilen özeti atmak yerine uyarı ekliyoruz; kullanıcı en azından
             // elde edilen kısmı görsün.
-            return text + "\n\n_(Özet jeton sınırına takıldı ve kısaltıldı.)_"
+            return text + "\n\n" + target.truncationNotice
         }
         return text
     }
 
     // MARK: Prompt
 
-    static func systemPrompt(template: SummaryTemplate, language: String) -> String {
-        let isTurkish = language.isEmpty || language.lowercased().hasPrefix("tr")
-        let outputLanguage = isTurkish ? "Türkçe" : "kaydın dili"
+    /// Sistem istemi.
+    ///
+    /// Türkçe kendi metnini koruyor: birincil kitle o. Diğer bütün diller tek
+    /// bir İngilizce şablondan geçiyor ve hedef dil ADIYLA söyleniyor.
+    ///
+    /// Eskiden çıktı dili "kaydın dili" diye tarif ediliyordu ve talimatın
+    /// tamamı Türkçeydi — güçlü bir model bunu çoğunlukla doğru yorumlar ama
+    /// iskelet başlıkları da Türkçe gömülü olduğu için modele Almanca
+    /// deşifrenin özetini TÜRKÇE başlıklarla yazması gösteriliyordu.
+    static func systemPrompt(template: SummaryTemplate, language: SummaryLanguage) -> String {
+        guard language.profile == .turkish else {
+            return """
+            You are a meeting-notes editor. You will be given a raw \
+            speech-to-text transcript; turn it into a readable summary.
+
+            Rules:
+            - Write the entire response in \(language.englishName).
+            - Return Markdown only. No preamble, no explanation, no \
+            "Here is the summary".
+            - Add nothing that is not in the transcript. If you are unsure of a \
+            name or a number, leave it out rather than guessing.
+            - The transcript may contain speech-recognition errors; fix the \
+            obvious ones from context and leave the rest alone.
+            - Write action items as `- [ ]` and name the owner when possible.
+            - Never leave an empty section heading; drop any section that has \
+            no content.
+            """
+        }
 
         return """
         Sen bir toplantı notu editörüsün. Sana konuşmaya dönüştürülmüş ham bir \
         transkript verilir; görevin onu okunabilir bir özete çevirmek.
 
         Kurallar:
-        - Yanıtı \(outputLanguage) yaz.
+        - Yanıtın tamamını Türkçe yaz.
         - Yalnızca Markdown döndür. Giriş cümlesi, açıklama veya "İşte özet" \
         gibi ön söz yazma.
         - Transkriptte olmayan hiçbir bilgiyi ekleme. Emin olmadığın bir isim \
@@ -227,16 +257,33 @@ public struct CloudLLMClient: Sendable {
     static func userPrompt(
         transcript: String,
         template: SummaryTemplate,
-        durationSeconds: Double
+        durationSeconds: Double,
+        language: SummaryLanguage
     ) -> String {
         let minutes = max(1, Int((durationSeconds / 60).rounded()))
+        guard language.profile == .turkish else {
+            return """
+            Recording length: \(minutes) minutes.
+            Requested output format: \(template.rawValue)
+
+            Use this skeleton (drop any heading with no content):
+
+            \(Self.skeleton(for: template, language: language))
+
+            Transcript:
+            \"\"\"
+            \(transcript)
+            \"\"\"
+            """
+        }
+
         return """
         Kayıt süresi: \(minutes) dakika.
         İstenen çıktı biçimi: \(template.rawValue)
 
         Şu iskeleti kullan (içeriği olmayan başlıkları at):
 
-        \(Self.skeleton(for: template))
+        \(Self.skeleton(for: template, language: language))
 
         Transkript:
         \"\"\"
@@ -245,33 +292,39 @@ public struct CloudLLMClient: Sendable {
         """
     }
 
-    static func skeleton(for template: SummaryTemplate) -> String {
+    /// Modele gösterilen iskelet. Başlıklar DEŞİFRENİN dilinden geliyor;
+    /// böylece bulut ve cihaz içi özetler aynı başlıkları kullanıyor ve
+    /// çevirisi olmayan bir dilde ikisi de İngilizce'ye düşüyor.
+    static func skeleton(for template: SummaryTemplate, language: SummaryLanguage) -> String {
+        let heading = language.heading(for: template)
+        let points = language.keyPointsTitle(for: template)
+
         switch template {
         case .meetingNotes:
             return """
-            ### Toplantı Özeti
-            **Ana Başlıklar**
+            ### \(heading)
+            **\(points)**
             - …
 
-            **Kararlar**
+            **\(language.decisionsTitle)**
             - …
 
-            **Aksiyonlar**
-            - [ ] … (sorumlu)
+            **\(language.actionsTitle)**
+            - [ ] … (\(language.ownerHint))
             """
         case .phoneCallSummary:
             return """
-            ### Görüşme Özeti
-            **Konuşulanlar**
+            ### \(heading)
+            **\(points)**
             - …
 
-            **Takip Edilecekler**
+            **\(language.actionsTitle)**
             - [ ] …
             """
         case .quickNotes:
             return """
-            ### Hızlı Not
-            **Öne Çıkanlar**
+            ### \(heading)
+            **\(points)**
             - …
             """
         }

@@ -132,17 +132,32 @@ public enum SummaryPrompt {
     text ::= [^\\n]+
     """
 
+    /// Sistem istemi.
+    ///
+    /// Türkçe kendi istemini koruyor: birincil kitle o ve bu metin deneyerek
+    /// ayarlandı. Diğer BÜTÜN diller tek bir İngilizce şablondan geçiyor ve
+    /// hedef dil şablonun içinde ADIYLA söyleniyor.
+    ///
+    /// Eski İngilizce dalın hatası buydu: modele hangi dilde yazacağını hiç
+    /// söylemiyordu. Almanca bir deşifrede model çoğu zaman girdiyi taklit
+    /// edip Almanca yazar, ama talimatın kendisi İngilizce olduğu için
+    /// İngilizce özetlemesi de bir o kadar olası — kullanıcı Almanca
+    /// toplantısının özetini İngilizce görebiliyordu. Artık dil bir emir.
+    ///
+    /// `K:`/`D:`/`A:` önekleri her dilde ASCII kalıyor: dilbilgisi onları
+    /// yapısal olarak dayatıyor ve ayrıştırıcı onları bekliyor.
     public static func system(language: String) -> String {
-        let isTurkish = language.isEmpty || language.lowercased().hasPrefix("tr")
-        guard isTurkish else {
+        let target = SummaryLanguage(code: language)
+        guard target.profile == .turkish else {
             return """
-            You summarise meeting transcripts. Output ONLY lines in this format, \
-            nothing else — no preamble, no headings:
+            You summarise meeting transcripts. Write every line in \(target.englishName). \
+            Output ONLY lines in this format, nothing else — no preamble, no headings:
             K: <key point>
             D: <decision made>
             A: <action item — who, what, when>
             One line each, max 120 characters. If the text contains no decision, \
-            omit D lines. If it contains no action, omit A lines.
+            omit D lines. If it contains no action, omit A lines. Do not invent \
+            anything; write only what the text contains.
             """
         }
         return """
@@ -170,10 +185,10 @@ public enum SummaryPrompt {
 
     /// Parça sonuçlarını tek listeye indiren istem.
     public static func reduce(points: String, language: String) -> String {
-        let isTurkish = language.isEmpty || language.lowercased().hasPrefix("tr")
-        let instruction = isTurkish
+        let target = SummaryLanguage(code: language)
+        let instruction = target.profile == .turkish
             ? "Aşağıdaki maddeler aynı toplantının farklı bölümlerinden geliyor. Tekrarları birleştir, aynı biçimde ve daha kısa bir liste üret. Yeni bilgi ekleme."
-            : "The items below come from different parts of the same meeting. Merge duplicates and produce a shorter list in the same format. Do not add new information."
+            : "The items below come from different parts of the same meeting. Merge duplicates and produce a shorter list in the same format, still written in \(target.englishName). Do not add new information."
 
         return """
         \(system(language: language))
