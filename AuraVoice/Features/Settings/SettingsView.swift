@@ -63,6 +63,13 @@ public final class SettingsViewModel {
         }
     }
 
+    /// Bu hesap kurumsal anahtar yönetebiliyor mu.
+    ///
+    /// Kaynağı SUNUCU; istemcide bir bayrak olsaydı ekranı açmak için
+    /// uygulamayı kurcalamak yeterdi. Ulaşılamazsa `.none` — kapalı tarafa
+    /// düşüyoruz.
+    public private(set) var enterpriseAccess: EnterpriseAccess = .unauthorized
+
     @ObservationIgnored private let repository: any NoteRepository
     @ObservationIgnored private let credentialStore: any CloudCredentialStore
 
@@ -103,6 +110,13 @@ public final class SettingsViewModel {
         case .userProvidedKey:
             isCloudConfigured = credentialStore.key(for: .anthropic) != nil
                 && credentialStore.key(for: .groq) != nil
+        }
+
+        // Proxy yapılandırılmamışsa kurucu nil dönüyor ve yüzey hiç yok.
+        if let provisioner = ProxyEnterpriseProvisioner(route: cloudRoute, store: credentialStore) {
+            enterpriseAccess = await provisioner.currentAccess()
+        } else {
+            enterpriseAccess = .unauthorized
         }
     }
 
@@ -307,6 +321,29 @@ public struct SettingsView: View {
                         text: viewModel.isCloudConfigured ? "BAĞLI" : "KAPALI",
                         tint: viewModel.isCloudConfigured ? AuraTheme.secondary : AuraTheme.onSurfaceVariant
                     )
+                }
+
+                // Bireysel kullanıcıda kendi anahtarını getir kurgusu yok:
+                // bu satır yalnızca sunucu hesabı yetkili dediğinde çiziliyor.
+                if viewModel.enterpriseAccess.canManageProviderKeys {
+                    divider
+
+                    NavigationLink {
+                        EnterpriseKeyView()
+                    } label: {
+                        row(
+                            icon: "building.2",
+                            iconTint: AuraTheme.secondary,
+                            title: "Kurumsal Anahtar",
+                            subtitle: viewModel.enterpriseAccess.organizationName
+                                ?? "Kurumun sağlayıcı anahtarı"
+                        ) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(AuraTheme.onSurfaceVariant)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .glassSurface()
