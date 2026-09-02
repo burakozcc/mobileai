@@ -14,18 +14,32 @@ import Foundation
 
 public extension OfflineModelManager {
 
-    /// Seçilen model: Qwen3-1.7B-Instruct, Q4_K_M kuantizasyonu.
+    /// Seçilen model: Qwen3.5-2B, Q4_K_M kuantizasyonu.
     ///
     /// Boyut Hugging Face API'sinin bildirdiği gerçek değer, tahmin değil.
-    /// Qwen3.5-2B de aday ama IFEval'de geride (61,2 vs 68,2) — ki `K:/D:/A:`
-    /// gibi katı bir biçimi tutturmakta en kritik yetenek talimat izleme.
-    /// İkisinin gerçek Türkçe deşifreyle yan yana koşulması gönderim öncesi
-    /// bir kapı; masa başı kararı değil.
+    ///
+    /// SEÇİM GEREKÇESİ VE RİSKİ: çok dilli testlerde Qwen3-1.7B'nin önünde
+    /// (INCLUDE 55,4 vs 51,8; Global PIQA 69,3 vs 63,1) ve uygulama tek dile
+    /// değil bütün dillere hizmet edecek. Buna karşılık IFEval'de GERİDE
+    /// (61,2 vs 68,2) — ki `K:/D:/A:` gibi katı bir biçimi tutturmakta en
+    /// kritik yetenek talimat izleme. Gramer biçimi yapısal olarak zorluyor
+    /// ama gramer İÇİNDEKİ anlam kalitesini zorlayamıyor. Gerçek Türkçe
+    /// deşifreyle iki modelin yan yana koşulması hâlâ açık bir iş.
+    ///
+    /// Alternatif, tek satır değiştirilerek dönülebilir:
+    ///   fileName "Qwen3-1.7B-Q4_K_M.gguf" · repo "unsloth/Qwen3-1.7B-GGUF"
+    ///   · expectedBytes 1_107_409_472
+    ///
+    /// DOĞRULANMAMIŞ: mimari `Qwen3_5ForConditionalGeneration` (görsel-dil).
+    /// `mmproj` dosyasını indirmiyoruz, yani metin-only çalışıyor; llama.cpp
+    /// `qwen35`'i destekliyor ama M-RoPE'un mmproj'suz yüklemede metin
+    /// konumları için doğru kurulduğu koddan doğrulanmadı. Uzun bağlamda
+    /// tutarsızlık görülürse ilk şüpheli bu.
     enum NeuralModel {
-        public static let fileName = "Qwen3-1.7B-Q4_K_M.gguf"
-        public static let repositoryID = "unsloth/Qwen3-1.7B-GGUF"
-        public static let expectedBytes = 1_107_409_472
-        public static let approximateMegabytes = 1_056
+        public static let fileName = "Qwen3.5-2B-Q4_K_M.gguf"
+        public static let repositoryID = "unsloth/Qwen3.5-2B-GGUF"
+        public static let expectedBytes = 1_280_835_840
+        public static let approximateMegabytes = 1_221
 
         public static var downloadURL: URL? {
             URL(string: "https://huggingface.co/\(repositoryID)/resolve/main/\(fileName)")

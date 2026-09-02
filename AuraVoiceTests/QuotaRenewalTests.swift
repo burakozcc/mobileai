@@ -324,3 +324,42 @@ private struct OverrunStubEngine: ProcessingEngineProtocol {
         )
     }
 }
+
+// MARK: - Faturalandırma birimi
+
+@Suite("Faturalandırma artışı")
+struct BillingIncrementTests {
+
+    @Test("55 saniyelik kayıt tam 1 dakika düşüyor")
+    func fiftyFiveSecondsBecomesOneMinute() {
+        // Kullanıcının verdiği örnek: 6 saniyelik artışla 55 → 60.
+        #expect(ProcessingRouter.billableSeconds(for: 55, available: 3_600) == 60)
+    }
+
+    @Test("Tam artış katları yukarı yuvarlanmıyor")
+    func exactIncrementsAreNotInflated() {
+        #expect(ProcessingRouter.billableSeconds(for: 60, available: 3_600) == 60)
+        #expect(ProcessingRouter.billableSeconds(for: 300, available: 3_600) == 300)
+    }
+
+    @Test("Bir saniyelik aşım tam artışa çıkıyor")
+    func oneSecondOverRoundsUp() {
+        #expect(ProcessingRouter.billableSeconds(for: 61, available: 3_600) == 66)
+    }
+
+    @Test("Çok kısa kayıt bir artış kadar")
+    func veryShortRecordingCostsOneIncrement() {
+        #expect(ProcessingRouter.billableSeconds(for: 2, available: 3_600) == 6)
+    }
+
+    @Test("Bakiyeyi asla aşmıyor")
+    func neverExceedsBalance() {
+        // Yukarı yuvarlama, sahip olunmayan dakikayı harcatmamalı.
+        #expect(ProcessingRouter.billableSeconds(for: 55, available: 50) == 50)
+    }
+
+    @Test("Sıfır süre ücretsiz")
+    func zeroDurationIsFree() {
+        #expect(ProcessingRouter.billableSeconds(for: 0, available: 3_600) == 0)
+    }
+}

@@ -118,7 +118,7 @@ public final class ModelDownloadViewModel {
                 id: "neural-summarizer",
                 kind: .neuralSummarizer,
                 title: "Gelişmiş Özetleyici",
-                subtitle: "Cihaz içi dil modeli. Kurmazsan özetler yine çıkar, sadece daha basit olur. Wi-Fi gerekir.",
+                subtitle: "Cihaz içi dil modeli. Kurmazsan özetler yine çıkar, sadece daha basit olur. Wi-Fi ve 6 GB bellek gerekir.",
                 iconName: "brain.head.profile",
                 megabytes: OfflineModelManager.NeuralModel.approximateMegabytes,
                 state: currentState(for: .neuralSummarizer,
@@ -478,7 +478,7 @@ public struct ModelDownloadView: View {
                 Spacer(minLength: AuraTheme.Spacing.stackSM)
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("~\(row.megabytes) MB")
+                    Text(ModelDownloadViewModel.Row.sizeLabel(megabytes: row.megabytes))
                         .font(AuraFont.digitMono)
                         .foregroundStyle(isActive ? AuraTheme.primary : AuraTheme.onSurfaceVariant)
                     actionControl(row)
@@ -617,6 +617,13 @@ public struct ModelDownloadView: View {
 }
 
 private extension ModelDownloadViewModel.Row {
+    /// 1.221 MB yerine "~1,2 GB": dört haneli megabayt okunmuyor.
+    static func sizeLabel(megabytes: Int) -> String {
+        guard megabytes >= 1_024 else { return "~\(megabytes) MB" }
+        let gigabytes = Double(megabytes) / 1_024
+        return String(format: "~%.1f GB", gigabytes)
+    }
+
     /// İndirme ya da doğrulama sürüyor.
     var isDownloading: Bool {
         if case .downloading = state { return true }

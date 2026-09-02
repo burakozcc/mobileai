@@ -357,3 +357,38 @@ struct NeuralSummarizerFlowTests {
         #expect(markdown.hasPrefix("###"))
     }
 }
+
+@Suite("Bellek kapısı")
+struct NeuralMemoryGateTests {
+
+    @Test("Düşük bellekli cihazda nöral yol açılmıyor")
+    func lowMemoryDeviceStaysExtractive() {
+        // 4 GB'lık bir cihazda 1,28 GB ağırlık + KV önbelleği, ASR'nin
+        // yanında jetsam demek: uygulama ölür ve kullanıcı toplantısını
+        // kaybeder.
+        #expect(!LocalSummarizerFactory.hasMemoryHeadroom(physicalBytes: 4 * 1024 * 1024 * 1024))
+        #expect(!LocalSummarizerFactory.hasMemoryHeadroom(physicalBytes: 3 * 1024 * 1024 * 1024))
+    }
+
+    @Test("Yeterli bellekte kapı açık")
+    func highMemoryDevicePasses() {
+        #expect(LocalSummarizerFactory.hasMemoryHeadroom(physicalBytes: 6 * 1024 * 1024 * 1024))
+        #expect(LocalSummarizerFactory.hasMemoryHeadroom(physicalBytes: 8 * 1024 * 1024 * 1024))
+    }
+
+    @Test("Model boyutu Hugging Face'in bildirdiği değer")
+    func modelSizeMatchesHuggingFace() {
+        // Tahmin değil: unsloth/Qwen3.5-2B-GGUF ağaç ucundan alındı.
+        #expect(OfflineModelManager.NeuralModel.expectedBytes == 1_280_835_840)
+        #expect(OfflineModelManager.NeuralModel.fileName == "Qwen3.5-2B-Q4_K_M.gguf")
+    }
+
+    @Test("Büyük model MB yerine GB olarak gösteriliyor")
+    func largeModelShowsGigabytes() {
+        let label = ModelDownloadViewModel.Row.sizeLabel(
+            megabytes: OfflineModelManager.NeuralModel.approximateMegabytes
+        )
+        #expect(label.contains("GB"))
+        #expect(ModelDownloadViewModel.Row.sizeLabel(megabytes: 627) == "~627 MB")
+    }
+}

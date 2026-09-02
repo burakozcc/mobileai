@@ -30,6 +30,21 @@ public final class ProcessingRouter: Sendable {
     /// "bakiyesi yetmeyen kayıt reddedilir" kuralını anlamsızlaştırırdı.
     public static let overrunToleranceSeconds: Double = 2
 
+    /// Faturalandırma artışı: 6 saniye (0,1 dakika).
+    ///
+    /// Saniye saniye faturalamak kullanıcıya anlamsız kesirler gösteriyor
+    /// ("12,37 dakika kullandın"); dakikaya yuvarlamak ise 61 saniyelik bir
+    /// kayıt için iki dakika almak demek. 6 saniye ikisinin ortası ve
+    /// telekomda yerleşik bir birim: 55 saniyelik kayıt tam 1 dakika düşüyor.
+    public static let billingIncrementSeconds: Double = 6
+
+    /// Faturalanacak süre: yukarı yuvarlanmış, bakiyeye kırpılmış.
+    static func billableSeconds(for duration: Double, available: Double) -> Double {
+        guard duration > 0 else { return 0 }
+        let increments = (duration / billingIncrementSeconds).rounded(.up)
+        return min(increments * billingIncrementSeconds, max(0, available))
+    }
+
     private let offlineEngine: any ProcessingEngineProtocol
     private let onlineEngine: any ProcessingEngineProtocol
     private let quotaManager: QuotaManager
@@ -68,8 +83,11 @@ public final class ProcessingRouter: Sendable {
             )
         }
 
-        // Faturalanabilir süre asla bakiyeyi aşmıyor.
-        let billableSeconds = min(request.durationSeconds, available)
+        // Yukarı yuvarlanıyor ve asla bakiyeyi aşmıyor.
+        let billableSeconds = Self.billableSeconds(
+            for: request.durationSeconds,
+            available: available
+        )
 
         let startTime = CFAbsoluteTimeGetCurrent()
         let raw = try await run(request: request, progress: progress)

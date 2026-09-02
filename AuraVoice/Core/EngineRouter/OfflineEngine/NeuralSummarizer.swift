@@ -318,6 +318,22 @@ public enum LocalSummarizerFactory {
     /// Nöral arka uç kurulu değilse çıkarımsala düşüyor. `isOfflineReady()`
     /// ASLA nöral modeli şart koşmamalı: taze kurulumda offline modun çalışması
     /// garantisi çıkarımsal özetleyicinin bağımlılıksız olmasına dayanıyor.
+    /// Nöral çıkarım için yeterli fiziksel bellek var mı.
+    ///
+    /// `physicalMemory` kaba ama GÜVENİLİR bir ölçüt; cihaz modeline bakmak
+    /// yerine bunu kullanıyoruz çünkü model listesi her yıl eskiyor.
+    /// (`os_proc_available_memory()` daha isabetli olurdu — anlık kullanılabilir
+    /// belleği veriyor — ama iOS'ta uygulama sınırını da hesaba katmak gerekir;
+    /// cihazda ölçüm yapılınca bu eşik yeniden ayarlanmalı.)
+    static func hasMemoryHeadroom(
+        physicalBytes: UInt64 = ProcessInfo.processInfo.physicalMemory
+    ) -> Bool {
+        physicalBytes >= minimumPhysicalMemoryBytes
+    }
+
+    /// 6 GB: iPhone 11/12/13 non-Pro, SE ve XR bu eşiğin altında kalıyor.
+    static let minimumPhysicalMemoryBytes: UInt64 = 6 * 1024 * 1024 * 1024
+
     public static func makeDefault(generator: (any TextGenerator)? = nil) -> any LocalSummarizer {
         if let generator { return NeuralSummarizer(generator: generator) }
 
@@ -327,6 +343,12 @@ public enum LocalSummarizerFactory {
         guard OfflineModelManager.isNeuralSummarizerReady() else {
             return ExtractiveSummarizer()
         }
+
+        // BELLEK KAPISI. 1,28 GB ağırlık + KV önbelleği, 4 GB'lık bir cihazda
+        // ASR'nin yanında jetsam demek: uygulama ölür ve kullanıcı 45 dakikalık
+        // toplantısını kaybeder. Model kurulu olsa bile düşük bellekli cihazda
+        // çıkarımsal özetleyici doğru cevap.
+        guard Self.hasMemoryHeadroom() else { return ExtractiveSummarizer() }
         return NeuralSummarizer(
             generator: LlamaTextGenerator(modelURL: OfflineModelManager.neuralModelURL)
         )
