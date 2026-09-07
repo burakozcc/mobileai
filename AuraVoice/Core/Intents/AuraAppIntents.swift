@@ -168,8 +168,8 @@ public struct RemainingMinutesIntent: AppIntent {
     public func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
         let minutes = Int(QuotaManager.shared.getRemainingMinutes().rounded(.down))
         let sentence = minutes > 0
-            ? "AuraVoice'ta \(minutes) dakikan kaldı."
-            : "AuraVoice kotan bitti. Yeni dakika eklemek için uygulamayı aç."
+            ? String(localized: "AuraVoice'ta \(minutes) dakikan kaldı.")
+            : String(localized: "AuraVoice kotan bitti. Yeni dakika eklemek için uygulamayı aç.")
 
         return .result(value: minutes, dialog: IntentDialog(stringLiteral: sentence))
     }

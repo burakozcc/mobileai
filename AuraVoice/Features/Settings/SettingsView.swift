@@ -28,9 +28,9 @@ public final class SettingsViewModel {
 
         var label: String {
             switch self {
-            case .notDetermined: return "Sorulmadı"
-            case .granted:       return "Verildi"
-            case .denied:        return "Reddedildi"
+            case .notDetermined: return String(localized: "Sorulmadı")
+            case .granted:       return String(localized: "Verildi")
+            case .denied:        return String(localized: "Reddedildi")
             }
         }
     }
@@ -152,8 +152,8 @@ public final class SettingsViewModel {
         do {
             let removed = try await DatabaseManager.shared.pruneOrphanedRecordings()
             errorMessage = removed > 0
-                ? "\(removed) artık kullanılmayan ses dosyası silindi."
-                : "Temizlenecek dosya bulunamadı."
+                ? String(localized: "\(removed) artık kullanılmayan ses dosyası silindi.")
+                : String(localized: "Temizlenecek dosya bulunamadı.")
             await refresh()
         } catch {
             errorMessage = String(localized: "Temizlik başarısız: \(error.localizedDescription)")
@@ -165,8 +165,8 @@ public final class SettingsViewModel {
         do {
             let result = try await DatabaseManager.shared.discardProcessedAudio()
             errorMessage = result.removedFiles > 0
-                ? "\(result.removedFiles) kaydın sesi silindi, \(OfflineModelManager.formatted(bytes: result.freedBytes)) yer açıldı. Transkript ve özetler duruyor."
-                : "Silinecek ses bulunamadı. İşlenmeyi bekleyen kayıtların sesine dokunulmuyor."
+                ? String(localized: "\(result.removedFiles) kaydın sesi silindi, \(OfflineModelManager.formatted(bytes: result.freedBytes)) yer açıldı. Transkript ve özetler duruyor.")
+                : String(localized: "Silinecek ses bulunamadı. İşlenmeyi bekleyen kayıtların sesine dokunulmuyor.")
             await refresh()
         } catch {
             errorMessage = String(localized: "Sesler silinemedi: \(error.localizedDescription)")
@@ -253,7 +253,7 @@ public struct SettingsView: View {
 
     private var systemSection: some View {
         VStack(spacing: AuraTheme.Spacing.stackSM) {
-            AuraSectionTitle("Sistem Durumu")
+            AuraSectionTitle(String(localized: "Sistem Durumu"))
 
             VStack(spacing: 0) {
                 NavigationLink {
@@ -262,17 +262,17 @@ public struct SettingsView: View {
                     row(
                         icon: "cpu",
                         iconTint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.onSurfaceVariant,
-                        title: "Cihaz İçi Modeller",
+                        title: String(localized: "Cihaz İçi Modeller"),
                         subtitle: viewModel.offlineReady
-                            ? "Offline mod hazır"
-                            : "Offline mod için model indirilmeli"
+                            ? String(localized: "Offline mod hazır")
+                            : String(localized: "Offline mod için model indirilmeli")
                     ) {
                         HStack(spacing: 6) {
                             statusPill(
-                                text: viewModel.offlineReady ? "KURULU" : "EKSİK",
+                                text: viewModel.offlineReady ? String(localized: "KURULU") : String(localized: "EKSİK"),
                                 tint: viewModel.offlineReady ? AuraTheme.primary : AuraTheme.warning
                             )
-                            Image(systemName: "chevron.right")
+                            Image(systemName: "chevron.forward")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(AuraTheme.onSurfaceVariant)
                         }
@@ -285,10 +285,10 @@ public struct SettingsView: View {
                 row(
                     icon: "person.wave.2",
                     iconTint: viewModel.isDiarizationInstalled ? AuraTheme.primary : AuraTheme.onSurfaceVariant,
-                    title: "Konuşmacı Ayrıştırma",
+                    title: String(localized: "Konuşmacı Ayrıştırma"),
                     subtitle: viewModel.isDiarizationInstalled
-                        ? "Transkriptte konuşmacılar ayrılır"
-                        : "Model indirilmemiş (~\(OfflineModelManager.diarizationApproximateMegabytes) MB)"
+                        ? String(localized: "Transkriptte konuşmacılar ayrılır")
+                        : String(localized: "Model indirilmemiş (~\(OfflineModelManager.diarizationApproximateMegabytes) MB)")
                 ) {
                     if viewModel.isDiarizationInstalled {
                         Toggle("", isOn: $viewModel.isDiarizationEnabled)
@@ -312,13 +312,13 @@ public struct SettingsView: View {
                 row(
                     icon: viewModel.isCloudConfigured ? "cloud.fill" : "cloud",
                     iconTint: viewModel.isCloudConfigured ? AuraTheme.secondary : AuraTheme.onSurfaceVariant,
-                    title: "Bulut Erişimi",
+                    title: String(localized: "Bulut Erişimi"),
                     subtitle: viewModel.cloudRoute.requiresUserKeys
-                        ? "Kendi API anahtarın"
-                        : "AuraVoice hesabı"
+                        ? String(localized: "Kendi API anahtarın")
+                        : String(localized: "AuraVoice hesabı")
                 ) {
                     statusPill(
-                        text: viewModel.isCloudConfigured ? "BAĞLI" : "KAPALI",
+                        text: viewModel.isCloudConfigured ? String(localized: "BAĞLI") : String(localized: "KAPALI"),
                         tint: viewModel.isCloudConfigured ? AuraTheme.secondary : AuraTheme.onSurfaceVariant
                     )
                 }
@@ -334,11 +334,11 @@ public struct SettingsView: View {
                         row(
                             icon: "building.2",
                             iconTint: AuraTheme.secondary,
-                            title: "Kurumsal Anahtar",
+                            title: String(localized: "Kurumsal Anahtar"),
                             subtitle: viewModel.enterpriseAccess.organizationName
                                 ?? String(localized: "Kurumun sağlayıcı anahtarı")
                         ) {
-                            Image(systemName: "chevron.right")
+                            Image(systemName: "chevron.forward")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(AuraTheme.onSurfaceVariant)
                         }
@@ -354,13 +354,13 @@ public struct SettingsView: View {
 
     private var permissionsSection: some View {
         VStack(spacing: AuraTheme.Spacing.stackSM) {
-            AuraSectionTitle("İzinler")
+            AuraSectionTitle(String(localized: "İzinler"))
 
             VStack(spacing: 0) {
                 permissionRow(
                     icon: "mic",
-                    title: "Mikrofon",
-                    subtitle: "Kayıt için zorunlu",
+                    title: String(localized: "Mikrofon"),
+                    subtitle: String(localized: "Kayıt için zorunlu"),
                     state: viewModel.microphone
                 ) { await viewModel.requestMicrophone() }
 
@@ -368,8 +368,8 @@ public struct SettingsView: View {
 
                 permissionRow(
                     icon: "calendar",
-                    title: "Takvim",
-                    subtitle: "Toplantı algılama",
+                    title: String(localized: "Takvim"),
+                    subtitle: String(localized: "Toplantı algılama"),
                     state: viewModel.calendar
                 ) { await viewModel.requestCalendar() }
 
@@ -377,8 +377,8 @@ public struct SettingsView: View {
 
                 permissionRow(
                     icon: "bell",
-                    title: "Bildirimler",
-                    subtitle: "Toplantı hatırlatmaları",
+                    title: String(localized: "Bildirimler"),
+                    subtitle: String(localized: "Toplantı hatırlatmaları"),
                     state: viewModel.notifications
                 ) { await viewModel.requestNotifications() }
             }
@@ -390,13 +390,13 @@ public struct SettingsView: View {
 
     private var storageSection: some View {
         VStack(spacing: AuraTheme.Spacing.stackSM) {
-            AuraSectionTitle("Depolama")
+            AuraSectionTitle(String(localized: "Depolama"))
 
             VStack(spacing: 0) {
                 row(
                     icon: "externaldrive",
                     iconTint: AuraTheme.onSurfaceVariant,
-                    title: "Modeller",
+                    title: String(localized: "Modeller"),
                     subtitle: OfflineModelManager.formatted(bytes: viewModel.modelsDiskBytes)
                 ) { EmptyView() }
 
@@ -405,8 +405,8 @@ public struct SettingsView: View {
                 row(
                     icon: "waveform",
                     iconTint: AuraTheme.onSurfaceVariant,
-                    title: "Ses Kayıtları",
-                    subtitle: "\(viewModel.noteCount) not · \(OfflineModelManager.formatted(bytes: viewModel.recordingsDiskBytes))"
+                    title: String(localized: "Ses Kayıtları"),
+                    subtitle: String(localized: "\(viewModel.noteCount) not · \(OfflineModelManager.formatted(bytes: viewModel.recordingsDiskBytes))")
                 ) { EmptyView() }
 
                 divider
@@ -417,10 +417,10 @@ public struct SettingsView: View {
                     row(
                         icon: "trash",
                         iconTint: AuraTheme.onSurfaceVariant,
-                        title: "Artık Dosyaları Temizle",
-                        subtitle: "Notu silinmiş ses dosyaları"
+                        title: String(localized: "Artık Dosyaları Temizle"),
+                        subtitle: String(localized: "Notu silinmiş ses dosyaları")
                     ) {
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.forward")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(AuraTheme.onSurfaceVariant)
                     }
@@ -438,10 +438,10 @@ public struct SettingsView: View {
                     row(
                         icon: "ticket.fill",
                         iconTint: AuraTheme.secondary,
-                        title: "Dakika Bileti Kullan",
-                        subtitle: "Bağlantı olmadan da çalışır"
+                        title: String(localized: "Dakika Bileti Kullan"),
+                        subtitle: String(localized: "Bağlantı olmadan da çalışır")
                     ) {
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.forward")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(AuraTheme.onSurfaceVariant)
                     }
@@ -458,10 +458,10 @@ public struct SettingsView: View {
                     row(
                         icon: "waveform.slash",
                         iconTint: AuraTheme.warning,
-                        title: "Sesleri Sil, Notları Koru",
-                        subtitle: "İşlenmiş kayıtların sesi silinir; transkript ve özet kalır"
+                        title: String(localized: "Sesleri Sil, Notları Koru"),
+                        subtitle: String(localized: "İşlenmiş kayıtların sesi silinir; transkript ve özet kalır")
                     ) {
-                        Image(systemName: "chevron.right")
+                        Image(systemName: "chevron.forward")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundStyle(AuraTheme.onSurfaceVariant)
                     }
@@ -492,8 +492,8 @@ public struct SettingsView: View {
                 row(
                     icon: "lock.shield",
                     iconTint: AuraTheme.primary,
-                    title: "Gizlilik",
-                    subtitle: "Offline modda veri cihazdan çıkmaz"
+                    title: String(localized: "Gizlilik"),
+                    subtitle: String(localized: "Offline modda veri cihazdan çıkmaz")
                 ) { EmptyView() }
             }
             .glassSurface()

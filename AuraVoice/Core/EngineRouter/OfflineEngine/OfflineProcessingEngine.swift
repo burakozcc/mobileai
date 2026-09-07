@@ -56,7 +56,8 @@ public struct OfflineProcessingEngine: ProcessingEngineProtocol {
         // Konuşmacı etiketleme başarısız olursa segmentler etiketsiz döner.
         let segments = await speakerLabeler.label(
             transcription.segments,
-            audioURL: request.audioFileURL
+            audioURL: request.audioFileURL,
+            language: transcription.language
         )
         progress?(.diarizing, 1)
         try Task.checkCancellation()

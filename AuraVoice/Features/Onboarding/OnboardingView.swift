@@ -48,9 +48,9 @@ public final class OnboardingViewModel {
 
     public var primaryButtonTitle: String {
         switch step {
-        case .promise:             return "Başlayalım"
-        case .microphone:          return isMicrophoneGranted ? "Devam" : "Mikrofona İzin Ver"
-        case .optionalPermissions: return "Kuruluma Bitir"
+        case .promise:             return String(localized: "Başlayalım")
+        case .microphone:          return isMicrophoneGranted ? String(localized: "Devam") : String(localized: "Mikrofona İzin Ver")
+        case .optionalPermissions: return String(localized: "Kuruluma Bitir")
         }
     }
 
@@ -291,8 +291,8 @@ public struct OnboardingView: View {
 
             permissionCard(
                 icon: "mic.fill",
-                title: "Mikrofon",
-                subtitle: "Zorunlu",
+                title: String(localized: "Mikrofon"),
+                subtitle: String(localized: "Zorunlu"),
                 isGranted: viewModel.isMicrophoneGranted
             ) {
                 await viewModel.requestMicrophone()
@@ -324,8 +324,8 @@ public struct OnboardingView: View {
             VStack(spacing: AuraTheme.Spacing.stackSM) {
                 permissionCard(
                     icon: "calendar",
-                    title: "Takvim",
-                    subtitle: "İsteğe bağlı",
+                    title: String(localized: "Takvim"),
+                    subtitle: String(localized: "İsteğe bağlı"),
                     isGranted: viewModel.isCalendarGranted
                 ) {
                     await viewModel.requestCalendar()
@@ -333,8 +333,8 @@ public struct OnboardingView: View {
 
                 permissionCard(
                     icon: "bell.fill",
-                    title: "Bildirimler",
-                    subtitle: "İsteğe bağlı",
+                    title: String(localized: "Bildirimler"),
+                    subtitle: String(localized: "İsteğe bağlı"),
                     isGranted: viewModel.areNotificationsGranted
                 ) {
                     await viewModel.requestNotifications()

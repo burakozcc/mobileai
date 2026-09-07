@@ -1,0 +1,168 @@
+{
+  "sourceLanguage": "tr",
+  "strings": {
+    "NSCalendarsFullAccessUsageDescription": {
+      "comment": "iOS takvim izni diyaloğunda görünen gerekçe.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نصل إلى تقويمك لفحص اجتماعاتك القادمة على الجهاز وإرسال تذكير بالتسجيل. لا تُرسَل بيانات الأحداث إلى أي خادم."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার ক্যালেন্ডারের আসন্ন মিটিংগুলো ডিভাইসেই স্ক্যান করে রেকর্ডিংয়ের রিমাইন্ডার পাঠানোর জন্য আমরা ক্যালেন্ডার অ্যাক্সেস ব্যবহার করি। ইভেন্টের ডেটা কোনও সার্ভারে পাঠানো হয় না।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We use your calendar to check your upcoming meetings on your device and remind you to record them. Event details never leave your device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usamos tu calendario para detectar tus próximas reuniones y recordarte que las grabes. El análisis se hace en tu dispositivo y los datos de los eventos no se envían a ningún servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous accédons à votre calendrier afin d’analyser vos prochaines réunions directement sur votre appareil et de vous rappeler de lancer un enregistrement. Les données de vos événements ne sont envoyées à aucun serveur."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी आने वाली मीटिंग्स को डिवाइस पर ही स्कैन करके रिकॉर्डिंग का रिमाइंडर भेजने के लिए हमें आपके कैलेंडर का ऐक्सेस चाहिए। इवेंट डेटा किसी भी सर्वर पर नहीं भेजा जाता।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yaklaşan toplantılarını cihazda tarayıp kayıt hatırlatması gönderebilmek için takvimine erişiyoruz. Etkinlik verisi hiçbir sunucuya gönderilmez."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们需要访问你的日历，以便读取你即将开始的会议，并在会议开始前提醒你录音。日历数据仅在设备上处理，不会发送到任何服务器。"
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription": {
+      "comment": "iOS mikrofon izni diyaloğunda görünen gerekçe. Kaynak metin project.yml içinde.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نستخدم الميكروفون لتسجيل اجتماعاتك ومكالماتك وإنشاء ملخصات لها. في الوضع دون اتصال لا يغادر الصوت جهازك أبدًا."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার মিটিং ও কল রেকর্ড করে সেগুলোর সারসংক্ষেপ তৈরি করার জন্য আমরা মাইক্রোফোন ব্যবহার করি। অফলাইন মোডে অডিও কখনও আপনার ডিভাইসের বাইরে যায় না।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We use the microphone to record your meetings and calls and turn them into summaries. In Zero-Cloud mode, audio never leaves your device."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usamos el micrófono para grabar tus reuniones y conversaciones, y así generar sus resúmenes. En el modo Zero-Cloud, el audio nunca sale de tu dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous accédons au micro afin d’enregistrer vos réunions et vos appels et d’en générer un résumé. En mode Zero-Cloud, tout est traité sur votre appareil et le son n’en sort jamais."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी मीटिंग्स और कॉल्स रिकॉर्ड करके उनका सारांश बनाने के लिए हमें माइक्रोफ़ोन ऐक्सेस चाहिए। ऑफ़लाइन मोड में ऑडियो कभी आपके डिवाइस से बाहर नहीं जाता।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toplantı ve görüşmelerini kaydedip özet çıkarabilmek için mikrofona erişiyoruz. Offline modda ses cihazından hiç çıkmaz."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们需要使用麦克风，以便录制你的会议和通话并生成摘要。在设备端模式下，音频绝不会离开你的设备。"
+          }
+        }
+      }
+    },
+    "NSSpeechRecognitionUsageDescription": {
+      "comment": "iOS konuşma tanıma izni diyaloğunda görünen gerekçe.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يُستخدم التعرف على الكلام في التفريغ النصي للصوت الذي تسجّله."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার রেকর্ডিং ট্রান্সক্রিপ্টে রূপান্তর করে সারসংক্ষেপ তৈরি করার জন্য আমরা স্পিচ রেকগনিশন ব্যবহার করি। অফলাইন মোডে এই রূপান্তর সম্পূর্ণ আপনার ডিভাইসেই হয়।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We use speech recognition to turn the audio you record into a searchable transcript."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usamos el reconocimiento de voz para transcribir tus grabaciones y generar resúmenes a partir del texto. En el modo Zero-Cloud, la transcripción se hace en tu dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nous utilisons la reconnaissance vocale afin de convertir vos enregistrements en transcription écrite et d’en générer un résumé. En mode Zero-Cloud, cette conversion se fait entièrement sur votre appareil."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी रिकॉर्डिंग का ट्रांसक्रिप्ट और सारांश बनाने के लिए हम स्पीच रिकग्निशन से ऑडियो को टेक्स्ट में बदलते हैं। ऑफ़लाइन मोड में यह पूरी तरह आपके डिवाइस पर होता है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaydettiğin sesi metne dönüştürmek için konuşma tanıma kullanılıyor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我们使用语音识别，将你录制的会议和通话转录为文字，用于生成可搜索的记录和摘要。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

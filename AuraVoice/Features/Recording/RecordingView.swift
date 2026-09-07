@@ -260,7 +260,7 @@ public struct RecordingView: View {
         VStack(spacing: 4) {
             Text(statusText.uppercased(with: Locale.current))
                 .font(AuraFont.labelCaps)
-                .tracking(AuraFont.labelCapsTracking + 0.8)
+                .tracking(AuraFont.trackingSafe(1.4))
                 .foregroundStyle(isLive ? AuraTheme.error : AuraTheme.onSurfaceVariant)
 
             if let context = intent.contextTitle {
@@ -280,13 +280,13 @@ public struct RecordingView: View {
 
     private var statusText: String {
         switch phase {
-        case .preparing:     return "Hazırlanıyor"
-        case .recording:     return "Kaydediliyor"
-        case .paused:        return "Duraklatıldı"
-        case .processing:    return "İşleniyor"
+        case .preparing:     return String(localized: "Hazırlanıyor")
+        case .recording:     return String(localized: "Kaydediliyor")
+        case .paused:        return String(localized: "Duraklatıldı")
+        case .processing:    return String(localized: "İşleniyor")
         // Hata metninin tamamı buraya gelirse 12pt tracked all-caps'e sokulup
         // Türkçe yazımı bozuluyordu. Ayrıntı artık kurtarma panelinde.
-        case .failed:        return "İşlenemedi"
+        case .failed:        return String(localized: "İşlenemedi")
         }
     }
 
@@ -365,7 +365,7 @@ public struct RecordingView: View {
 
     private var controls: some View {
         HStack(spacing: AuraTheme.Spacing.stackLG) {
-            secondaryControl(icon: "trash", label: "Kaydı sil") {
+            secondaryControl(icon: "trash", label: String(localized: "Kaydı sil")) {
                 showCancelConfirm = true
             }
             .disabled(phase == .processing)
@@ -395,7 +395,7 @@ public struct RecordingView: View {
             .sensoryFeedback(.impact(weight: .medium), trigger: phase)
             .accessibilityLabel(phase == .paused ? "Devam et" : "Duraklat")
 
-            secondaryControl(icon: "stop.fill", label: "Kaydı bitir") {
+            secondaryControl(icon: "stop.fill", label: String(localized: "Kaydı bitir")) {
                 Task { await stopAndProcess() }
             }
             .disabled(phase == .processing || phase == .preparing)
@@ -689,7 +689,7 @@ public struct RecordingView: View {
             // İptal kullanıcının kendi kararı; hata gibi sunulmamalı ama not
             // yine de tekrar denenebilir kalmalı.
             let reason = error is CancellationError
-                ? "İşleme durduruldu. Ses duruyor, istediğin zaman tekrar deneyebilirsin."
+                ? String(localized: "İşleme durduruldu. Ses duruyor, istediğin zaman tekrar deneyebilirsin.")
                 : error.localizedDescription
 
             updated.processingState = .failed
@@ -719,9 +719,9 @@ public struct RecordingView: View {
     private func defaultTitle() -> String {
         let stamp = Date().formatted(date: .abbreviated, time: .shortened)
         switch template {
-        case .meetingNotes:     return "Toplantı · \(stamp)"
-        case .phoneCallSummary: return "Görüşme · \(stamp)"
-        case .quickNotes:       return "Hızlı Not · \(stamp)"
+        case .meetingNotes:     return String(localized: "Toplantı · \(stamp)")
+        case .phoneCallSummary: return String(localized: "Görüşme · \(stamp)")
+        case .quickNotes:       return String(localized: "Hızlı Not · \(stamp)")
         }
     }
 }

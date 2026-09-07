@@ -128,28 +128,28 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
         [
             SubscriptionPlan(
                 id: Self.freePlanID,
-                title: "Ücretsiz",
+                title: String(localized: "Ücretsiz"),
                 priceText: "₺0",
-                periodText: "/ay",
+                periodText: String(localized: "/ay"),
                 monthlyMinutes: Self.freeMinutes,
                 features: [
                     PlanFeature(
                         id: "cloud",
-                        text: "Aylık 30 dakika işleme",
-                        detail: "Bu ay: \(Int(min(usedMinutes, Self.freeMinutes).rounded()))/\(Int(Self.freeMinutes)) dk"
+                        text: String(localized: "Aylık 30 dakika işleme"),
+                        detail: String(localized: "Bu ay: \(Int(min(usedMinutes, Self.freeMinutes).rounded()))/\(Int(Self.freeMinutes)) dk")
                     ),
                     PlanFeature(
                         id: "offline",
                         // Sınırsız olan kayıt değil, GİZLİLİK. Dakika her iki
                         // modda da aynı havuzdan düşüyor; bunu burada yanlış
                         // yazmak kullanıcıya tutulamayacak bir söz vermek olur.
-                        text: "Zero-Cloud modu — ses cihazdan hiç çıkmaz",
-                        detail: "Aynı dakika havuzunu kullanır",
+                        text: String(localized: "Zero-Cloud modu — ses cihazdan hiç çıkmaz"),
+                        detail: String(localized: "Aynı dakika havuzunu kullanır"),
                         isHighlighted: true
                     ),
                     PlanFeature(
                         id: "export",
-                        text: "Gelişmiş dışa aktarma",
+                        text: String(localized: "Gelişmiş dışa aktarma"),
                         isIncluded: false
                     )
                 ],
@@ -157,19 +157,19 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
             ),
             SubscriptionPlan(
                 id: Self.proPlanID,
-                title: "Pro",
+                title: String(localized: "Pro"),
                 priceText: "₺149,99",
-                periodText: "/ay",
+                periodText: String(localized: "/ay"),
                 monthlyMinutes: Self.proMinutes,
                 features: [
                     PlanFeature(
                         id: "cloud",
-                        text: "Aylık 1200 dakika işleme",
-                        detail: "Yüksek doğruluklu bulut transkripsiyonu",
+                        text: String(localized: "Aylık 1200 dakika işleme"),
+                        detail: String(localized: "Yüksek doğruluklu bulut transkripsiyonu"),
                         isHighlighted: true
                     ),
-                    PlanFeature(id: "offline", text: "Zero-Cloud modu — ses cihazdan hiç çıkmaz"),
-                    PlanFeature(id: "export", text: "Gelişmiş dışa aktarma (PDF, SRT, TXT)")
+                    PlanFeature(id: "offline", text: String(localized: "Zero-Cloud modu — ses cihazdan hiç çıkmaz")),
+                    PlanFeature(id: "export", text: String(localized: "Gelişmiş dışa aktarma (PDF, SRT, TXT)"))
                 ],
                 isRecommended: true
             )
@@ -179,10 +179,10 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
     public func activePlanID() async -> String? { Self.freePlanID }
 
     public func purchase(planID: String) async -> PurchaseOutcome {
-        .unavailable(reason: "Abonelik altyapısı henüz bağlanmadı. Ücretsiz dakikaların her ay yenileniyor.")
+        .unavailable(reason: String(localized: "Abonelik altyapısı henüz bağlanmadı. Ücretsiz dakikaların her ay yenileniyor."))
     }
 
     public func restorePurchases() async -> PurchaseOutcome {
-        .unavailable(reason: "Abonelik altyapısı henüz bağlanmadı.")
+        .unavailable(reason: String(localized: "Abonelik altyapısı henüz bağlanmadı."))
     }
 }

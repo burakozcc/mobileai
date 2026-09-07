@@ -306,7 +306,7 @@ public final class DashboardViewModel {
             mode: mode,
             template: .phoneCallSummary,
             source: .phoneCall,
-            contextTitle: "Telefon görüşmesi"
+            contextTitle: String(localized: "Telefon görüşmesi")
         )
     }
 

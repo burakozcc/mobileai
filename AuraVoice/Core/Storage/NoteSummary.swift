@@ -31,9 +31,9 @@ public enum NoteProcessingState: String, Sendable, Codable, CaseIterable {
 
     public var label: String {
         switch self {
-        case .processing: return "İşleniyor"
-        case .ready:      return "Hazır"
-        case .failed:     return "İşlenemedi"
+        case .processing: return String(localized: "İşleniyor")
+        case .ready:      return String(localized: "Hazır")
+        case .failed:     return String(localized: "İşlenemedi")
         }
     }
 }
@@ -95,9 +95,9 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
     public var previewLine: String {
         switch processingState {
         case .processing:
-            return "Transkript ve özet hazırlanıyor…"
+            return String(localized: "Transkript ve özet hazırlanıyor…")
         case .failed:
-            return failureReason ?? "İşleme tamamlanamadı — tekrar denenebilir."
+            return failureReason ?? String(localized: "İşleme tamamlanamadı — tekrar denenebilir.")
         case .ready:
             break
         }
@@ -108,7 +108,7 @@ public struct NoteSummary: Identifiable, Hashable, Sendable, Codable {
                 return !trimmed.isEmpty && !trimmed.hasPrefix("#") && !trimmed.hasPrefix("_")
             }
             .map { String($0).trimmingCharacters(in: CharacterSet(charactersIn: "-*[] ")) }
-            ?? "Özet hazırlanıyor…"
+            ?? String(localized: "Özet hazırlanıyor…")
     }
 }
 

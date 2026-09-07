@@ -115,7 +115,7 @@ public struct TicketRedemptionView: View {
                         resultCard(
                             icon: "checkmark.circle.fill",
                             tint: AuraTheme.primary,
-                            text: "\(Int(minutes)) dakika hesabına eklendi."
+                            text: String(localized: "\(Int(minutes)) dakika hesabına eklendi.")
                         )
                     }
                     if case let .failure(reason) = viewModel.outcome {
@@ -145,7 +145,16 @@ public struct TicketRedemptionView: View {
     }
 
     private var editor: some View {
+        // Bilet imzalı bir makine tokeni (base64), doğal dil değil. Arapça
+        // arayüzde sağdan sola çizilirse okunmaz ve yapıştırılan metnin
+        // sırası kullanıcıya yanlış görünür; yönü sabitliyoruz.
+        //
+        // `.environment` EN DIŞTA (aşağıda): yer tutucu overlay'ini de
+        // kapsamalı. İçeride kalırsa overlay `.topLeading`i çevredeki yöne
+        // göre çözer; Arapçada yer tutucu sağ üste düşerken imleç sol üstte
+        // kalır.
         TextEditor(text: $viewModel.payload)
+            .multilineTextAlignment(.leading)
             .font(AuraFont.bodySmall)
             .scrollContentBackground(.hidden)
             .frame(minHeight: 140)
@@ -160,6 +169,7 @@ public struct TicketRedemptionView: View {
                         .allowsHitTesting(false)
                 }
             }
+            .environment(\.layoutDirection, .leftToRight)
     }
 
     private var actions: some View {
@@ -202,7 +212,7 @@ public struct TicketRedemptionView: View {
         resultCard(
             icon: "lock.slash.fill",
             tint: AuraTheme.onSurfaceVariant,
-            text: "Bu sürümde bilet doğrulama anahtarı tanımlı değil, dolayısıyla özellik kapalı."
+            text: String(localized: "Bu sürümde bilet doğrulama anahtarı tanımlı değil, dolayısıyla özellik kapalı.")
         )
     }
 

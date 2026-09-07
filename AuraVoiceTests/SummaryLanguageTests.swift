@@ -214,3 +214,127 @@ struct NeuralPromptLanguageTests {
         #expect(tr.contains("Tekrarları birleştir"))
     }
 }
+
+
+// MARK: - Sekiz dilli özet sözlüğü
+
+@Suite("Özet sözlüğü sekiz dilde")
+struct SummaryVocabularyCoverageTests {
+
+    @Test("Her yayınlanan dil KENDİ başlığını alıyor", arguments: zip(
+        ["en", "zh-Hans", "hi", "es", "fr", "ar", "bn"],
+        ["Meeting Summary", "会议摘要", "मीटिंग का सारांश", "Resumen de la reunión", "Résumé de la réunion", "ملخص الاجتماع", "মিটিংয়ের সারাংশ"]
+    ))
+    func shipsOwnHeadings(code: String, heading: String) {
+        #expect(SummaryLanguage(code: code).heading(for: .meetingNotes) == heading)
+    }
+
+    @Test("Bölge eki sözlüğü bozmuyor")
+    func regionSuffixResolves() {
+        #expect(SummaryLanguage(code: "es-MX").heading(for: .meetingNotes)
+                == SummaryLanguage(code: "es").heading(for: .meetingNotes))
+        #expect(SummaryLanguage(code: "ar-EG").decisionsTitle
+                == SummaryLanguage(code: "ar").decisionsTitle)
+        // Geleneksel Çince ayrı yayınlanmıyor; "zh" üzerinden basitleştirilmişe düşüyor.
+        #expect(SummaryLanguage(code: "zh-Hant").heading(for: .meetingNotes)
+                == SummaryLanguage(code: "zh-Hans").heading(for: .meetingNotes))
+    }
+
+    @Test("Yayınlanmayan dil hâlâ İngilizce'ye düşüyor")
+    func unshippedLanguageFallsBack() {
+        // Almanca sekizlide yok: özet yine çıkıyor, başlıklar İngilizce.
+        #expect(SummaryLanguage(code: "de").heading(for: .meetingNotes) == "Meeting Summary")
+        #expect(SummaryLanguage(code: "ja").decisionsTitle == "Decisions")
+    }
+
+    @Test("Boş dil kodu Türkçe kalıyor")
+    func emptyCodeStaysTurkish() {
+        #expect(SummaryLanguage(code: "").heading(for: .meetingNotes) == "Toplantı Özeti")
+    }
+
+    @Test("Arapça başlık alıyor ama karar ipucu ALMIYOR")
+    func arabicGetsHeadingsButNoCues() {
+        // Bilinçli ayrım: başlıklar çevrildi, ipucu listeleri çevrilmedi.
+        // Eşleştirici Türkçe eklemeli morfolojiye göre yazılmış; oraya
+        // Arapça ipucu koymak yanlış "Kararlar" bölümü üretirdi.
+        let arabic = SummaryLanguage(code: "ar")
+        #expect(arabic.profile == .generic)
+        #expect(arabic.decisionCues.isEmpty)
+        #expect(arabic.actionCues.isEmpty)
+        #expect(!arabic.decisionsTitle.isEmpty)
+        #expect(arabic.decisionsTitle != "Decisions")
+    }
+
+    @Test("metaFormat biçim belirtecini koruyor")
+    func metaFormatKeepsSpecifier() {
+        for code in ["tr", "en", "zh-Hans", "hi", "es", "fr", "ar", "bn"] {
+            let line = SummaryLanguage(code: code).metaLine(durationSeconds: 600)
+            // Belirteç düşerse ya da bozulursa ham hâliyle çıktıya sızar.
+            // Rakam biçimine bakmıyoruz: bazı yerellerde rakamlar farklı olabilir.
+            #expect(!line.contains("%"), "\(code) belirteci tüketilmedi: \(line)")
+            #expect(line.count > 4, "\(code) meta satırı boş: \(line)")
+        }
+    }
+
+    @Test("Sözlük listesi tabloyla aynı kümeyi taşıyor")
+    func allMatchesTable() {
+        // `all` bölüm ikonu eşleştirmesinde kullanılıyor; tabloda olup
+        // listede olmayan bir dil, o dilde ikonların bozulması demek.
+        for vocabulary in SummaryVocabulary.table.values {
+            #expect(SummaryVocabulary.all.contains(vocabulary))
+        }
+    }
+}
+
+// MARK: - İçerik yönü
+
+@Suite("İçerik yönü")
+struct ContentTextDirectionTests {
+
+    @Test("Latin ve Türkçe metin soldan sağa")
+    func latinIsLeftToRight() {
+        #expect(ContentTextDirection.layoutDirection(for: "Bugün lansmanı konuştuk") == .leftToRight)
+        #expect(ContentTextDirection.layoutDirection(for: "Wir haben gesprochen") == .leftToRight)
+    }
+
+    @Test("Arapça metin sağdan sola")
+    func arabicIsRightToLeft() {
+        #expect(ContentTextDirection.layoutDirection(for: "تحدثنا اليوم عن الإطلاق") == .rightToLeft)
+    }
+
+    @Test("Yön taşımayan metin karar VERMİYOR")
+    func neutralTextYieldsNil() {
+        // "Bilmiyorum" ile "soldan sağa" ayrı şeyler: sinyalsiz metinde
+        // çevredeki yön korunmalı, LTR dayatılmamalı.
+        #expect(ContentTextDirection.layoutDirection(for: "") == nil)
+        #expect(ContentTextDirection.layoutDirection(for: "10:00 – 11:00") == nil)
+        #expect(ContentTextDirection.layoutDirection(for: "42 %") == nil)
+    }
+
+    @Test("Baskın yazı kazanıyor, ilk harf değil")
+    func dominantScriptWins() {
+        // Deşifre sık sık Latin bir özel adla başlıyor; "ilk güçlü karakter"
+        // sezgisi bu yüzden yanılırdı.
+        let mostlyArabic = "Zoom تحدثنا اليوم عن الإطلاق وقررنا تأجيل الموعد"
+        #expect(ContentTextDirection.layoutDirection(for: mostlyArabic) == .rightToLeft)
+    }
+}
+
+// MARK: - Bölüm ikonu
+
+@Suite("Bölüm ikonu çok dilli")
+struct SectionIconLanguageTests {
+
+    @Test("Sekiz dilde de doğru ikon seçiliyor")
+    func iconsResolveInEveryLanguage() {
+        for vocabulary in SummaryVocabulary.all {
+            #expect(NoteDetailView.icon(for: vocabulary.actions) == "checklist")
+            #expect(NoteDetailView.icon(for: vocabulary.decisions) == "checkmark.seal.fill")
+        }
+    }
+
+    @Test("Tanınmayan başlık varsayılana düşüyor")
+    func unknownTitleFallsBack() {
+        #expect(NoteDetailView.icon(for: "Rastgele Başlık") == "sparkles")
+    }
+}

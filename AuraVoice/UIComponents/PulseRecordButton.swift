@@ -119,11 +119,11 @@ public struct PulseRecordButton: View {
 
     private var accessibilityLabel: String {
         switch state {
-        case .idle:       return "Kaydı başlat"
-        case .recording:  return "Kaydı durdur"
-        case .paused:     return "Kayda devam et"
-        case .processing: return "İşleniyor"
-        case .disabled:   return "Kayıt kullanılamıyor"
+        case .idle:       return String(localized: "Kaydı başlat")
+        case .recording:  return String(localized: "Kaydı durdur")
+        case .paused:     return String(localized: "Kayda devam et")
+        case .processing: return String(localized: "İşleniyor")
+        case .disabled:   return String(localized: "Kayıt kullanılamıyor")
         }
     }
 }

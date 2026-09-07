@@ -168,10 +168,14 @@ public struct EnterpriseKeyView: View {
                     }
 
                     if case let .saved(masked) = viewModel.outcome {
+                        // Maskeli anahtar Latin harf ve rakam; Arapça gibi
+                        // sağdan sola bir cümlenin ortasında parantezleri
+                        // yanlış tarafa attırıyor. FSI/PDI ile izole ediliyor.
+                        let isolatedKey = "\u{2068}" + masked + "\u{2069}"
                         card(
                             icon: "checkmark.circle.fill",
                             tint: AuraTheme.primary,
-                            text: "Anahtar kuruma kaydedildi (\(masked)). Cihazda saklanmadı."
+                            text: String(localized: "Anahtar kuruma kaydedildi (\(isolatedKey)). Cihazda saklanmadı.")
                         )
                     }
                     if case let .failed(reason) = viewModel.outcome {
@@ -202,7 +206,7 @@ public struct EnterpriseKeyView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: AuraTheme.Spacing.stackSM) {
-            Text(viewModel.access.organizationName.map { "\($0) için sağlayıcı anahtarı." }
+            Text(viewModel.access.organizationName.map { String(localized: "\($0) için sağlayıcı anahtarı.") }
                  ?? String(localized: "Kurumun sağlayıcı anahtarı."))
                 .font(AuraFont.bodyLarge)
                 .foregroundStyle(AuraTheme.onSurface)
@@ -231,7 +235,7 @@ public struct EnterpriseKeyView: View {
             card(
                 icon: "key.fill",
                 tint: AuraTheme.secondary,
-                text: "Kayıtlı anahtar: \(suffix)"
+                text: String(localized: "Kayıtlı anahtar: \(suffix)")
             )
         }
     }
@@ -293,7 +297,7 @@ public struct EnterpriseKeyView: View {
         card(
             icon: "lock.slash.fill",
             tint: AuraTheme.onSurfaceVariant,
-            text: "Bu hesap kurumsal anahtar yönetmeye yetkili değil."
+            text: String(localized: "Bu hesap kurumsal anahtar yönetmeye yetkili değil.")
         )
     }
 

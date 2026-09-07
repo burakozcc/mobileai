@@ -27,7 +27,14 @@ public struct SpeakerLabeler: Sendable {
     }
 
     /// Segmentlere konuşmacı etiketi ekler. Başarısızlıkta girdiyi aynen döner.
-    public func label(_ segments: [TranscriptSegment], audioURL: URL) async -> [TranscriptSegment] {
+    /// - Parameter language: deşifrenin dili. Etiket öneki ("Konuşmacı")
+    ///   buna göre seçiliyor: etiket deşifrenin içinde görünüyor, dolayısıyla
+    ///   arayüz dilinde değil kaydın dilinde olmalı. Boş bırakılırsa Türkçe.
+    public func label(
+        _ segments: [TranscriptSegment],
+        audioURL: URL,
+        language: String = ""
+    ) async -> [TranscriptSegment] {
         guard isEnabled, !segments.isEmpty else { return segments }
         guard await diarizer.isAvailable else { return segments }
 
@@ -37,7 +44,11 @@ public struct SpeakerLabeler: Sendable {
                 // Tek konuşmacı varsa etiket gürültüden ibaret olur.
                 return segments
             }
-            return SpeakerAssignment.apply(turns: output.turns, to: segments)
+            return SpeakerAssignment.apply(
+                turns: output.turns,
+                to: segments,
+                labelPrefix: SummaryLanguage(code: language).speakerPrefix
+            )
         } catch {
             print("[AuraVoice] Konuşmacı ayrıştırma atlandı: \(error.localizedDescription)")
             return segments

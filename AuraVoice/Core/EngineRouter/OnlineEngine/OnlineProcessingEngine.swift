@@ -68,7 +68,8 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
 
         let segments = await speakerLabeler.label(
             transcription.segments,
-            audioURL: request.audioFileURL
+            audioURL: request.audioFileURL,
+            language: language
         )
 
         let summary: String

@@ -66,9 +66,9 @@ public final class NotesListViewModel {
         }
 
         return [
-            ("Bugün", today),
-            ("Bu Hafta", thisWeek),
-            ("Daha Eski", older)
+            (String(localized: "Bugün"), today),
+            (String(localized: "Bu Hafta"), thisWeek),
+            (String(localized: "Daha Eski"), older)
         ].filter { !$0.1.isEmpty }
     }
 
@@ -184,7 +184,7 @@ public struct NotesListView: View {
 
     private var modeFilterRow: some View {
         HStack(spacing: AuraTheme.Spacing.stackSM) {
-            filterChip(title: "Tümü", isActive: viewModel.modeFilter == nil, tint: AuraTheme.onSurfaceVariant) {
+            filterChip(title: String(localized: "Tümü"), isActive: viewModel.modeFilter == nil, tint: AuraTheme.onSurfaceVariant) {
                 viewModel.modeFilter = nil
             }
             ForEach(ProcessingMode.allCases) { mode in
@@ -234,14 +234,14 @@ public struct NotesListView: View {
                 .font(.system(size: 34))
                 .foregroundStyle(AuraTheme.primary.opacity(0.7))
 
-            Text(viewModel.searchText.isEmpty ? "Henüz kayıt yok" : "Sonuç bulunamadı")
+            Text(viewModel.searchText.isEmpty ? String(localized: "Henüz kayıt yok") : String(localized: "Sonuç bulunamadı"))
                 .font(AuraFont.headlineMedium)
                 .tracking(AuraFont.headlineMediumTracking)
                 .foregroundStyle(AuraTheme.onSurface)
 
             Text(viewModel.searchText.isEmpty
-                 ? "Panel sekmesindeki kayıt butonuyla ilk toplantını kaydet."
-                 : "Farklı bir kelime dene ya da filtreyi kaldır.")
+                 ? String(localized: "Panel sekmesindeki kayıt butonuyla ilk toplantını kaydet.")
+                 : String(localized: "Farklı bir kelime dene ya da filtreyi kaldır."))
                 .font(AuraFont.bodySmall)
                 .foregroundStyle(AuraTheme.onSurfaceVariant)
                 .multilineTextAlignment(.center)

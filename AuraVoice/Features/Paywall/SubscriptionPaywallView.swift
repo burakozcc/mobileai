@@ -74,19 +74,19 @@ public final class PaywallViewModel {
             activePlanID = planID
             _ = quotaManager.resetBalance(toMinutes: minutes)
             renewalDate = quotaManager.nextRenewalDate()
-            message = "Aboneliğin etkin. Aylık \(Int(minutes)) dakika hesabına tanımlandı."
+            message = String(localized: "Aboneliğin etkin. Aylık \(Int(minutes)) dakika hesabına tanımlandı.")
 
         case .restored(let planID, let minutes):
             activePlanID = planID
             _ = quotaManager.resetBalance(toMinutes: minutes)
             renewalDate = quotaManager.nextRenewalDate()
-            message = "Aboneliğin geri yüklendi."
+            message = String(localized: "Aboneliğin geri yüklendi.")
 
         case .cancelled:
             break
 
         case .nothingToRestore:
-            message = "Geri yüklenecek bir abonelik bulunamadı."
+            message = String(localized: "Geri yüklenecek bir abonelik bulunamadı.")
 
         case .unavailable(let reason):
             message = reason
@@ -203,11 +203,11 @@ public struct SubscriptionPaywallView: View {
         // olurdu. Kota bittiğinde söylenecek doğru şey yenileme tarihi.
         if isQuotaEmpty {
             if let renewal = Self.renewalText(viewModel.renewalDate) {
-                return "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların \(renewal) yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin."
+                return String(localized: "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların \(renewal) yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin.")
             }
-            return "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin."
+            return String(localized: "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin.")
         }
-        return "Kalan \(AuraFormat.minutes(remainingMinutes)) işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer."
+        return String(localized: "Kalan \(AuraFormat.minutes(remainingMinutes)) işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer.")
     }
 
     static func renewalText(_ date: Date?) -> String? {
@@ -215,7 +215,12 @@ public struct SubscriptionPaywallView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        return formatter.string(from: date) + "'te"
+        // Ek AYRI cevrilemez: Turkce'de sona gelen bir bulunma eki, Ingilizce'de
+        // basa gelen bir edat ("on <tarih>"), baska dillerde bambaska. Tarih
+        // interpolasyonla TEK anahtarin icine giriyor ki cevirmen kelime
+        // sirasini kendi dilinin gerektirdigi gibi kurabilsin.
+        let formatted = formatter.string(from: date)
+        return String(localized: "\(formatted)'te")
     }
 
     // MARK: Plan kartı

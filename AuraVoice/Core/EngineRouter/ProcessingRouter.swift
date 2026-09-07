@@ -146,8 +146,14 @@ public final class ProcessingRouter: Sendable {
         }
     }
 
-    static let offlineFallbackNote =
-        "Buluta ulaşılamadı, bu özet cihaz içinde üretildi. Ses ve metin cihazdan çıkmadı."
+    /// Hesaplanan özellik: `static let` olsaydı dizge ilk erişimde bir kez
+    /// üretilip donardı ve sonraki dil değişikliği yansımazdı.
+    ///
+    /// Bu metin özetin GÖVDESİNE yazılıyor ve SwiftData'da kalıcı saklanıyor;
+    /// çevrilmezse yedi dilde yarı Türkçe bir bölüm kalırdı.
+    static var offlineFallbackNote: String {
+        String(localized: "Buluta ulaşılamadı, bu özet cihaz içinde üretildi. Ses ve metin cihazdan çıkmadı.")
+    }
 
     /// Cihaz içi motora düşmenin anlamlı olduğu hatalar.
     static func isRecoverableCloudFailure(_ error: any Error) -> Bool {

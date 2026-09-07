@@ -153,7 +153,7 @@ public struct NoteDetailView: View {
                 HStack(spacing: 5) {
                     Image(systemName: viewModel.note.mode == .offlineZeroCloud ? "lock.fill" : "cloud.fill")
                         .font(.system(size: 11, weight: .bold))
-                    Text(viewModel.note.mode == .offlineZeroCloud ? "ZERO-CLOUD" : "BULUT")
+                    Text(viewModel.note.mode == .offlineZeroCloud ? String(localized: "ZERO-CLOUD") : String(localized: "BULUT"))
                         .font(AuraFont.labelCaps)
                         .tracking(AuraFont.labelCapsTracking)
                 }
@@ -198,13 +198,13 @@ public struct NoteDetailView: View {
         if document.isEmpty {
             emptyCard(
                 icon: "doc.text",
-                title: "Özet bulunamadı",
-                detail: "Bu kayıt için özet üretilmemiş."
+                title: String(localized: "Özet bulunamadı"),
+                detail: String(localized: "Bu kayıt için özet üretilmemiş.")
             )
         } else {
             VStack(spacing: AuraTheme.Spacing.stackMD) {
                 if !document.looseItems.isEmpty {
-                    sectionCard(title: "Özet", items: document.looseItems)
+                    sectionCard(title: String(localized: "Özet"), items: document.looseItems)
                 }
                 ForEach(document.sections) { section in
                     sectionCard(title: section.title, items: section.items)
@@ -234,6 +234,10 @@ public struct NoteDetailView: View {
         .padding(AuraTheme.Spacing.stackMD)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassSurface()
+        // Bölümün tamamı içeriğin yönünde: başlık KAYDIN dilinde üretiliyor
+        // (SummaryVocabulary), arayüz dilinde değil. Madde imi ve onay kutusu
+        // HStack sırasından geldiği için kendiliğinden doğru tarafa geçiyor.
+        .contentDirection(of: title)
     }
 
     @ViewBuilder
@@ -276,7 +280,7 @@ public struct NoteDetailView: View {
             .buttonStyle(.plain)
             .sensoryFeedback(.selection, trigger: isDone)
             .accessibilityLabel(text)
-            .accessibilityValue(isDone ? "Tamamlandı" : "Bekliyor")
+            .accessibilityValue(isDone ? String(localized: "Tamamlandı") : String(localized: "Bekliyor"))
             .accessibilityAddTraits(.isButton)
         }
     }
@@ -291,7 +295,7 @@ public struct NoteDetailView: View {
                 }
             } label: {
                 HStack(spacing: AuraTheme.Spacing.stackSM) {
-                    Image(systemName: "text.alignleft")
+                    Image(systemName: "doc.plaintext")
                         .font(.system(size: 16))
                         .foregroundStyle(AuraTheme.onSurfaceVariant)
                     Text("Ham Transkript")
@@ -320,12 +324,18 @@ public struct NoteDetailView: View {
                     if viewModel.transcriptBlocks.isEmpty {
                         // Segment yoksa (eski kayıt veya segment üretmeyen motor)
                         // düz metne düş.
-                        Text(viewModel.note.rawTranscript.isEmpty
-                             ? "Bu kayıt için transkript saklanmamış."
-                             : viewModel.note.rawTranscript)
+                        // Ölçülen metin ile ÇİZİLEN metin aynı olmalı:
+                        // transkript boşken yer tutucu çiziliyordu ama yön boş
+                        // dizgeden hesaplanıyordu ve Arapça yer tutucu zorla
+                        // soldan sağa hizalanıyordu.
+                        let shownTranscript = viewModel.note.rawTranscript.isEmpty
+                            ? String(localized: "Bu kayıt için transkript saklanmamış.")
+                            : viewModel.note.rawTranscript
+                        Text(shownTranscript)
                             .font(AuraFont.bodyLarge)
                             .foregroundStyle(AuraTheme.onSurfaceVariant)
                             .textSelection(.enabled)
+                            .contentDirection(of: shownTranscript)
                     } else {
                         ForEach(viewModel.transcriptBlocks) { block in
                             transcriptBlockView(block)
@@ -360,6 +370,7 @@ public struct NoteDetailView: View {
                 .foregroundStyle(AuraTheme.onSurface)
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
+                .contentDirection(of: block.text)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -388,6 +399,26 @@ public struct NoteDetailView: View {
     /// başlıklar sabit değil, anahtar kelimeyle eşleştiriyoruz.
     static func icon(for title: String) -> String {
         let normalized = MeetingKeywordMatcher.normalize(title)
+
+        // ÖNCE sözlüklerle tam eşleşme. Başlıklar artık sekiz dilde
+        // üretiliyor ve anahtar kelime zinciri yalnızca Türkçe ile
+        // İngilizce'yi tanıyordu: Çince bir özette her bölüm aynı
+        // varsayılan ikonu alırdı. Eşleştirmeyi sözlüğe bağlamak, yeni
+        // dil eklendiğinde burayı güncelleme ihtiyacını da kaldırıyor.
+        for vocabulary in SummaryVocabulary.all {
+            if normalized == MeetingKeywordMatcher.normalize(vocabulary.actions) {
+                return "checklist"
+            }
+            if normalized == MeetingKeywordMatcher.normalize(vocabulary.decisions) {
+                return "checkmark.seal.fill"
+            }
+            if normalized == MeetingKeywordMatcher.normalize(vocabulary.keyPointsCall) {
+                return "bubble.left.and.bubble.right.fill"
+            }
+        }
+
+        // Yedek: kullanıcı özeti elle düzenlemiş ya da bulut modeli
+        // sözlükte olmayan bir başlık üretmiş olabilir.
         if normalized.contains("aksiyon") || normalized.contains("action") || normalized.contains("takip") {
             return "checklist"
         }

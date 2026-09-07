@@ -106,8 +106,8 @@ public final class ModelDownloadViewModel {
             Row(
                 id: "diarization",
                 kind: .diarization,
-                title: "Konuşmacı Ayrıştırma",
-                subtitle: "Transkriptte kimin konuştuğunu ayırır. Ses tanımadan bağımsız, isteğe bağlı.",
+                title: String(localized: "Konuşmacı Ayrıştırma"),
+                subtitle: String(localized: "Transkriptte kimin konuştuğunu ayırır. Ses tanımadan bağımsız, isteğe bağlı."),
                 iconName: "person.2.wave.2.fill",
                 megabytes: OfflineModelManager.diarizationApproximateMegabytes,
                 state: currentState(for: .diarization,
@@ -117,8 +117,8 @@ public final class ModelDownloadViewModel {
             Row(
                 id: "neural-summarizer",
                 kind: .neuralSummarizer,
-                title: "Gelişmiş Özetleyici",
-                subtitle: "Cihaz içi dil modeli. Kurmazsan özetler yine çıkar, sadece daha basit olur. Wi-Fi ve 6 GB bellek gerekir.",
+                title: String(localized: "Gelişmiş Özetleyici"),
+                subtitle: String(localized: "Cihaz içi dil modeli. Kurmazsan özetler yine çıkar, sadece daha basit olur. Wi-Fi ve 6 GB bellek gerekir."),
                 iconName: "brain.head.profile",
                 megabytes: OfflineModelManager.NeuralModel.approximateMegabytes,
                 state: currentState(for: .neuralSummarizer,
@@ -273,9 +273,9 @@ public final class ModelDownloadViewModel {
             case .notConnectedToInternet, .networkConnectionLost:
                 return AuraError.networkUnavailable.errorDescription ?? String(localized: "Bağlantı yok.")
             case .dataNotAllowed:
-                return "İndirme Wi-Fi gerektiriyor; hücresel veriyle indirilmiyor."
+                return String(localized: "İndirme Wi-Fi gerektiriyor; hücresel veriyle indirilmiyor.")
             case .cancelled:
-                return "İndirme iptal edildi."
+                return String(localized: "İndirme iptal edildi.")
             default:
                 break
             }
@@ -288,15 +288,15 @@ public final class ModelDownloadViewModel {
     static func subtitle(for variant: WhisperKitEngine.Variant) -> String {
         switch variant {
         case .tiny:
-            return "Eski cihazlar için. En düşük pil tüketimi."
+            return String(localized: "Eski cihazlar için. En düşük pil tüketimi.")
         case .base:
             // Artık "önerilen" bu değil: Türkçe'de large sınıfıyla arasında
             // Whisper makalesinin ölçtüğü kadar büyük fark var.
-            return "Küçük cihazlar için denge."
+            return String(localized: "Küçük cihazlar için denge.")
         case .small:
-            return "Karmaşık terimler ve çok konuşmacılı kayıtlar için iyi."
+            return String(localized: "Karmaşık terimler ve çok konuşmacılı kayıtlar için iyi.")
         case .largeV3Turbo:
-            return "Türkçe için önerilen. Şive, özel isim ve teknik terimde belirgin fark."
+            return String(localized: "Türkçe için önerilen. Şive, özel isim ve teknik terimde belirgin fark.")
         }
     }
 
@@ -359,7 +359,7 @@ public struct ModelDownloadView: View {
                     .font(.system(size: 12, weight: .bold))
                 Text("ZERO-CLOUD İŞLEME")
                     .font(AuraFont.labelCaps)
-                    .tracking(AuraFont.labelCapsTracking + 0.6)
+                    .tracking(AuraFont.trackingSafe(1.2))
             }
             .foregroundStyle(AuraTheme.primary)
             .padding(.horizontal, AuraTheme.Spacing.gutter)
@@ -387,9 +387,9 @@ public struct ModelDownloadView: View {
 
     private var benefits: some View {
         HStack(spacing: AuraTheme.Spacing.gutter) {
-            benefit(icon: "airplane", title: "Uçak Modu", detail: "Bağlantı olmadan çalışır")
-            benefit(icon: "lock.fill", title: "Sıfır Sızıntı", detail: "Ses cihazdan çıkmaz")
-            benefit(icon: "cpu", title: "Neural Engine", detail: "Cihazda hızlı çıkarım")
+            benefit(icon: "airplane", title: String(localized: "Uçak Modu"), detail: String(localized: "Bağlantı olmadan çalışır"))
+            benefit(icon: "lock.fill", title: String(localized: "Sıfır Sızıntı"), detail: String(localized: "Ses cihazdan çıkmaz"))
+            benefit(icon: "cpu", title: String(localized: "Neural Engine"), detail: String(localized: "Cihazda hızlı çıkarım"))
         }
     }
 
@@ -419,7 +419,7 @@ public struct ModelDownloadView: View {
     private var modelSection: some View {
         VStack(spacing: AuraTheme.Spacing.gutter) {
             HStack {
-                AuraSectionTitle("Mevcut Modeller")
+                AuraSectionTitle(String(localized: "Mevcut Modeller"))
                 Spacer(minLength: 0)
                 if viewModel.totalDiskBytes > 0 {
                     Text(OfflineModelManager.formatted(bytes: viewModel.totalDiskBytes))
@@ -462,7 +462,7 @@ public struct ModelDownloadView: View {
                         if row.isRecommended, row.state != .installed, !row.isDownloading {
                             Text("ÖNERİLEN")
                                 .font(.system(size: 9, weight: .bold))
-                                .tracking(0.5)
+                                .tracking(AuraFont.trackingSafe(0.5))
                                 .foregroundStyle(AuraTheme.primary)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -521,7 +521,7 @@ public struct ModelDownloadView: View {
     private func actionControl(_ row: ModelDownloadViewModel.Row) -> some View {
         switch row.state {
         case .available:
-            downloadButton(row, title: "İndir", tint: AuraTheme.onSurface)
+            downloadButton(row, title: String(localized: "İndir"), tint: AuraTheme.onSurface)
 
         case .failed(let reason):
             // Başarısızlık GÖRÜNÜR olmalı. Eskiden bu satır `.available` ile
@@ -529,7 +529,7 @@ public struct ModelDownloadView: View {
             // yerde okunmuyordu ve kullanıcının gördüğü tek iz, kapanınca
             // kaybolan tek seferlik bir uyarıydı.
             VStack(alignment: .trailing, spacing: 4) {
-                downloadButton(row, title: "TEKRAR DENE", tint: AuraTheme.warning)
+                downloadButton(row, title: String(localized: "TEKRAR DENE"), tint: AuraTheme.warning)
                 Text(reason)
                     .font(AuraFont.labelCaps)
                     .foregroundStyle(AuraTheme.warning)
@@ -619,9 +619,9 @@ public struct ModelDownloadView: View {
 extension ModelDownloadViewModel.Row {
     /// 1.221 MB yerine "~1,2 GB": dört haneli megabayt okunmuyor.
     static func sizeLabel(megabytes: Int) -> String {
-        guard megabytes >= 1_024 else { return "~\(megabytes) MB" }
+        guard megabytes >= 1_024 else { return String(localized: "~\(megabytes) MB") }
         let gigabytes = Double(megabytes) / 1_024
-        return String(format: "~%.1f GB", gigabytes)
+        return String(format: String(localized: "~%.1f GB"), gigabytes)
     }
 
     /// İndirme ya da doğrulama sürüyor.

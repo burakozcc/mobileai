@@ -15,15 +15,15 @@ public enum ProcessingMode: String, Codable, CaseIterable, Sendable, Identifiabl
 
     public var title: String {
         switch self {
-        case .offlineZeroCloud: return "Offline"
-        case .onlineCloudFast:  return "Online"
+        case .offlineZeroCloud: return String(localized: "Offline")
+        case .onlineCloudFast:  return String(localized: "Online")
         }
     }
 
     public var subtitle: String {
         switch self {
-        case .offlineZeroCloud: return "Cihaz içi · Zero-Cloud"
-        case .onlineCloudFast:  return "Bulut · Yüksek hız"
+        case .offlineZeroCloud: return String(localized: "Cihaz içi · Zero-Cloud")
+        case .onlineCloudFast:  return String(localized: "Bulut · Yüksek hız")
         }
     }
 
@@ -38,9 +38,9 @@ public enum ProcessingMode: String, Codable, CaseIterable, Sendable, Identifiabl
     public var privacyStatement: String {
         switch self {
         case .offlineZeroCloud:
-            return "Ses ve metin cihazdan hiç çıkmaz. Uçuş modunda dahi çalışır."
+            return String(localized: "Ses ve metin cihazdan hiç çıkmaz. Uçuş modunda dahi çalışır.")
         case .onlineCloudFast:
-            return "Ses şifreli olarak işlenmek üzere buluta gönderilir."
+            return String(localized: "Ses şifreli olarak işlenmek üzere buluta gönderilir.")
         }
     }
 }
@@ -63,9 +63,9 @@ public enum SummaryTemplate: String, Codable, CaseIterable, Sendable, Identifiab
     /// Kısa etiket (segment kontrolü için).
     public var shortTitle: String {
         switch self {
-        case .meetingNotes:     return "Toplantı"
-        case .phoneCallSummary: return "Görüşme"
-        case .quickNotes:       return "Hızlı Not"
+        case .meetingNotes:     return String(localized: "Toplantı")
+        case .phoneCallSummary: return String(localized: "Görüşme")
+        case .quickNotes:       return String(localized: "Hızlı Not")
         }
     }
 }
@@ -138,10 +138,10 @@ public enum ProcessingStage: String, Sendable, CaseIterable {
     /// Aşamayı gerçekte çalışan motor bildiriyor.
     public var label: String {
         switch self {
-        case .uploading:    return "Buluta yükleniyor"
-        case .transcribing: return "Cihaz içi transkripsiyon"
-        case .diarizing:    return "Konuşmacılar ayrıştırılıyor"
-        case .summarizing:  return "Özet çıkarılıyor"
+        case .uploading:    return String(localized: "Buluta yükleniyor")
+        case .transcribing: return String(localized: "Cihaz içi transkripsiyon")
+        case .diarizing:    return String(localized: "Konuşmacılar ayrıştırılıyor")
+        case .summarizing:  return String(localized: "Özet çıkarılıyor")
         }
     }
 }
@@ -161,8 +161,11 @@ public extension ProcessingResult {
         let trimmed = summaryMarkdown.trimmingCharacters(in: .whitespacesAndNewlines)
         // Çok satırlı literal: kaçış dizisi yerine gerçek satırlar, böylece
         // markdown burada okunduğu gibi çıkıyor.
+        // Yalnizca baslik cevriliyor: govde kullanicinin kendi metni ve
+        // cok satirli bir literali katalog anahtari yapmak okunaksiz olurdu.
+        let heading = "**" + String(localized: "Not") + "**"
         let note = """
-            **Not**
+            \(heading)
             - \(text)
             """
 
@@ -256,6 +259,6 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
 /// `AuraError` içinde kullanılan hafif biçimlendirici (UIComponents'a bağımlılık yaratmamak için).
 enum AuraFormatSeconds {
     static func minutes(_ seconds: Double) -> String {
-        String(format: "%.1f dk", max(0, seconds) / 60.0)
+        String(format: String(localized: "%.1f dk"), max(0, seconds) / 60.0)
     }
 }

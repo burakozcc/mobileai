@@ -25,10 +25,14 @@ public struct AuraNoteCard: View {
         VStack(alignment: .leading, spacing: AuraTheme.Spacing.gutter) {
 
             HStack(alignment: .top, spacing: AuraTheme.Spacing.stackSM) {
+                // Baslik kullanicinin kendi icerigi; yonu ondan geliyor.
+                // Yalnizca metne uygulaniyor: kartin duzeni (tarihin karsi
+                // kenarda durmasi) arayuz yonunde kalmali.
                 Text(note.title)
                     .font(AuraFont.bodyLarge.weight(.semibold))
                     .foregroundStyle(AuraTheme.onSurface)
                     .lineLimit(1)
+                    .contentDirection(of: note.title)
 
                 Spacer(minLength: 4)
 
@@ -43,8 +47,8 @@ public struct AuraNoteCard: View {
                 .font(AuraFont.bodySmall)
                 .foregroundStyle(AuraTheme.onSurfaceVariant)
                 .lineLimit(2)
-                .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .contentDirection(of: note.previewLine)
 
             HStack(spacing: AuraTheme.Spacing.stackSM) {
                 if !note.waveformPreview.isEmpty {
@@ -70,7 +74,7 @@ public struct AuraNoteCard: View {
 
                 if showsModeBadge {
                     AuraBadge(
-                        note.mode == .offlineZeroCloud ? "Zero-Cloud" : "Bulut",
+                        note.mode == .offlineZeroCloud ? String(localized: "Zero-Cloud") : String(localized: "Bulut"),
                         systemImage: note.mode == .offlineZeroCloud ? "lock.fill" : "cloud.fill",
                         tint: accent
                     )
@@ -121,7 +125,7 @@ public struct AuraSectionTitle: View {
         HStack(alignment: .firstTextBaseline) {
             Text(text.uppercased())
                 .font(AuraFont.labelCaps)
-                .tracking(AuraFont.labelCapsTracking + 0.6)
+                .tracking(AuraFont.trackingSafe(1.2))
                 .foregroundStyle(AuraTheme.onSurfaceVariant)
 
             Spacer(minLength: 8)

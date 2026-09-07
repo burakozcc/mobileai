@@ -157,10 +157,33 @@ public enum AuraFont {
     public static let durationDisplay = digits(48, .medium)
 
     // Harf aralığı (em değerleri pt karşılığına çevrildi)
-    public static let displayLargeTracking: CGFloat = -0.68
-    public static let headlineMediumTracking: CGFloat = -0.24
-    public static let labelCapsTracking: CGFloat = 0.6
-    public static let durationTracking: CGFloat = -0.48
+    //
+    // BİTİŞİK YAZILAN DİLLERDE SIFIRLANIYOR. Arapçada harfler birbirine
+    // bağlanır; harf aralığı bu bağları koparır ve metin kırık görünür.
+    // Negatif aralık (sıkıştırma) da aynı şekilde zararlı. Aynısı Farsça,
+    // Urduca ve Arap yazısı kullanan diğer diller için de geçerli.
+    public static var displayLargeTracking: CGFloat { trackingSafe(-0.68) }
+    public static var headlineMediumTracking: CGFloat { trackingSafe(-0.24) }
+    public static var labelCapsTracking: CGFloat { trackingSafe(0.6) }
+    public static var durationTracking: CGFloat { trackingSafe(-0.48) }
+
+    /// Harf aralığını yalnızca güvenli yazı sistemlerinde uygular.
+    public static func trackingSafe(_ value: CGFloat) -> CGFloat {
+        isCursiveScript ? 0 : value
+    }
+
+    /// Arap yazısı ailesinden bir dilde miyiz?
+    ///
+    /// `Locale.current` uygulamanın seçili dilini yansıtıyor. SwiftUI ortam
+    /// yereli daha isabetli olurdu ama o, elli çağrı noktasını birden
+    /// değiştirmeyi gerektirirdi; bu ödün bilerek verildi.
+    static var isCursiveScript: Bool {
+        guard let code = Locale.current.language.languageCode?.identifier.lowercased()
+        else { return false }
+        return cursiveScripts.contains(code)
+    }
+
+    static let cursiveScripts: Set<String> = ["ar", "fa", "ur", "ps", "sd", "ckb", "ug"]
 }
 
 // MARK: - Color + Hex
@@ -219,9 +242,12 @@ public enum AuraFormat {
         let h = total / 3600
         let m = (total % 3600) / 60
         let s = total % 60
+        // Yerel ayar VERILIYOR: String(format:) locale almazsa daima Batılı
+        // rakam basar; Arapça/Bengalce arayüzde aynı ekrandaki tarihler
+        // yerel rakamla çıkarken sayacın Batılı kalması tutarsız görünür.
         return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%02d:%02d", m, s)
+            ? String(format: "%d:%02d:%02d", locale: .current, arguments: [h, m, s])
+            : String(format: "%02d:%02d", locale: .current, arguments: [m, s])
     }
 
     /// 12.4 → "12,4 dk" (yerel ayara duyarlı)
@@ -237,7 +263,7 @@ public enum AuraFormat {
     /// Toplantı satırı için "14:30 · 45 dk"
     public static func meetingSubtitle(start: Date, durationMinutes: Int) -> String {
         let time = start.formatted(date: .omitted, time: .shortened)
-        return "\(time) · \(durationMinutes) dk"
+        return String(localized: "\(time) · \(durationMinutes) dk")
     }
 }
 

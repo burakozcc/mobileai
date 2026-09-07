@@ -179,7 +179,7 @@ public struct DashboardView: View {
 
                     Text("/ \(Int(viewModel.planMonthlyMinutes)) DK")
                         .font(AuraFont.labelCaps)
-                        .tracking(AuraFont.labelCapsTracking + 0.8)
+                        .tracking(AuraFont.trackingSafe(1.4))
                         .foregroundStyle(AuraTheme.onSurfaceVariant)
                 }
             }
@@ -197,9 +197,9 @@ public struct DashboardView: View {
         let tint: Color = viewModel.isQuotaEmpty ? AuraTheme.warning
                         : viewModel.isQuotaCritical ? AuraTheme.warning
                         : AuraTheme.primary
-        let text: String = viewModel.isQuotaEmpty ? "KOTA BİTTİ"
-                         : viewModel.isQuotaCritical ? "KOTA AZALDI"
-                         : "KOTA NORMAL"
+        let text: String = viewModel.isQuotaEmpty ? String(localized: "KOTA BİTTİ")
+                         : viewModel.isQuotaCritical ? String(localized: "KOTA AZALDI")
+                         : String(localized: "KOTA NORMAL")
 
         return Button {
             if viewModel.isQuotaCritical { viewModel.isPaywallPresented = true }
@@ -373,15 +373,15 @@ public struct DashboardView: View {
     private var meetingsSection: some View {
         VStack(spacing: AuraTheme.Spacing.stackSM) {
             AuraSectionTitle(
-                "Yaklaşan Toplantılar",
+                String(localized: "Yaklaşan Toplantılar"),
                 actionTitle: viewModel.scheduledReminderCount > 0
-                    ? "\(viewModel.scheduledReminderCount) hatırlatma" : nil
+                    ? String(localized: "\(viewModel.scheduledReminderCount) hatırlatma") : nil
             ) {}
 
             if viewModel.calendarStatus != .fullAccess || viewModel.notificationStatus != .authorized {
                 permissionCard
             } else if viewModel.upcomingMeetings.isEmpty {
-                infoCard(icon: "calendar", text: "Önümüzdeki 12 saatte toplantı görünmüyor.")
+                infoCard(icon: "calendar", text: String(localized: "Önümüzdeki 12 saatte toplantı görünmüyor."))
             } else {
                 ForEach(viewModel.upcomingMeetings.prefix(3)) { meeting in
                     meetingRow(meeting)
@@ -495,10 +495,10 @@ public struct DashboardView: View {
     @ViewBuilder
     private var notesSection: some View {
         VStack(spacing: AuraTheme.Spacing.stackSM) {
-            AuraSectionTitle("Son Kayıtlar")
+            AuraSectionTitle(String(localized: "Son Kayıtlar"))
 
             if viewModel.notes.isEmpty {
-                infoCard(icon: "waveform.badge.mic", text: "Henüz kayıt yok. Sağ alttaki butonla başla.")
+                infoCard(icon: "waveform.badge.mic", text: String(localized: "Henüz kayıt yok. Kayıt butonuna dokunarak başla."))
             } else {
                 ForEach(viewModel.notes.prefix(4)) { note in
                     NavigationLink {
@@ -552,9 +552,9 @@ public struct DashboardView: View {
 
         var label: String {
             switch self {
-            case .ready:        return "Kaydı başlat"
-            case .quotaEmpty:   return "Dakika bakiyen bitti"
-            case .modelMissing: return "Cihaz içi model indirilmemiş"
+            case .ready:        return String(localized: "Kaydı başlat")
+            case .quotaEmpty:   return String(localized: "Dakika bakiyen bitti")
+            case .modelMissing: return String(localized: "Cihaz içi model indirilmemiş")
             }
         }
     }

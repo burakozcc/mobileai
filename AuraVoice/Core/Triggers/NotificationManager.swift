@@ -105,17 +105,17 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
     public func registerCategories() {
         let start = UNNotificationAction(
             identifier: Action.startRecording,
-            title: "Kaydı Başlat",
+            title: String(localized: "Kaydı Başlat"),
             options: [.foreground, .authenticationRequired]
         )
         let snooze = UNNotificationAction(
             identifier: Action.snooze,
-            title: "5 dk Ertele",
+            title: String(localized: "5 dk Ertele"),
             options: []
         )
         let dismiss = UNNotificationAction(
             identifier: Action.dismiss,
-            title: "Yok Say",
+            title: String(localized: "Yok Say"),
             options: [.destructive]
         )
 
@@ -123,7 +123,7 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
             identifier: Category.meeting,
             actions: [start, snooze, dismiss],
             intentIdentifiers: [],
-            hiddenPreviewsBodyPlaceholder: "Yaklaşan toplantı",
+            hiddenPreviewsBodyPlaceholder: String(localized: "Yaklaşan toplantı"),
             options: [.customDismissAction]
         )
 
@@ -131,7 +131,7 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
             identifier: Category.call,
             actions: [start, dismiss],
             intentIdentifiers: [],
-            hiddenPreviewsBodyPlaceholder: "Devam eden görüşme",
+            hiddenPreviewsBodyPlaceholder: String(localized: "Devam eden görüşme"),
             options: [.customDismissAction]
         )
 
@@ -205,8 +205,8 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
         let content = UNMutableNotificationContent()
         content.title = candidate.title
         content.body = candidate.isVirtual
-            ? "Toplantı \(leadTimeMinutes) dk sonra başlıyor. Kaydı başlatıp özet çıkarabilirim."
-            : "Toplantın başlamak üzere. Tek dokunuşla kaydı başlat."
+            ? String(localized: "Toplantı \(leadTimeMinutes) dk sonra başlıyor. Kaydı başlatıp özet çıkarabilirim.")
+            : String(localized: "Toplantın başlamak üzere. Tek dokunuşla kaydı başlat.")
         content.subtitle = AuraFormatTime.meetingSubtitle(
             start: candidate.startDate,
             durationMinutes: candidate.durationMinutes
@@ -250,8 +250,8 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
     /// Uygulama arka plandayken kullanıcıya hoparlör ipucu verir.
     public func notifyCallConnected() async {
         let content = UNMutableNotificationContent()
-        content.title = "Görüşme kaydı hazır"
-        content.body = "Hoparlörü açarak kaydı başlatabilirsiniz."
+        content.title = String(localized: "Görüşme kaydı hazır")
+        content.body = String(localized: "Hoparlörü açarak kaydı başlatabilirsiniz.")
         content.sound = .default
         content.categoryIdentifier = Category.call
         content.interruptionLevel = .timeSensitive
@@ -281,8 +281,8 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
 
     private func scheduleSnooze(from userInfo: [AnyHashable: Any], minutes: Int = 5) async {
         let content = UNMutableNotificationContent()
-        content.title = (userInfo[PayloadKey.title] as? String) ?? "Toplantı kaydı"
-        content.body = "Ertelendi — hâlâ kaydetmek ister misin?"
+        content.title = (userInfo[PayloadKey.title] as? String) ?? String(localized: "Toplantı kaydı")
+        content.body = String(localized: "Ertelendi — hâlâ kaydetmek ister misin?")
         content.sound = .default
         content.categoryIdentifier = Category.meeting
         content.interruptionLevel = .timeSensitive
@@ -366,6 +366,6 @@ public final class NotificationManager: NSObject, UNUserNotificationCenterDelega
 /// Bildirim altyazısı için hafif biçimlendirici (Core katmanının UI'a bağımlı olmaması adına).
 enum AuraFormatTime {
     static func meetingSubtitle(start: Date, durationMinutes: Int) -> String {
-        "\(start.formatted(date: .omitted, time: .shortened)) · \(durationMinutes) dk"
+        String(localized: "\(start.formatted(date: .omitted, time: .shortened)) · \(durationMinutes) dk")
     }
 }

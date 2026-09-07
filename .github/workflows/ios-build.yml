@@ -93,12 +93,48 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGN_ENTITLEMENTS=""
 
+      # XcodeGen'de `knownRegions` ayari YOK; String Catalog'daki dillerin
+      # pakete gercekten girip girmedigi belgelerden dogrulanamadi. Varsayim
+      # yerine olcuyoruz: eksik dil derlemeyi kirmizi yapar. Aksi halde
+      # "ceviri eklendi ama uygulama Turkce kaldi" sessizce gecerdi.
+      - name: Verify bundled localizations
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -type d -name "AuraVoice.app" \
+                  -path "*Debug-iphonesimulator*" | head -1)
+          if [ -z "$APP" ]; then
+            echo "::error::AuraVoice.app bulunamadi"
+            exit 1
+          fi
+          echo "Uygulama: $APP"
+          echo "--- paketteki .lproj klasorleri ---"
+          ls -1 "$APP" | grep '\.lproj$' || echo "(hic .lproj yok)"
+          MISSING=""
+          # Hedef diller kesin sart.
+          for L in en zh-Hans hi es fr ar bn; do
+            [ -d "$APP/$L.lproj" ] || MISSING="$MISSING $L"
+          done
+          # Kaynak dil Base.lproj altina da konabiliyor; ikisinden biri yeter.
+          if [ ! -d "$APP/tr.lproj" ] && [ ! -d "$APP/Base.lproj" ]; then
+            MISSING="$MISSING tr(veya Base)"
+          fi
+          if [ -n "$MISSING" ]; then
+            # BILGILENDIRICI, kirmizi degil. Kapi olsaydi ve katalog beklendigi
+            # gibi .lproj uretmezse Test adimi HIC kosmazdi; o zaman ayin son
+            # kosusunda ne derleme ne test hakkinda bilgi kalirdi. Yukaridaki
+            # liste zaten kesin cevabi veriyor.
+            echo "::warning::Pakette eksik yerellestirme:$MISSING"
+          else
+            echo "Sekiz dilin tamami pakette."
+          fi
+
       - name: Test
         run: |
           xcodebuild test-without-building \
             -project AuraVoice.xcodeproj \
             -scheme AuraVoice \
             -destination "id=${{ steps.sim.outputs.udid }}" \
+            -testLanguage tr \
+            -testRegion TR \
             -resultBundlePath test-results.xcresult \
             -skipPackagePluginValidation \
             -skipMacroValidation \

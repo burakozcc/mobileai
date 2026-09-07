@@ -51,10 +51,10 @@ public actor WhisperKitEngine: SpeechTranscriber {
 
         public var displayName: String {
             switch self {
-            case .tiny:         return "Hızlı (küçük)"
-            case .base:         return "Dengeli"
-            case .small:        return "Yüksek doğruluk"
-            case .largeV3Turbo: return "En yüksek doğruluk"
+            case .tiny:         return String(localized: "Hızlı (küçük)")
+            case .base:         return String(localized: "Dengeli")
+            case .small:        return String(localized: "Yüksek doğruluk")
+            case .largeV3Turbo: return String(localized: "En yüksek doğruluk")
             }
         }
 

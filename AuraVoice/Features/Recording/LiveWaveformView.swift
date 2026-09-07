@@ -25,6 +25,10 @@ public struct LiveWaveformView: View {
     /// Sessizlikte bile görünen minimum çubuk yüksekliği oranı.
     public var floorRatio: CGFloat
 
+    /// Çizim elle yapıldığı için SwiftUI'nin otomatik aynalaması burada
+    /// devreye girmiyor; yönü kendimiz uygulamak zorundayız.
+    @Environment(\.layoutDirection) private var layoutDirection
+
     public init(
         levels: [Float],
         tint: Color,
@@ -44,7 +48,12 @@ public struct LiveWaveformView: View {
     public var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isActive)) { timeline in
             Canvas(opaque: false, rendersAsynchronously: false) { context, size in
-                draw(in: &context, size: size, date: timeline.date)
+                draw(
+                    in: &context,
+                    size: size,
+                    date: timeline.date,
+                    isRTL: layoutDirection == .rightToLeft
+                )
             }
         }
         .accessibilityElement()
@@ -54,7 +63,12 @@ public struct LiveWaveformView: View {
 
     // MARK: Çizim
 
-    private func draw(in context: inout GraphicsContext, size: CGSize, date: Date) {
+    private func draw(
+        in context: inout GraphicsContext,
+        size: CGSize,
+        date: Date,
+        isRTL: Bool
+    ) {
         guard size.width > 0, size.height > 0, !levels.isEmpty else { return }
 
         let midY = size.height / 2
@@ -71,10 +85,12 @@ public struct LiveWaveformView: View {
             ? 1.0 + 0.12 * sin(date.timeIntervalSinceReferenceDate * 3.0)
             : 1.0
 
+        // Degrade de akış yönünü izliyor: çubuklar aynalanıp renk geçişi
+        // yerinde kalırsa en yeni çubuklar yanlış tonda çıkar.
         let shading = GraphicsContext.Shading.linearGradient(
             Gradient(colors: [tint, tint.opacity(0.55), tint.opacity(0.85)]),
-            startPoint: CGPoint(x: 0, y: 0),
-            endPoint: CGPoint(x: size.width, y: 0)
+            startPoint: CGPoint(x: isRTL ? size.width : 0, y: 0),
+            endPoint: CGPoint(x: isRTL ? 0 : size.width, y: 0)
         )
 
         for (index, rawLevel) in window.enumerated() {
@@ -85,7 +101,10 @@ public struct LiveWaveformView: View {
 
             let amplitude = max(floorRatio, level) * breath
             let barHeight = min(size.height, amplitude * size.height)
-            let x = originX + CGFloat(index) * slot
+            // Sağdan sola arayüzde en yeni örnek SOL kenarda doğmalı;
+            // düzenin tamamını dikey eksen etrafında aynalıyoruz.
+            let xLTR = originX + CGFloat(index) * slot
+            let x = isRTL ? size.width - xLTR - barWidth : xLTR
             let rect = CGRect(
                 x: x,
                 y: midY - barHeight / 2,
@@ -119,6 +138,8 @@ public struct WaveformThumbnail: View {
     public var levels: [Float]
     public var tint: Color
 
+    @Environment(\.layoutDirection) private var layoutDirection
+
     public init(levels: [Float], tint: Color) {
         self.levels = levels
         self.tint = tint
@@ -130,11 +151,14 @@ public struct WaveformThumbnail: View {
             let slot = size.width / CGFloat(levels.count)
             let barWidth = max(1.2, slot * 0.55)
             let midY = size.height / 2
+            let isRTL = layoutDirection == .rightToLeft
 
             for (index, level) in levels.enumerated() {
                 let height = max(2, CGFloat(level) * size.height)
                 let rect = CGRect(
-                    x: CGFloat(index) * slot,
+                    x: isRTL
+                        ? size.width - CGFloat(index) * slot - barWidth
+                        : CGFloat(index) * slot,
                     y: midY - height / 2,
                     width: barWidth,
                     height: height

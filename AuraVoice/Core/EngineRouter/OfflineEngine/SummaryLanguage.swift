@@ -174,10 +174,10 @@ public struct SummaryLanguage: Sendable, Equatable {
     ///
     /// Çevirisi olmayan dilde İngilizce'ye düşülüyor — nötr ve yaygın.
     private var vocabulary: SummaryVocabulary {
-        switch profile {
-        case .turkish: return .turkish
-        case .english, .generic: return .english
-        }
+        // Boş kod "dil tespit edilemedi" demek ve Türkçe varsayılıyor;
+        // tabloya düşürülmüyor çünkü tabloda boş anahtar yok.
+        if code.isEmpty { return .turkish }
+        return SummaryVocabulary.table[baseCode] ?? .english
     }
 
     public func heading(for template: SummaryTemplate) -> String {
@@ -198,6 +198,7 @@ public struct SummaryLanguage: Sendable, Equatable {
 
     public var decisionsTitle: String { vocabulary.decisions }
     public var ownerHint: String { vocabulary.ownerHint }
+    public var speakerPrefix: String { vocabulary.speakerPrefix }
     public var truncationNotice: String { vocabulary.truncationNotice }
     public var actionsTitle: String { vocabulary.actions }
     public var emptyNotice: String { vocabulary.emptyNotice }
@@ -224,6 +225,11 @@ public struct SummaryVocabulary: Sendable, Equatable {
     public let emptyNotice: String
     /// Aksiyon maddesinde sorumlu yer tutucusu — bulut iskeletinde geçiyor.
     public let ownerHint: String
+    /// Konuşmacı ayrıştırmasında etiket öneki: "Konuşmacı 1", "Speaker 1".
+    ///
+    /// Deşifrenin İÇİNDE görünüyor, dolayısıyla arayüz dilinde değil KAYDIN
+    /// dilinde olmalı — tıpkı bölüm başlıkları gibi.
+    public let speakerPrefix: String
     /// Bulut özeti jeton sınırına takıldığında sonuna eklenen not.
     public let truncationNotice: String
     /// `%ld` dakika yerine geçiyor. (`%d` C'de 32 bit bekliyor; Swift `Int`
@@ -270,6 +276,7 @@ public struct SummaryVocabulary: Sendable, Equatable {
         actions: "Aksiyonlar",
         emptyNotice: "Özetlenecek konuşma bulunamadı.",
         ownerHint: "sorumlu",
+        speakerPrefix: "Konuşmacı",
         truncationNotice: "_(Özet jeton sınırına takıldı ve kısaltıldı.)_",
         metaFormat: "Cihaz içi · %ld dk"
     )
@@ -277,15 +284,138 @@ public struct SummaryVocabulary: Sendable, Equatable {
     public static let english = SummaryVocabulary(
         meetingHeading: "Meeting Summary",
         callHeading: "Call Summary",
-        quickHeading: "Quick Notes",
+        quickHeading: "Quick Note",
         keyPointsMeeting: "Key Points",
-        keyPointsCall: "Discussed",
+        keyPointsCall: "Topics Discussed",
         keyPointsQuick: "Notes",
         decisions: "Decisions",
         actions: "Action Items",
-        emptyNotice: "No speech found to summarise.",
+        emptyNotice: "No speech found to summarize.",
         ownerHint: "owner",
-        truncationNotice: "_(The summary hit the token limit and was truncated.)_",
+        speakerPrefix: "Speaker",
+        truncationNotice: "_(The summary reached the token limit and was truncated.)_",
         metaFormat: "On-device · %ld min"
     )
+
+    public static let spanish = SummaryVocabulary(
+        meetingHeading: "Resumen de la reunión",
+        callHeading: "Resumen de la conversación",
+        quickHeading: "Nota rápida",
+        keyPointsMeeting: "Puntos clave",
+        keyPointsCall: "Temas tratados",
+        keyPointsQuick: "Notas",
+        decisions: "Decisiones",
+        actions: "Acciones",
+        emptyNotice: "No se ha detectado voz para resumir.",
+        ownerHint: "responsable",
+        speakerPrefix: "Hablante",
+        truncationNotice: "_(El resumen ha alcanzado el límite de tokens y se ha truncado.)_",
+        metaFormat: "En el dispositivo · %ld min"
+    )
+
+    public static let french = SummaryVocabulary(
+        meetingHeading: "Résumé de la réunion",
+        callHeading: "Résumé de l’appel",
+        quickHeading: "Note rapide",
+        keyPointsMeeting: "Points clés",
+        keyPointsCall: "Sujets abordés",
+        keyPointsQuick: "Notes",
+        decisions: "Décisions",
+        actions: "Actions à mener",
+        emptyNotice: "Aucune parole à résumer n’a été détectée.",
+        ownerHint: "responsable",
+        speakerPrefix: "Intervenant",
+        truncationNotice: "_(Le résumé a atteint la limite de jetons et a été tronqué.)_",
+        metaFormat: "Sur l’appareil · %ld min"
+    )
+
+    public static let arabic = SummaryVocabulary(
+        meetingHeading: "ملخص الاجتماع",
+        callHeading: "ملخص المكالمة",
+        quickHeading: "ملاحظة سريعة",
+        keyPointsMeeting: "النقاط الرئيسية",
+        keyPointsCall: "محاور النقاش",
+        keyPointsQuick: "الملاحظات",
+        decisions: "القرارات",
+        actions: "المهام",
+        emptyNotice: "لم يُعثر على كلام لتلخيصه.",
+        ownerHint: "المسؤول",
+        speakerPrefix: "المتحدث",
+        truncationNotice: "_(بلغ الملخص حد الرموز فتم اختصاره.)_",
+        metaFormat: "على الجهاز · %ld د"
+    )
+
+    public static let hindi = SummaryVocabulary(
+        meetingHeading: "मीटिंग का सारांश",
+        callHeading: "कॉल का सारांश",
+        quickHeading: "क्विक नोट",
+        keyPointsMeeting: "मुख्य बिंदु",
+        keyPointsCall: "मुख्य बातें",
+        keyPointsQuick: "नोट्स",
+        decisions: "निर्णय",
+        actions: "एक्शन आइटम",
+        emptyNotice: "सारांश बनाने के लिए कोई बातचीत नहीं मिली।",
+        ownerHint: "ज़िम्मेदार",
+        speakerPrefix: "वक्ता",
+        truncationNotice: "_(सारांश टोकन सीमा तक पहुँच गया और छोटा कर दिया गया।)_",
+        metaFormat: "ऑन-डिवाइस · %ld मिनट"
+    )
+
+    public static let bengali = SummaryVocabulary(
+        meetingHeading: "মিটিংয়ের সারাংশ",
+        callHeading: "কলের সারাংশ",
+        quickHeading: "দ্রুত নোট",
+        keyPointsMeeting: "মূল বিষয়",
+        keyPointsCall: "আলোচিত বিষয়",
+        keyPointsQuick: "মূল কথা",
+        decisions: "সিদ্ধান্ত",
+        actions: "করণীয়",
+        emptyNotice: "সারাংশ তৈরি করার মতো কোনও কথা পাওয়া যায়নি।",
+        ownerHint: "দায়িত্বপ্রাপ্ত",
+        speakerPrefix: "বক্তা",
+        truncationNotice: "_(সারাংশ টোকেন সীমায় পৌঁছানোয় সংক্ষিপ্ত করা হয়েছে।)_",
+        metaFormat: "ডিভাইসেই · %ld মিনিট"
+    )
+
+    public static let simplifiedChinese = SummaryVocabulary(
+        meetingHeading: "会议摘要",
+        callHeading: "通话摘要",
+        quickHeading: "快速笔记",
+        keyPointsMeeting: "要点",
+        keyPointsCall: "讨论内容",
+        keyPointsQuick: "主要内容",
+        decisions: "决定事项",
+        actions: "待办事项",
+        emptyNotice: "未找到可供摘要的语音内容。",
+        ownerHint: "负责人",
+        speakerPrefix: "说话人",
+        truncationNotice: "_（已达到 Token 上限，摘要已截断。）_",
+        metaFormat: "设备端 · %ld 分钟"
+    )
+
+    /// Bilinen bütün sözlükler.
+    ///
+    /// Bölüm ikonu eşleştirmesi buradan yürüyor; yeni bir dil eklendiğinde
+    /// ikon kodunu ayrıca güncellemek gerekmesin diye tek liste tutuluyor.
+    public static let all: [SummaryVocabulary] = [
+        .turkish, .english, .spanish, .french, .arabic, .hindi, .bengali,
+        .simplifiedChinese
+    ]
+
+    /// Dil kodundan sözlüğe. Burada olmayan dil İngilizce'ye düşüyor.
+    ///
+    /// Anahtarlar yalnızca dil alt etiketi: "zh-Hant" da "zh" üzerinden
+    /// Basitleştirilmiş Çince'ye düşüyor. Geleneksel Çince yayınlanmadığı
+    /// için bu bilinçli bir sadeleştirme; zh-Hant eklenirse burada
+    /// ayrıştırmak gerekir.
+    static let table: [String: SummaryVocabulary] = [
+        "tr": .turkish,
+        "en": .english,
+        "es": .spanish,
+        "fr": .french,
+        "ar": .arabic,
+        "hi": .hindi,
+        "bn": .bengali,
+        "zh": .simplifiedChinese
+    ]
 }
