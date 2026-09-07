@@ -96,7 +96,10 @@ public struct OnlineProcessingEngine: ProcessingEngineProtocol {
                 )
             )
             let reason = (error as? AuraError)?.errorDescription ?? error.localizedDescription
-            summary = fallback + "\n\n_(Bulut özetleme başarısız oldu, cihaz içi özet kullanıldı: \(reason))_"
+            // Markdown italik isaretleri KODDA kaliyor: cevirmen bozarsa
+            // ozet gövdesinde bicimlenme kirilirdi (ayni karar "**Not**"ta da alindi).
+            let note = String(localized: "Bulut özetleme başarısız oldu, cihaz içi özet kullanıldı: \(reason)")
+            summary = fallback + "\n\n_(" + note + ")_"
         }
 
         return ProcessingResult(

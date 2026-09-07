@@ -32,9 +32,9 @@ public enum AnthropicModel: String, Sendable, CaseIterable {
 
     public var displayName: String {
         switch self {
-        case .sonnet5: return "Dengeli (Sonnet)"
-        case .opus5:   return "En iyi kalite (Opus)"
-        case .haiku45: return "Hızlı (Haiku)"
+        case .sonnet5: return String(localized: "Dengeli (Sonnet)")
+        case .opus5:   return String(localized: "En iyi kalite (Opus)")
+        case .haiku45: return String(localized: "Hızlı (Haiku)")
         }
     }
 }
@@ -140,7 +140,7 @@ public struct CloudLLMClient: Sendable {
 
         let trimmed = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            throw AuraError.engineFailure("Özetlenecek transkript boş.")
+            throw AuraError.engineFailure(String(localized: "Özetlenecek transkript boş."))
         }
 
         // Dil bir kere çözülüyor ve hem isteme hem de sondaki
@@ -178,13 +178,13 @@ public struct CloudLLMClient: Sendable {
         do {
             decoded = try JSONDecoder().decode(MessagesResponse.self, from: data)
         } catch {
-            throw AuraError.engineFailure("Anthropic yanıtı çözümlenemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Anthropic yanıtı çözümlenemedi: \(error.localizedDescription)"))
         }
 
         // Güvenlik sınıflandırıcısı isteği reddettiğinde HTTP 200 döner ama
         // `content` boş gelir — içeriği okumadan önce kontrol şart.
         if decoded.stop_reason == "refusal" {
-            let category = decoded.stop_details?.category ?? "belirtilmemiş"
+            let category = decoded.stop_details?.category ?? String(localized: "belirtilmemiş")
             throw AuraError.cloudRefused(category: category)
         }
 
@@ -195,7 +195,7 @@ public struct CloudLLMClient: Sendable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !text.isEmpty else {
-            throw AuraError.engineFailure("Model boş yanıt döndürdü (stop_reason: \(decoded.stop_reason ?? "?")).")
+            throw AuraError.engineFailure(String(localized: "Model boş yanıt döndürdü (stop_reason: \(decoded.stop_reason ?? "?"))."))
         }
 
         if decoded.stop_reason == "max_tokens" {

@@ -80,7 +80,7 @@ public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, 
         lock.lock()
         guard task == nil else {
             lock.unlock()
-            completion(.failure(AuraError.engineFailure("İndirme zaten sürüyor.")))
+            completion(.failure(AuraError.engineFailure(String(localized: "İndirme zaten sürüyor."))))
             return
         }
         progressHandler = progress
@@ -199,7 +199,7 @@ public final class NeuralModelDownloader: NSObject, URLSessionDownloadDelegate, 
             // model yüklemeyi patlatıp sessizce çıkarımsala düşürürdü.
             guard OfflineModelManager.isNeuralSummarizerReady() else {
                 try? fileManager.removeItem(at: destination)
-                return .failure(AuraError.engineFailure("İndirilen model dosyası eksik ya da bozuk."))
+                return .failure(AuraError.engineFailure(String(localized: "İndirilen model dosyası eksik ya da bozuk.")))
             }
             return .success(())
         } catch {
@@ -236,7 +236,7 @@ public actor NeuralModelInstaller {
         OfflineModelManager.discardIncompleteNeuralModel()
 
         guard let url = OfflineModelManager.NeuralModel.downloadURL else {
-            throw AuraError.engineFailure("Model indirme adresi geçersiz.")
+            throw AuraError.engineFailure(String(localized: "Model indirme adresi geçersiz."))
         }
 
         let downloader = self.downloader

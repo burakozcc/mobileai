@@ -23,13 +23,13 @@ public enum CloudHTTP {
         maxAttempts: Int = maxAttempts
     ) async throws -> Data {
 
-        var lastError: Error = AuraError.engineFailure("\(provider): istek gönderilemedi.")
+        var lastError: Error = AuraError.engineFailure(String(localized: "\(provider): istek gönderilemedi."))
 
         for attempt in 1...max(1, maxAttempts) {
             do {
                 let (data, response) = try await session.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
-                    throw AuraError.engineFailure("\(provider): beklenmeyen yanıt tipi.")
+                    throw AuraError.engineFailure(String(localized: "\(provider): beklenmeyen yanıt tipi."))
                 }
 
                 if (200..<300).contains(http.statusCode) {
@@ -53,9 +53,9 @@ public enum CloudHTTP {
                 case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
                     .networkUnavailable
                 case .timedOut:
-                    .engineFailure("\(provider): istek zaman aşımına uğradı.")
+                    .engineFailure(String(localized: "\(provider): istek zaman aşımına uğradı."))
                 default:
-                    .engineFailure("\(provider): ağ hatası — \(urlError.localizedDescription)")
+                    .engineFailure(String(localized: "\(provider): ağ hatası — \(urlError.localizedDescription)"))
                 }
                 guard attempt < maxAttempts, urlError.code != .notConnectedToInternet else {
                     throw mapped
@@ -77,11 +77,11 @@ public enum CloudHTTP {
         case 401, 403:
             return .cloudAuthenticationFailed(provider: provider)
         case 413:
-            return .engineFailure("\(provider): istek çok büyük. Kayıt parçalanmalı.")
+            return .engineFailure(String(localized: "\(provider): istek çok büyük. Kayıt parçalanmalı."))
         case 429:
             return .cloudRateLimited(provider: provider)
         case 500...599:
-            return .engineFailure("\(provider) geçici olarak hizmet veremiyor (\(status)). Offline moda geçebilirsin.")
+            return .engineFailure(String(localized: "\(provider) geçici olarak hizmet veremiyor (\(status)). Offline moda geçebilirsin."))
         default:
             return .engineFailure("\(provider): \(detail)")
         }

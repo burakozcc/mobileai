@@ -252,7 +252,7 @@ public struct NeuralSummarizer: LocalSummarizer {
             tokenBudget: tokenBudget
         )
         guard !chunks.isEmpty else {
-            throw AuraError.engineFailure("Özetlenecek deşifre bulunamadı.")
+            throw AuraError.engineFailure(String(localized: "Özetlenecek deşifre bulunamadı."))
         }
 
         // MAP — parçalar sırayla; eşzamanlı çıkarım tek modelde zaten mümkün
@@ -269,7 +269,7 @@ public struct NeuralSummarizer: LocalSummarizer {
         }
 
         guard !merged.isEmpty else {
-            throw AuraError.engineFailure("Model özet üretmedi.")
+            throw AuraError.engineFailure(String(localized: "Model özet üretmedi."))
         }
 
         // REDUCE — tek parça varsa gereksiz; model zaten o parçayı özetledi.

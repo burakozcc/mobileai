@@ -163,6 +163,60 @@
         }
       }
     },
+    "%@ geçici olarak hizmet veremiyor (%lld). Offline moda geçebilirsin.": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ غير متاح مؤقتًا (%lld). يمكنك التبديل إلى وضع عدم الاتصال."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ সাময়িকভাবে পরিষেবা দিতে পারছে না (%lld)। আপনি অফলাইন মোডে যেতে পারেন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is temporarily unavailable (%lld). You can switch to Offline mode."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está disponible temporalmente (%lld). Puedes cambiar al modo en el dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est temporairement indisponible (%lld). Vous pouvez passer en mode hors ligne."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ फ़िलहाल सेवा नहीं दे पा रहा (%2$lld)। आप ऑफ़लाइन मोड पर स्विच कर सकते हैं।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ geçici olarak hizmet veremiyor (%lld). Offline moda geçebilirsin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 暂时无法提供服务（%lld）。可以切换到离线模式。"
+          }
+        }
+      }
+    },
     "%@ hız sınırına takıldı. Birazdan tekrar dene ya da offline modu kullan.": {
       "comment": "Hata metni. `case cloudRateLimited(provider: String)` (satir 211) -> %@.",
       "extractionState": "manual",
@@ -735,6 +789,276 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@，%@"
+          }
+        }
+      }
+    },
+    "%@: ağ hatası — %@": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: خطأ في الشبكة — %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: নেটওয়ার্ক ত্রুটি — %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: network error — %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: error de red — %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : erreur réseau — %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: नेटवर्क त्रुटि — %2$@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: ağ hatası — %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：网络错误 — %@"
+          }
+        }
+      }
+    },
+    "%@: beklenmeyen yanıt tipi.": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: نوع استجابة غير متوقع."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: রেসপন্সের ধরন অপ্রত্যাশিত।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: unexpected response type."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: tipo de respuesta inesperado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : type de réponse inattendu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: अनपेक्षित रिस्पॉन्स टाइप।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: beklenmeyen yanıt tipi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：响应类型异常。"
+          }
+        }
+      }
+    },
+    "%@: istek gönderilemedi.": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: تعذّر إرسال الطلب."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: অনুরোধ পাঠানো যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: The request couldn't be sent."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: no se pudo enviar la solicitud."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : impossible d’envoyer la requête."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: रिक्वेस्ट नहीं भेजी जा सकी।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: istek gönderilemedi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：请求发送失败。"
+          }
+        }
+      }
+    },
+    "%@: istek zaman aşımına uğradı.": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: انتهت مهلة الطلب."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: অনুরোধের সময়সীমা শেষ হয়েছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: The request timed out."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: se agotó el tiempo de espera de la solicitud."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : délai d’attente dépassé pour la requête."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: रिक्वेस्ट टाइम आउट हो गई।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: istek zaman aşımına uğradı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：请求超时。"
+          }
+        }
+      }
+    },
+    "%@: istek çok büyük. Kayıt parçalanmalı.": {
+      "comment": "Bulut ağ katmanı hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: الطلب كبير جدًا. يجب تقسيم التسجيل."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: অনুরোধটি খুব বড়। রেকর্ডিং ভাগ করে পাঠাতে হবে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: The request is too large. The recording needs to be split into smaller parts."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: la solicitud es demasiado grande. Hay que dividir la grabación en fragmentos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ : requête trop volumineuse. L’enregistrement doit être découpé en segments."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: रिक्वेस्ट बहुत बड़ी है। रिकॉर्डिंग को हिस्सों में बाँटना होगा।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@: istek çok büyük. Kayıt parçalanmalı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：请求过大。需要将录音分段。"
           }
         }
       }
@@ -2479,6 +2803,114 @@
         }
       }
     },
+    "Aktif dosya yok.": {
+      "comment": "Kayıt sırasında ses motoru hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يوجد ملف نشط."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "কোনও সক্রিয় ফাইল নেই।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active file."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay ningún archivo activo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun fichier actif."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई सक्रिय फ़ाइल नहीं है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktif dosya yok."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前没有活动的文件。"
+          }
+        }
+      }
+    },
+    "Anahtar boş.": {
+      "comment": "Kurumsal anahtar ekrani: alan bos birakilmis",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المفتاح فارغ."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "কী-টি খালি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Key is empty."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La clave está vacía."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La clé est vide."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुंजी खाली है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anahtar boş."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密钥为空。"
+          }
+        }
+      }
+    },
     "Anahtar kaydedilemedi.": {
       "comment": "AuraError açıklaması yoksa kullanılan yedek hata metni (uyarı kartı)",
       "extractionState": "manual",
@@ -2691,6 +3123,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "密钥会关联到企业保存在服务器上；不会写入本设备。应用在任何情况下都会继续通过 AuraVoice 服务器运行。"
+          }
+        }
+      }
+    },
+    "Anthropic yanıtı çözümlenemedi: %@": {
+      "comment": "Bulut özetleme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحليل استجابة Anthropic: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic-এর রেসপন্স বোঝা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't parse the Anthropic response: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo interpretar la respuesta de Anthropic: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’analyser la réponse d’Anthropic : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic का रिस्पॉन्स पार्स नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic yanıtı çözümlenemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解析 Anthropic 的响应：%@"
           }
         }
       }
@@ -3507,6 +3993,168 @@
           "stringUnit": {
             "state": "translated",
             "value": "使用同一个分钟池"
+          }
+        }
+      }
+    },
+    "Ayrıştırma ağırlıkları eksik indi, tekrar deneyin.": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يكتمل تنزيل أوزان فصل المتحدثين، أعد المحاولة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডায়ারাইজেশন মডেলের ওয়েট ফাইল অসম্পূর্ণভাবে ডাউনলোড হয়েছে, আবার চেষ্টা করুন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The diarization weights didn't download completely. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga de los pesos de diarización quedó incompleta; inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le téléchargement des poids de diarisation est incomplet, réessayez."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायराइज़ेशन वेट्स अधूरे डाउनलोड हुए, दोबारा कोशिश करें।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayrıştırma ağırlıkları eksik indi, tekrar deneyin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分离权重下载不完整，请重试。"
+          }
+        }
+      }
+    },
+    "Ayrıştırma modeli indirilemedi: %@": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تنزيل نموذج فصل المتحدثين: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডায়ারাইজেশন মডেল ডাউনলোড করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download the diarization model: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo descargar el modelo de diarización: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de télécharger le modèle de diarisation : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायराइज़ेशन मॉडल डाउनलोड नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayrıştırma modeli indirilemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法下载说话人分离模型：%@"
+          }
+        }
+      }
+    },
+    "Ayrıştırma modeli yüklenemedi: %@": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل نموذج فصل المتحدثين: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডায়ারাইজেশন মডেল লোড করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the diarization model: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el modelo de diarización: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le modèle de diarisation : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डायराइज़ेशन मॉडल लोड नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ayrıştırma modeli yüklenemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载说话人分离模型：%@"
           }
         }
       }
@@ -5563,6 +6211,60 @@
         }
       }
     },
+    "Bulut özetleme başarısız oldu, cihaz içi özet kullanıldı: %@": {
+      "comment": "Ozet belgesinin sonuna italik olarak eklenen not. %@ hata sebebi. Markdown isaretleri KODDA, ekleme.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل التلخيص في السحابة، وتم استخدام التلخيص على الجهاز: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ক্লাউডে সারাংশ তৈরি ব্যর্থ হয়েছে, ডিভাইসের সারাংশ ব্যবহার করা হয়েছে: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud summarization failed, on-device summary used instead: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resumen en la nube falló, se usó el resumen en el dispositivo: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec du résumé dans le cloud, le résumé sur l’appareil a été utilisé : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्लाउड सारांश विफल रहा, ऑन-डिवाइस सारांश इस्तेमाल किया गया: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulut özetleme başarısız oldu, cihaz içi özet kullanıldı: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云端摘要失败，已改用设备端摘要：%@"
+          }
+        }
+      }
+    },
     "Buluta ulaşılamadı, bu özet cihaz içinde üretildi. Ses ve metin cihazdan çıkmadı.": {
       "comment": "Bulut basarisiz olup cihaz ici ozetlemeye dusuldugunde ozetin sonuna eklenen not",
       "extractionState": "manual",
@@ -5937,6 +6639,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "设备端转录"
+          }
+        }
+      }
+    },
+    "Cihaz içi transkripsiyon başarısız: %@": {
+      "comment": "Cihaz içi konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل التفريغ النصي على الجهاز: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডিভাইসে ট্রান্সক্রিপশন ব্যর্থ হয়েছে: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device transcription failed: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción en el dispositivo falló: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la transcription sur l’appareil : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑन-डिवाइस ट्रांसक्रिप्शन विफल: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz içi transkripsiyon başarısız: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备端转录失败：%@"
           }
         }
       }
@@ -6805,6 +7561,114 @@
         }
       }
     },
+    "Dengeli (Sonnet)": {
+      "comment": "Bulut model secimi. Sonnet MARKA, cevrilmez.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متوازن (Sonnet)"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ভারসাম্যপূর্ণ (Sonnet)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balanced (Sonnet)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equilibrado (Sonnet)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Équilibré (Sonnet)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संतुलित (Sonnet)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dengeli (Sonnet)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "均衡 (Sonnet)"
+          }
+        }
+      }
+    },
+    "Dengeli doğruluk, orta boyut": {
+      "comment": "Model aciklamasi (small). Alt yazi, KISA.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دقة متوازنة، حجم متوسط"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ভারসাম্যপূর্ণ নির্ভুলতা, মাঝারি আকার"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balanced accuracy, medium size"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Precisión equilibrada, tamaño medio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Précision équilibrée, taille moyenne"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संतुलित सटीकता, मध्यम आकार"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dengeli doğruluk, orta boyut"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准确度均衡，体积适中"
+          }
+        }
+      }
+    },
     "Depolama": {
       "comment": "Bölüm başlığı",
       "extractionState": "manual",
@@ -7075,6 +7939,60 @@
         }
       }
     },
+    "Doğrulanamadı": {
+      "comment": "Bulut kimlik dogrulama sonucu: dogrulama basarisiz. Kisa etiket.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر التحقق"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "যাচাই করা যায়নি"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verification failed"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No verificado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la vérification"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पुष्टि नहीं हुई"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Doğrulanamadı"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证失败"
+          }
+        }
+      }
+    },
     "Duraklat": {
       "comment": "Ana kayıt butonunun VoiceOver etiketi (kayıt sürerken); aynı üçlü ifadenin diğer dalı",
       "extractionState": "manual",
@@ -7233,6 +8151,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "未安装"
+          }
+        }
+      }
+    },
+    "En hızlı, en düşük doğruluk": {
+      "comment": "Cihaz ici konusma tanima modeli aciklamasi (tiny). Model secim listesinde alt yazi, KISA olmali.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأسرع، والأقل دقة"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "দ্রুততম, নির্ভুলতা সবচেয়ে কম"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fastest, lowest accuracy"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máxima velocidad, mínima precisión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le plus rapide, précision minimale"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सबसे तेज़, सबसे कम सटीकता"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En hızlı, en düşük doğruluk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最快，准确度最低"
+          }
+        }
+      }
+    },
+    "En iyi kalite (Opus)": {
+      "comment": "Bulut model secimi. Opus MARKA, cevrilmez.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أفضل جودة (Opus)"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "সেরা মান (Opus)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Best quality (Opus)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máxima calidad (Opus)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meilleure qualité (Opus)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सबसे बेहतर क्वालिटी (Opus)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En iyi kalite (Opus)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最佳质量 (Opus)"
           }
         }
       }
@@ -7453,6 +8479,60 @@
         }
       }
     },
+    "Format dönüştürücü oluşturulamadı.": {
+      "comment": "Kayıt sırasında ses motoru hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء محوّل الصيغة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ফরম্যাট কনভার্টার তৈরি করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't create the format converter."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear el convertidor de formato."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer le convertisseur de format."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉर्मैट कन्वर्टर नहीं बनाया जा सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Format dönüştürücü oluşturulamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建格式转换器。"
+          }
+        }
+      }
+    },
     "Gelişmiş dışa aktarma": {
       "comment": "Ucretsiz planda kapali (ustu cizili) ozellik satiri",
       "extractionState": "manual",
@@ -7669,6 +8749,60 @@
         }
       }
     },
+    "Giriş formatı hazır değil (rota bulunamadı).": {
+      "comment": "Kayıt sırasında ses motoru hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "صيغة الإدخال غير جاهزة (لم يُعثر على مسار صوتي)."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ইনপুট ফরম্যাট প্রস্তুত নয় (রুট পাওয়া যায়নি)।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The input format isn't ready (no audio route found)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El formato de entrada no está listo (no se encontró la ruta de audio)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le format d’entrée audio n’est pas prêt (route audio introuvable)."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इनपुट फ़ॉर्मैट तैयार नहीं है (ऑडियो रूट नहीं मिला)।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giriş formatı hazır değil (rota bulunamadı)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入格式尚未就绪（未找到音频路由）。"
+          }
+        }
+      }
+    },
     "Gizlilik": {
       "comment": "Hakkında bölümündeki satır başlığı",
       "extractionState": "manual",
@@ -7719,6 +8853,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "隐私"
+          }
+        }
+      }
+    },
+    "Groq yanıtı çözümlenemedi: %@": {
+      "comment": "Bulut konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحليل استجابة Groq: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groq-এর রেসপন্স বোঝা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't parse the Groq response: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo interpretar la respuesta de Groq: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’analyser la réponse de Groq : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groq का रिस्पॉन्स पार्स नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Groq yanıtı çözümlenemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解析 Groq 的响应：%@"
           }
         }
       }
@@ -8155,6 +9343,60 @@
         }
       }
     },
+    "Hedef ses formatı oluşturulamadı.": {
+      "comment": "Kayıt sırasında ses motoru hatası / Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء صيغة الصوت المستهدفة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "টার্গেট অডিও ফরম্যাট তৈরি করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't create the target audio format."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear el formato de audio de destino."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer le format audio cible."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टारगेट ऑडियो फ़ॉर्मैट नहीं बनाया जा सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hedef ses formatı oluşturulamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建目标音频格式。"
+          }
+        }
+      }
+    },
     "Henüz kayıt yok": {
       "comment": "Boş durum başlığı: hiç kayıt yokken",
       "extractionState": "manual",
@@ -8367,6 +9609,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开扬声器即可开始录音。"
+          }
+        }
+      }
+    },
+    "Hızlı (Haiku)": {
+      "comment": "Bulut model secimi. Haiku MARKA, cevrilmez.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سريع (Haiku)"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "দ্রুত (Haiku)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fast (Haiku)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rápido (Haiku)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapide (Haiku)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तेज़ (Haiku)"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hızlı (Haiku)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速 (Haiku)"
           }
         }
       }
@@ -9883,6 +11179,60 @@
         }
       }
     },
+    "Kayıt boş görünüyor, yüklenecek ses yok.": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يبدو أن التسجيل فارغ، لا يوجد صوت لرفعه."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "রেকর্ডিংটি খালি মনে হচ্ছে, আপলোড করার মতো কোনও অডিও নেই।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording appears to be empty — there's no audio to upload."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación parece estar vacía; no hay audio que subir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement semble vide, aucun audio à envoyer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिकॉर्डिंग खाली लग रही है, अपलोड करने के लिए कोई ऑडियो नहीं है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kayıt boş görünüyor, yüklenecek ses yok."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录音似乎是空的，没有可上传的音频。"
+          }
+        }
+      }
+    },
     "Kayıt bulut için çok büyük (%.0f MB / %.0f MB sınırı). Offline mod bu kaydı işleyebilir.": {
       "comment": "String(format:) sablonu String(localized:) ile sarili (satir 248-251); mevcut %.0f belirtecleri anahtarda oldugu gibi kalir. Iki belirtec de korunmali; sira degisecekse %1$.0f/%2$.0f. AYRICA: String(format:) burada locale vermiyor, yani ondalik ayrac cihaz yerelinden bagimsiz nokta kalir - tr/fr/es icin '12,5' beklenirken '12.5' cikar (ceviri disi ama ayni is paketinde duzeltilmeli).",
       "extractionState": "manual",
@@ -10639,6 +11989,60 @@
         }
       }
     },
+    "Konuşmacı ayrıştırma başarısız: %@": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل فصل المتحدثين: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "স্পিকার ডায়ারাইজেশন ব্যর্থ হয়েছে: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speaker diarization failed: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La diarización de hablantes falló: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la diarisation des locuteurs : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्पीकर डायराइज़ेशन विफल: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konuşmacı ayrıştırma başarısız: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "说话人分离失败：%@"
+          }
+        }
+      }
+    },
     "Konuşmacı ayrıştırma modeli indirilmemiş. Ayarlar'dan indirebilirsin.": {
       "comment": "Hata metni. 'Ayarlar' uygulama ici sekme adi; sekme etiketiyle tutarli olmali.",
       "extractionState": "manual",
@@ -11121,6 +12525,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "企业的服务商密钥。"
+          }
+        }
+      }
+    },
+    "Küçük cihazlar için denge": {
+      "comment": "Model aciklamasi (base). Alt yazi, KISA.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "توازن للأجهزة الصغيرة"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ছোট ডিভাইসের জন্য ভারসাম্য"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Balanced for small devices"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Equilibrio para dispositivos pequeños"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Équilibre pour petits appareils"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छोटे डिवाइस के लिए संतुलन"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Küçük cihazlar için denge"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小型设备的均衡之选"
           }
         }
       }
@@ -11665,6 +13123,60 @@
         }
       }
     },
+    "Model boş yanıt döndürdü (stop_reason: %@).": {
+      "comment": "Bulut özetleme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أعاد النموذج استجابة فارغة (stop_reason: %@)."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল খালি রেসপন্স ফেরত দিয়েছে (stop_reason: %@)।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model returned an empty response (stop_reason: %@)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo devolvió una respuesta vacía (stop_reason: %@)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle a renvoyé une réponse vide (stop_reason : %@)."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल ने खाली रिस्पॉन्स लौटाया (stop_reason: %@)।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model boş yanıt döndürdü (stop_reason: %@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型返回了空响应（stop_reason: %@）。"
+          }
+        }
+      }
+    },
     "Model gerekli": {
       "comment": "Offline mod karti durum cipi (model yok). Ayni ucluk ifadesinin ikinci dali",
       "extractionState": "manual",
@@ -11719,6 +13231,114 @@
         }
       }
     },
+    "Model indirildi ama açılamadı, dosyalar temizlendi. Tekrar deneyin.": {
+      "comment": "Cihaz içi model yönetimi hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نُزِّل النموذج لكن تعذّر فتحه، وحُذفت الملفات. أعد المحاولة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল ডাউনলোড হয়েছে কিন্তু খোলা যায়নি, ফাইলগুলো মুছে ফেলা হয়েছে। আবার চেষ্টা করুন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model downloaded but couldn't be opened, so its files were removed. Try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo se descargó, pero no se pudo abrir; los archivos se han borrado. Inténtalo de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle a été téléchargé mais n’a pas pu être ouvert, les fichiers ont été supprimés. Réessayez."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल डाउनलोड तो हुआ पर खोला नहीं जा सका, फ़ाइलें हटा दी गई हैं। दोबारा कोशिश करें।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model indirildi ama açılamadı, dosyalar temizlendi. Tekrar deneyin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型已下载但无法打开，相关文件已清理。请重试。"
+          }
+        }
+      }
+    },
+    "Model indirilemedi: %@": {
+      "comment": "Cihaz içi model yönetimi hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تنزيل النموذج: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল ডাউনলোড করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't download the model: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo descargar el modelo: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de télécharger le modèle : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल डाउनलोड नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model indirilemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法下载模型：%@"
+          }
+        }
+      }
+    },
     "Model indirilmemiş (~%lld MB)": {
       "comment": "Satır alt yazısı — ayrıştırma modeli kurulu değil",
       "extractionState": "manual",
@@ -11769,6 +13389,222 @@
           "stringUnit": {
             "state": "translated",
             "value": "模型未下载（约 %lld MB）"
+          }
+        }
+      }
+    },
+    "Model indirme adresi geçersiz.": {
+      "comment": "Model indirme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عنوان تنزيل النموذج غير صالح."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল ডাউনলোডের ঠিকানাটি সঠিক নয়।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model download URL is invalid."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dirección de descarga del modelo no es válida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’adresse de téléchargement du modèle n’est pas valide."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल डाउनलोड लिंक अमान्य है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model indirme adresi geçersiz."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型下载地址无效。"
+          }
+        }
+      }
+    },
+    "Model sözlüğü okunamadı.": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت قراءة مفردات النموذج."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেলের ভোকাবুলারি পড়া যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the model vocabulary."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer el vocabulario del modelo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire le vocabulaire du modèle."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल की वोकैबुलरी पढ़ी नहीं जा सकी।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model sözlüğü okunamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取模型词表。"
+          }
+        }
+      }
+    },
+    "Model yüklenemedi: %@": {
+      "comment": "Cihaz içi konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل النموذج: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল লোড করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the model: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el modelo: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le modèle : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल लोड नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model yüklenemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载模型：%@"
+          }
+        }
+      }
+    },
+    "Model özet üretmedi.": {
+      "comment": "Cihaz içi özetleme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُنتج النموذج أي ملخّص."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "মডেল কোনও সারাংশ তৈরি করেনি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model didn't produce a summary."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El modelo no generó ningún resumen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle n’a produit aucun résumé."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडल ने कोई सारांश नहीं बनाया।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model özet üretmedi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型未生成摘要。"
           }
         }
       }
@@ -12363,6 +14199,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "笔记已删除的音频文件"
+          }
+        }
+      }
+    },
+    "Nöral model yüklenemedi: %@": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحميل النموذج العصبي: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "নিউরাল মডেল লোড করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the neural model: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el modelo neuronal: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le modèle neuronal : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "न्यूरल मॉडल लोड नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nöral model yüklenemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载神经网络模型：%@"
           }
         }
       }
@@ -13393,6 +15283,60 @@
         }
       }
     },
+    "Ses arabelleği ayrılamadı.": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası / Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تخصيص المخزن المؤقت للصوت."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও বাফার বরাদ্দ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't allocate the audio buffer."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo asignar el búfer de audio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’allouer la mémoire tampon audio."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो बफ़र आवंटित नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses arabelleği ayrılamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法分配音频缓冲区。"
+          }
+        }
+      }
+    },
     "Ses cihazdan hiç çıkmaz": {
       "comment": "Kısayollar'da offline mod seçeneğinin altyazısı",
       "extractionState": "manual",
@@ -13501,6 +15445,276 @@
         }
       }
     },
+    "Ses dosyası açılamadı: %@": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر فتح الملف الصوتي: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও ফাইল খোলা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open the audio file: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir el archivo de audio: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir le fichier audio : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो फ़ाइल खोली नहीं जा सकी: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses dosyası açılamadı: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开音频文件：%@"
+          }
+        }
+      }
+    },
+    "Ses dosyası bulunamadı: %@": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası / Konuşmacı ayrıştırma hatası / Cihaz içi konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على الملف الصوتي: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও ফাইল পাওয়া যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find the audio file: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró el archivo de audio: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fichier audio introuvable : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो फ़ाइल नहीं मिली: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses dosyası bulunamadı: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到音频文件：%@"
+          }
+        }
+      }
+    },
+    "Ses dosyası okunamadı: %@": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت قراءة الملف الصوتي: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও ফাইল পড়া যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the audio file: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo leer el archivo de audio: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire le fichier audio : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो फ़ाइल पढ़ी नहीं जा सकी: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses dosyası okunamadı: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取音频文件：%@"
+          }
+        }
+      }
+    },
+    "Ses dönüştürücü oluşturulamadı.": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء محوّل الصوت."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও কনভার্টার তৈরি করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't create the audio converter."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear el convertidor de audio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer le convertisseur audio."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो कन्वर्टर नहीं बनाया जा सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses dönüştürücü oluşturulamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建音频转换器。"
+          }
+        }
+      }
+    },
+    "Ses dönüştürülemedi: %@": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحويل الصوت: %@"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও রূপান্তর করা যায়নি: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't convert the audio: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo convertir el audio: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de convertir l’audio : %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो कन्वर्ट नहीं हो सका: %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses dönüştürülemedi: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法转换音频：%@"
+          }
+        }
+      }
+    },
     "Ses motoru başlatılamadı: %@": {
       "comment": "Hata metni. `case audioEngineFailure(String)` (satir 204) - iliskili deger String, dolayisiyla %@.",
       "extractionState": "manual",
@@ -13555,6 +15769,60 @@
         }
       }
     },
+    "Ses parçası %lld kodlanamadı.": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر ترميز المقطع الصوتي %lld."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld নম্বর অডিও খণ্ড এনকোড করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't encode audio chunk %lld."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo codificar el fragmento de audio %lld."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’encoder le segment audio %lld."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो का हिस्सा %lld एन्कोड नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses parçası %lld kodlanamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法编码第 %lld 个音频分段。"
+          }
+        }
+      }
+    },
     "Ses seviyesi göstergesi": {
       "comment": "Canlı dalga formunun VoiceOver etiketi; tek literal → LocalizedStringKey aşırı yüklemesi",
       "extractionState": "manual",
@@ -13605,6 +15873,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "音量指示器"
+          }
+        }
+      }
+    },
+    "Ses sıkıştırılamadı, bulut yüklemesi yapılamıyor.": {
+      "comment": "Buluta yükleme öncesi ses hazırlama hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر ضغط الصوت، ولا يمكن الرفع إلى السحابة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "অডিও কম্প্রেস করা যায়নি, ক্লাউডে আপলোড করা যাচ্ছে না।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The audio couldn't be compressed, so it can't be uploaded to the cloud."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo comprimir el audio; no se puede subir a la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La compression de l’audio a échoué, l’envoi vers le cloud est impossible."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑडियो कंप्रेस नहीं हो सका, क्लाउड पर अपलोड नहीं किया जा सकता।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ses sıkıştırılamadı, bulut yüklemesi yapılamıyor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "音频压缩失败，无法上传到云端。"
           }
         }
       }
@@ -14361,6 +16683,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "未询问"
+          }
+        }
+      }
+    },
+    "Sunucu yanıtı çözümlenemedi.": {
+      "comment": "Kurumsal anahtar ekrani: sunucu yaniti bozuk",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تحليل استجابة الخادم."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "সার্ভারের উত্তর বিশ্লেষণ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't parse the server response."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo interpretar la respuesta del servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’analyser la réponse du serveur."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सर्वर का जवाब समझा नहीं जा सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sunucu yanıtı çözümlenemedi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解析服务器响应。"
           }
         }
       }
@@ -15775,6 +18151,60 @@
         }
       }
     },
+    "Transkript boş döndü — kayıtta konuşma algılanmadı.": {
+      "comment": "Bulut konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عاد النص المفرغ فارغًا — لم يُرصد أي كلام في التسجيل."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ট্রান্সক্রিপ্ট খালি এসেছে — রেকর্ডিংয়ে কোনও কথা শনাক্ত হয়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transcript came back empty — no speech was detected in the recording."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción quedó vacía — no se detectó voz en la grabación."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription est vide — aucune parole détectée dans l’enregistrement."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रांसक्रिप्ट खाली आया — रिकॉर्डिंग में किसी के बोलने की आवाज़ नहीं मिली।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkript boş döndü — kayıtta konuşma algılanmadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "转录结果为空 — 录音中未检测到语音。"
+          }
+        }
+      }
+    },
     "Transkript ve özet hazırlanıyor…": {
       "comment": "Not kartının tek satırlık önizlemesi (işleme sürerken)",
       "extractionState": "manual",
@@ -16747,6 +19177,60 @@
         }
       }
     },
+    "Yüklenecek ses parçası üretilemedi.": {
+      "comment": "Bulut konuşma tanıma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر إنشاء مقطع صوتي للرفع."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপলোড করার মতো অডিও খণ্ড তৈরি করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't produce any audio chunks to upload."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo generar ningún fragmento de audio para subir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de générer les segments audio à envoyer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपलोड करने के लिए ऑडियो के हिस्से नहीं बनाए जा सके।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yüklenecek ses parçası üretilemedi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法生成待上传的音频分段。"
+          }
+        }
+      }
+    },
     "Yüksek doğruluk": {
       "comment": "KAPSAM DISI DOSYA AMA BU EKRANDA GORUNUYOR: small modelinin kart basligi",
       "extractionState": "manual",
@@ -17287,6 +19771,60 @@
         }
       }
     },
+    "belirtilmemiş": {
+      "comment": "Saglayici icerigi reddetti ama SEBEP bildirmedi; parantez icinde gecen yer tutucu. Kucuk harfle basliyor, oyle kalmali.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "غير محدّد"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "উল্লেখ করা হয়নি"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not specified"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "sin especificar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "non précisé"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नहीं बताया गया"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "belirtilmemiş"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未指定"
+          }
+        }
+      }
+    },
     "~%.1f GB": {
       "comment": "Model kartindaki boyut etiketi (1 GB ustu)",
       "extractionState": "manual",
@@ -17557,6 +20095,114 @@
         }
       }
     },
+    "Çıkarım bağlamı kurulamadı.": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت تهيئة سياق الاستدلال."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ইনফারেন্স কনটেক্সট সেট আপ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't set up the inference context."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo inicializar el contexto de inferencia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’initialiser le contexte d’inférence."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इनफ़रेंस कॉन्टेक्स्ट सेट अप नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıkarım bağlamı kurulamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建推理上下文。"
+          }
+        }
+      }
+    },
+    "Çıkış arabelleği ayrılamadı.": {
+      "comment": "Konuşmacı ayrıştırma hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تخصيص المخزن المؤقت للإخراج."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আউটপুট বাফার বরাদ্দ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't allocate the output buffer."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo asignar el búfer de salida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’allouer la mémoire tampon de sortie."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आउटपुट बफ़र आवंटित नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Çıkış arabelleği ayrılamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法分配输出缓冲区。"
+          }
+        }
+      }
+    },
     "ÖNERİLEN": {
       "comment": "Onerilen model rozeti (Text literali) | Onerilen plan rozeti",
       "extractionState": "manual",
@@ -17719,6 +20365,60 @@
         }
       }
     },
+    "Önerilen — şive ve özel isimlerde belirgin fark": {
+      "comment": "Model aciklamasi (large-v3-turbo, onerilen). Alt yazi. Uzun tire korunmali. \"sive\" = aksan/lehce.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "موصى به — فرق واضح في اللهجات وأسماء الأعلام"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "প্রস্তাবিত — আঞ্চলিক টান ও নামে স্পষ্ট পার্থক্য"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommended — noticeably better with accents and proper nouns"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recomendado — mejor en acentos y nombres propios"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommandé — net gain sur les accents et noms propres"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुशंसित — लहजे और विशेष नामों में साफ़ फ़र्क"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önerilen — şive ve özel isimlerde belirgin fark"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "推荐 — 口音和专有名词明显更准"
+          }
+        }
+      }
+    },
     "Önümüzdeki 12 saatte toplantı görünmüyor.": {
       "comment": "Toplanti yokken gosterilen bilgi karti",
       "extractionState": "manual",
@@ -17769,6 +20469,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "未来 12 小时内没有会议。"
+          }
+        }
+      }
+    },
+    "Örnekleyici kurulamadı.": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت تهيئة أداة أخذ العيّنات."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "স্যাম্পলার সেট আপ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't set up the sampler."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo inicializar el muestreador."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’initialiser l’échantillonneur."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सैंपलर सेट अप नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Örnekleyici kurulamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法初始化采样器。"
           }
         }
       }
@@ -18039,6 +20793,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "摘要模板"
+          }
+        }
+      }
+    },
+    "Özetlenecek deşifre bulunamadı.": {
+      "comment": "Cihaz içi özetleme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يُعثر على نص مفرغ لتلخيصه."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "সারাংশ তৈরি করার মতো কোনও ট্রান্সক্রিপ্ট পাওয়া যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No transcript found to summarize."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró ninguna transcripción que resumir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune transcription à résumer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सारांश बनाने के लिए कोई ट्रांसक्रिप्ट नहीं मिला।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Özetlenecek deşifre bulunamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到可用于摘要的转录文本。"
+          }
+        }
+      }
+    },
+    "Özetlenecek transkript boş.": {
+      "comment": "Bulut özetleme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "النص المفرغ المراد تلخيصه فارغ."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "সারাংশ তৈরি করার ট্রান্সক্রিপ্টটি খালি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The transcript to summarize is empty."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcripción que se va a resumir está vacía."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La transcription à résumer est vide."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सारांश बनाने के लिए ट्रांसक्रिप्ट खाली है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Özetlenecek transkript boş."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待摘要的转录文本为空。"
           }
         }
       }
@@ -18367,6 +21229,60 @@
         }
       }
     },
+    "İndirilen model dosyası eksik ya da bozuk.": {
+      "comment": "Model indirme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ملف النموذج المُنزَّل ناقص أو تالف."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডাউনলোড করা মডেল ফাইলটি অসম্পূর্ণ বা ত্রুটিপূর্ণ।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The downloaded model file is missing or corrupted."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El archivo del modelo descargado está incompleto o dañado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fichier du modèle téléchargé est incomplet ou endommagé."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डाउनलोड की गई मॉडल फ़ाइल अधूरी या खराब है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İndirilen model dosyası eksik ya da bozuk."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载的模型文件不完整或已损坏。"
+          }
+        }
+      }
+    },
     "İndiriliyor…": {
       "comment": "Ilerleme cubugunun ustundeki durum etiketi. Sondaki karakter U+2026 tek karakterlik uc nokta; katalog anahtarina birebir bu karakterle girilmeli (\"...\" ile degil).",
       "extractionState": "manual",
@@ -18583,6 +21499,60 @@
         }
       }
     },
+    "İndirme zaten sürüyor.": {
+      "comment": "Model indirme hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التنزيل جارٍ بالفعل."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডাউনলোড ইতিমধ্যেই চলছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A download is already in progress."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La descarga ya está en curso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un téléchargement est déjà en cours."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डाउनलोड पहले से चल रहा है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İndirme zaten sürüyor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载已在进行中。"
+          }
+        }
+      }
+    },
     "İndirmeyi iptal et": {
       "comment": "VoiceOver etiketi (iptal butonu). Dize literalinde SwiftUI'nin accessibilityLabel(_ labelKey: LocalizedStringKey) asiri yuklemesi jenerik StringProtocol surumune tercih edilir; kesinlikle cevrilir.",
       "extractionState": "manual",
@@ -18687,6 +21657,222 @@
           "stringUnit": {
             "state": "translated",
             "value": "无网络连接。可以切换到离线模式。"
+          }
+        }
+      }
+    },
+    "İsimsiz Toplantı": {
+      "comment": "Takvim etkinliginin basligi bossa gosterilen yedek ad",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اجتماع بدون عنوان"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "শিরোনামহীন মিটিং"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled Meeting"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunión sin título"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réunion sans titre"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शीर्षकरहित मीटिंग"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İsimsiz Toplantı"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未命名会议"
+          }
+        }
+      }
+    },
+    "İstem bağlama sığmıyor (%lld jeton, sınır %lld).": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا تتّسع نافذة السياق للموجّه (%lld رمز، الحد %lld)."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "প্রম্পটটি কনটেক্সটে আঁটছে না (%lld টোকেন, সীমা %lld)।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The prompt doesn't fit in the context window (%lld tokens, limit %lld)."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El prompt no cabe en la ventana de contexto (%lld tokens, límite %lld)."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’invite dépasse la taille du contexte (%lld jetons, limite %lld)."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रॉम्प्ट कॉन्टेक्स्ट में नहीं समाता (%1$lld टोकन, सीमा %2$lld)।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İstem bağlama sığmıyor (%lld jeton, sınır %lld)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示词超出上下文长度（%lld 个 token，上限 %lld）。"
+          }
+        }
+      }
+    },
+    "İstem işlenemedi.": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّرت معالجة الموجّه."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "প্রম্পট প্রসেস করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't process the prompt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo procesar el prompt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de traiter l’invite."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रॉम्प्ट प्रोसेस नहीं हो सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İstem işlenemedi."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法处理提示词。"
+          }
+        }
+      }
+    },
+    "İstem jetonlanamadı.": {
+      "comment": "Cihaz içi özetleyici hatası",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذّر تقسيم الموجّه إلى رموز."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "প্রম্পট টোকেনাইজ করা যায়নি।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't tokenize the prompt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo tokenizar el prompt."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de découper l’invite en jetons."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रॉम्प्ट को टोकनाइज़ नहीं किया जा सका।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İstem jetonlanamadı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法对提示词进行分词。"
           }
         }
       }
@@ -19119,6 +22305,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法完成处理 — 可以重试。"
+          }
+        }
+      }
+    },
+    "İşleme yarıda kesildi. Ses duruyor, tekrar deneyebilirsin.": {
+      "comment": "Uygulama islem sirasinda kapandiginda kaydin durumu",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "توقّفت المعالجة قبل اكتمالها. الصوت محفوظ، ويمكنك المحاولة مرة أخرى."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "প্রসেসিং মাঝপথে থেমে গেছে। অডিও রয়ে গেছে, আবার চেষ্টা করতে পারেন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Processing was interrupted. Your audio is safe, so you can try again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El procesamiento se interrumpió. El audio se conserva, puedes volver a intentarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le traitement a été interrompu. L’audio est intact, vous pouvez réessayer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रोसेसिंग बीच में रुक गई। ऑडियो सुरक्षित है, आप फिर से कोशिश कर सकते हैं।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İşleme yarıda kesildi. Ses duruyor, tekrar deneyebilirsin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "处理已中断。录音仍保留，可以重试。"
           }
         }
       }

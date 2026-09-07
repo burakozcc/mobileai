@@ -215,7 +215,7 @@ public actor OfflineModelManager {
             // İptal kullanıcının kararı; sarmalanırsa çağıran onu hatadan
             // ayırt edemiyor ve satırda kalıcı kırmızı bir uyarı bırakıyor.
             if error is CancellationError { throw error }
-            throw AuraError.engineFailure("Model indirilemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Model indirilemedi: \(error.localizedDescription)"))
         }
 
         let record = Installation(
@@ -252,7 +252,7 @@ public actor OfflineModelManager {
             try? remove(variant: variant)
             Self.discardIncompleteSpeechDownload(variant: variant)
             throw AuraError.engineFailure(
-                "Model indirildi ama açılamadı, dosyalar temizlendi. Tekrar deneyin."
+                String(localized: "Model indirildi ama açılamadı, dosyalar temizlendi. Tekrar deneyin.")
             )
         }
     }

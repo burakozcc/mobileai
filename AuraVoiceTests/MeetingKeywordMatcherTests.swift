@@ -145,3 +145,63 @@ struct MeetingKeywordMatcherTests {
         )
     }
 }
+
+
+// MARK: - Çok dilli takvim algılama
+
+@Suite("Takvim algılama çok dilli")
+struct MultilingualCalendarTests {
+
+    @Test("Sekiz dilde toplantı başlıkları yakalanıyor", arguments: [
+        "Reunión de equipo",
+        "Entrevista con candidato",
+        "Junta directiva Q3",
+        "Réunion hebdomadaire",
+        "Point hebdo produit",
+        "CODIR mensuel",
+        "产品会议",
+        "每周例会",
+        "和客户面谈",
+        "اجتماع الفريق",
+        "مقابلة مع مرشح",
+        "टीम बैठक",
+        "प्रोजेक्ट मीटिंग",
+        "সাপ্তাহিক মিটিং",
+        "প্রোজেক্ট বৈঠক"
+    ])
+    func detectsMeetingsInEveryLanguage(title: String) {
+        #expect(MeetingKeywordMatcher.matchedKeyword(inTitle: title) != nil,
+                "yakalanmadı: \(title)")
+    }
+
+    @Test("Diğer dillerdeki toplantı OLMAYAN başlıklar eşleşmiyor", arguments: [
+        "Cita con el médico",
+        "Almuerzo con Ana",
+        "Cours de yoga",
+        "Dîner en famille",
+        "牙医预约",
+        "健身房",
+        "网站会话分析",
+        "موعد الطبيب",
+        "عيد ميلاد",
+        "डॉक्टर अपॉइंटमेंट",
+        "জন্মদিনের পার্টি"
+    ])
+    func ignoresNonMeetingsInEveryLanguage(title: String) {
+        // Eşleşme kelime sınırı kontrol etmeyen bir alt dize araması: kısa
+        // ya da genel bir anahtar kelime buraya sızarsa kullanıcı alakasız
+        // bir etkinlik için kayıt bildirimi alır ve özelliği kapatır.
+        let match = MeetingKeywordMatcher.matchedKeyword(inTitle: title)
+        #expect(match == nil, "yanlış pozitif: '\(title)' -> \(match ?? "?")")
+    }
+
+    @Test("Anahtar kelime listesinde tekrar yok")
+    func keywordsAreUnique() {
+        // Alt dize gölgelemesi BILEREK sinanmiyor: "meet" (Google Meet
+        // markasi) ile "meeting" (kelimenin kendisi) oteden beri birlikte
+        // duruyor ve ikisi de gerekli. Gercek risk aynen tekrar eden giris.
+        let normalized = MeetingKeywordMatcher.keywords.map(MeetingKeywordMatcher.normalize)
+        #expect(normalized.count == Set(normalized).count)
+    }
+
+}

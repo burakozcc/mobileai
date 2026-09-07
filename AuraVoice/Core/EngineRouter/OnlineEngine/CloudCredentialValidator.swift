@@ -55,7 +55,7 @@ public struct CloudCredentialValidator: Sendable {
             )
             return .valid
         } catch let error as AuraError {
-            return .invalid(error.errorDescription ?? "Doğrulanamadı")
+            return .invalid(error.errorDescription ?? String(localized: "Doğrulanamadı"))
         } catch {
             return .invalid(error.localizedDescription)
         }

@@ -42,7 +42,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
     ) async throws -> DiarizationOutput {
 
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
-            throw AuraError.engineFailure("Ses dosyası bulunamadı: \(audioURL.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası bulunamadı: \(audioURL.lastPathComponent)"))
         }
         guard OfflineModelManager.isDiarizationInstalled() else {
             throw AuraError.diarizationModelMissing
@@ -67,7 +67,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
         do {
             result = try await engine.diarize(audioArray: samples, options: options)
         } catch {
-            throw AuraError.engineFailure("Konuşmacı ayrıştırma başarısız: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Konuşmacı ayrıştırma başarısız: \(error.localizedDescription)"))
         }
 
         progress?(1.0)
@@ -101,7 +101,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
             self.engine = engine
             return engine
         } catch {
-            throw AuraError.engineFailure("Ayrıştırma modeli yüklenemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Ayrıştırma modeli yüklenemedi: \(error.localizedDescription)"))
         }
     }
 
@@ -127,14 +127,14 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
             self.engine = engine
         } catch {
             if error is CancellationError { throw error }
-            throw AuraError.engineFailure("Ayrıştırma modeli indirilemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Ayrıştırma modeli indirilemedi: \(error.localizedDescription)"))
         }
         guard await OfflineModelManager.shared.markDiarizationInstalled() else {
             // İşaret yazılmadıysa ağırlıklar eksik inmiş demektir. Sessiz
             // dönmek, satırın "KURULU" yazıp hemen "İndir"e geri dönmesine ve
             // kullanıcının her denemede ~92 MB'ı yeniden indirmesine yol
             // açıyordu.
-            throw AuraError.engineFailure("Ayrıştırma ağırlıkları eksik indi, tekrar deneyin.")
+            throw AuraError.engineFailure(String(localized: "Ayrıştırma ağırlıkları eksik indi, tekrar deneyin."))
         }
         progress?(1.0)
     }
@@ -149,7 +149,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
         do {
             file = try AVAudioFile(forReading: url)
         } catch {
-            throw AuraError.engineFailure("Ses dosyası açılamadı: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası açılamadı: \(error.localizedDescription)"))
         }
 
         guard let targetFormat = AVAudioFormat(
@@ -158,7 +158,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
             channels: 1,
             interleaved: false
         ) else {
-            throw AuraError.engineFailure("Hedef ses formatı oluşturulamadı.")
+            throw AuraError.engineFailure(String(localized: "Hedef ses formatı oluşturulamadı."))
         }
 
         let sourceFormat = file.processingFormat
@@ -166,7 +166,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
         guard frameCount > 0 else { return [] }
 
         guard let sourceBuffer = AVAudioPCMBuffer(pcmFormat: sourceFormat, frameCapacity: frameCount) else {
-            throw AuraError.engineFailure("Ses arabelleği ayrılamadı.")
+            throw AuraError.engineFailure(String(localized: "Ses arabelleği ayrılamadı."))
         }
         try file.read(into: sourceBuffer)
 
@@ -179,13 +179,13 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
         }
 
         guard let converter = AVAudioConverter(from: sourceFormat, to: targetFormat) else {
-            throw AuraError.engineFailure("Ses dönüştürücü oluşturulamadı.")
+            throw AuraError.engineFailure(String(localized: "Ses dönüştürücü oluşturulamadı."))
         }
         let ratio = targetFormat.sampleRate / sourceFormat.sampleRate
         let capacity = AVAudioFrameCount((Double(sourceBuffer.frameLength) * ratio).rounded(.up)) + 1024
 
         guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: capacity) else {
-            throw AuraError.engineFailure("Çıkış arabelleği ayrılamadı.")
+            throw AuraError.engineFailure(String(localized: "Çıkış arabelleği ayrılamadı."))
         }
 
         var consumed = false
@@ -200,7 +200,7 @@ public actor SpeakerKitDiarizer: SpeakerDiarizer {
             return sourceBuffer
         }
         if let conversionError {
-            throw AuraError.engineFailure("Ses dönüştürülemedi: \(conversionError.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Ses dönüştürülemedi: \(conversionError.localizedDescription)"))
         }
         guard let channel = outputBuffer.floatChannelData?[0] else { return [] }
         return Array(UnsafeBufferPointer(start: channel, count: Int(outputBuffer.frameLength)))

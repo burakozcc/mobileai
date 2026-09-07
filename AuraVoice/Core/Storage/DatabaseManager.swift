@@ -316,7 +316,7 @@ public actor DatabaseManager: NoteRepository {
     /// "İşleniyor" görünür ve kullanıcı tekrar deneyemez.
     @discardableResult
     public func recoverInterruptedProcessing(
-        reason: String = "İşleme yarıda kesildi. Ses duruyor, tekrar deneyebilirsin."
+        reason: String = String(localized: "İşleme yarıda kesildi. Ses duruyor, tekrar deneyebilirsin.")
     ) throws -> Int {
 
         let pending = NoteProcessingState.processing.rawValue

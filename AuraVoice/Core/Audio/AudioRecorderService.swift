@@ -91,7 +91,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
     @discardableResult
     public func startRecording() throws -> URL {
         guard !isRecording else {
-            guard let url = currentFileURL else { throw AuraError.audioEngineFailure("Aktif dosya yok.") }
+            guard let url = currentFileURL else { throw AuraError.audioEngineFailure(String(localized: "Aktif dosya yok.")) }
             return url
         }
         guard Self.microphonePermission == .granted else {
@@ -106,7 +106,7 @@ public final class AudioRecorderService: NSObject, ObservableObject {
         let inputFormat = inputNode.outputFormat(forBus: 0)
 
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
-            throw AuraError.audioEngineFailure("Giriş formatı hazır değil (rota bulunamadı).")
+            throw AuraError.audioEngineFailure(String(localized: "Giriş formatı hazır değil (rota bulunamadı)."))
         }
 
         let sink: RecordingSink
@@ -388,10 +388,10 @@ private final class RecordingSink: @unchecked Sendable {
             channels: 1,
             interleaved: true
         ) else {
-            throw AuraError.audioEngineFailure("Hedef ses formatı oluşturulamadı.")
+            throw AuraError.audioEngineFailure(String(localized: "Hedef ses formatı oluşturulamadı."))
         }
         guard let converter = AVAudioConverter(from: inputFormat, to: target) else {
-            throw AuraError.audioEngineFailure("Format dönüştürücü oluşturulamadı.")
+            throw AuraError.audioEngineFailure(String(localized: "Format dönüştürücü oluşturulamadı."))
         }
 
         // `commonFormat`/`interleaved` verilerek dosyanın processingFormat'ı

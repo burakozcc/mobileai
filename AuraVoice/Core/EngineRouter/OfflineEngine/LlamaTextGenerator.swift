@@ -145,7 +145,7 @@ public actor LlamaTextGenerator: TextGenerator {
         var tokens = tokenize(formatted, addSpecial: true, vocab: handles.vocab)
 
         guard !tokens.isEmpty else {
-            throw AuraError.engineFailure("İstem jetonlanamadı.")
+            throw AuraError.engineFailure(String(localized: "İstem jetonlanamadı."))
         }
 
         // Prefill + üretim bağlama sığmalı. Sığmıyorsa istem kırpılmaz —
@@ -154,7 +154,7 @@ public actor LlamaTextGenerator: TextGenerator {
         let room = Int(configuration.contextTokens) - maxTokens
         guard tokens.count < room else {
             throw AuraError.engineFailure(
-                "İstem bağlama sığmıyor (\(tokens.count) jeton, sınır \(room))."
+                String(localized: "İstem bağlama sığmıyor (\(tokens.count) jeton, sınır \(room)).")
             )
         }
 
@@ -163,7 +163,7 @@ public actor LlamaTextGenerator: TextGenerator {
         llama_memory_clear(llama_get_memory(handles.context), true)
 
         guard let sampler = makeSampler(grammar: grammar, vocab: handles.vocab) else {
-            throw AuraError.engineFailure("Örnekleyici kurulamadı.")
+            throw AuraError.engineFailure(String(localized: "Örnekleyici kurulamadı."))
         }
         defer { llama_sampler_free(sampler) }
 
@@ -176,7 +176,7 @@ public actor LlamaTextGenerator: TextGenerator {
         _ = promptBuffer.update(fromContentsOf: tokens)
 
         guard llama_decode(handles.context, llama_batch_get_one(promptBuffer.baseAddress, Int32(tokens.count))) == 0 else {
-            throw AuraError.engineFailure("İstem işlenemedi.")
+            throw AuraError.engineFailure(String(localized: "İstem işlenemedi."))
         }
 
         let stepBuffer = UnsafeMutableBufferPointer<llama_token>.allocate(capacity: 1)
@@ -224,11 +224,11 @@ public actor LlamaTextGenerator: TextGenerator {
         modelParams.n_gpu_layers = configuration.gpuLayers
 
         guard let loadedModel = llama_model_load_from_file(modelURL.path, modelParams) else {
-            throw AuraError.engineFailure("Nöral model yüklenemedi: \(modelURL.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Nöral model yüklenemedi: \(modelURL.lastPathComponent)"))
         }
         guard let loadedVocab = llama_model_get_vocab(loadedModel) else {
             llama_model_free(loadedModel)
-            throw AuraError.engineFailure("Model sözlüğü okunamadı.")
+            throw AuraError.engineFailure(String(localized: "Model sözlüğü okunamadı."))
         }
 
         var contextParams = llama_context_default_params()
@@ -248,7 +248,7 @@ public actor LlamaTextGenerator: TextGenerator {
 
         guard let loadedContext = llama_init_from_model(loadedModel, contextParams) else {
             llama_model_free(loadedModel)
-            throw AuraError.engineFailure("Çıkarım bağlamı kurulamadı.")
+            throw AuraError.engineFailure(String(localized: "Çıkarım bağlamı kurulamadı."))
         }
 
         let loaded = LlamaHandles(model: loadedModel, context: loadedContext, vocab: loadedVocab)

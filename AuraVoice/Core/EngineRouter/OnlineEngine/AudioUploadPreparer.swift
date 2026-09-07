@@ -74,7 +74,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
 
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: audioURL.path) else {
-            throw AuraError.engineFailure("Ses dosyası bulunamadı: \(audioURL.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası bulunamadı: \(audioURL.lastPathComponent)"))
         }
 
         let sourceBytes = Self.byteSize(of: audioURL)
@@ -125,7 +125,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
         }
 
         guard totalSeconds > 0 else {
-            throw AuraError.engineFailure("Kayıt boş görünüyor, yüklenecek ses yok.")
+            throw AuraError.engineFailure(String(localized: "Kayıt boş görünüyor, yüklenecek ses yok."))
         }
 
         // 1. Deneme: tüm kaydı tek parça olarak sıkıştır.
@@ -152,7 +152,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
         }
 
         guard compressedBytes > 0 else {
-            throw AuraError.engineFailure("Ses sıkıştırılamadı, bulut yüklemesi yapılamıyor.")
+            throw AuraError.engineFailure(String(localized: "Ses sıkıştırılamadı, bulut yüklemesi yapılamıyor."))
         }
 
         // 2. Deneme: ölçülen gerçek bit hızına göre böl. Tahmin değil, ilk
@@ -178,7 +178,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
 
             let size = byteSize(of: url)
             guard size > 0 else {
-                throw AuraError.engineFailure("Ses parçası \(chunk.index + 1) kodlanamadı.")
+                throw AuraError.engineFailure(String(localized: "Ses parçası \(chunk.index + 1) kodlanamadı."))
             }
             guard size <= limitBytes else {
                 // Planlayıcının güvenlik payına rağmen aşıldıysa kodlayıcı
@@ -206,7 +206,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
         let input = try AVAudioFile(forReading: source)
         let format = input.processingFormat
         guard format.sampleRate > 0, input.length > 0 else {
-            throw AuraError.engineFailure("Ses dosyası okunamadı: \(source.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası okunamadı: \(source.lastPathComponent)"))
         }
 
         var settings: [String: Any] = [
@@ -239,7 +239,7 @@ public struct AudioUploadPreparer: AudioUploadPreparing {
         while remaining > 0 {
             let count = min(capacity, remaining)
             guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: count) else {
-                throw AuraError.engineFailure("Ses arabelleği ayrılamadı.")
+                throw AuraError.engineFailure(String(localized: "Ses arabelleği ayrılamadı."))
             }
             try input.read(into: buffer, frameCount: count)
             guard buffer.frameLength > 0 else { break }
@@ -289,7 +289,7 @@ public struct PassthroughUploadPreparer: AudioUploadPreparing {
 
     public func prepare(audioURL: URL, limitBytes: Int) async throws -> PreparedUpload {
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
-            throw AuraError.engineFailure("Ses dosyası bulunamadı: \(audioURL.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası bulunamadı: \(audioURL.lastPathComponent)"))
         }
 
         let bytes = AudioUploadPreparer.byteSize(of: audioURL)

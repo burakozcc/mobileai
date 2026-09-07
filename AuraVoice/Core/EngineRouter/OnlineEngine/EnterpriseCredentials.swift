@@ -126,7 +126,7 @@ public struct ProxyEnterpriseProvisioner: EnterpriseCredentialProvisioning, Ente
     public func submit(key: String, provider: CloudProvider) async throws -> EnterpriseProvisioningResult {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return .rejected("Anahtar boş.")
+            return .rejected(String(localized: "Anahtar boş."))
         }
 
         let body = try JSONEncoder().encode(
@@ -146,7 +146,7 @@ public struct ProxyEnterpriseProvisioner: EnterpriseCredentialProvisioning, Ente
             return .rejected(error.errorDescription ?? "Anahtar kaydedilemedi.")
         } catch is DecodingError {
             // Ham `DecodingError` metnini kullanıcıya göstermek işe yaramaz.
-            return .rejected("Sunucu yanıtı çözümlenemedi.")
+            return .rejected(String(localized: "Sunucu yanıtı çözümlenemedi."))
         }
     }
 

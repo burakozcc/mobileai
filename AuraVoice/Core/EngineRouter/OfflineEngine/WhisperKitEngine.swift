@@ -60,10 +60,13 @@ public actor WhisperKitEngine: SpeechTranscriber {
 
         public var subtitle: String {
             switch self {
-            case .tiny:         return "En hızlı, en düşük doğruluk"
-            case .base:         return "Küçük cihazlar için denge"
-            case .small:        return "İyi Türkçe, orta boyut"
-            case .largeV3Turbo: return "Türkçe için önerilen — şive ve özel isimde belirgin fark"
+            // DİL-NÖTR: eskiden "İyi Türkçe" / "Türkçe için önerilen" diyordu.
+            // Uygulama sekiz dilde yayınlanıyor; o iddia diğer yedide yanlış
+            // olurdu. Doğruluk farkı zaten dilden bağımsız geçerli.
+            case .tiny:         return String(localized: "En hızlı, en düşük doğruluk")
+            case .base:         return String(localized: "Küçük cihazlar için denge")
+            case .small:        return String(localized: "Dengeli doğruluk, orta boyut")
+            case .largeV3Turbo: return String(localized: "Önerilen — şive ve özel isimlerde belirgin fark")
             }
         }
 
@@ -123,7 +126,7 @@ public actor WhisperKitEngine: SpeechTranscriber {
     ) async throws -> TranscriptionOutput {
 
         guard FileManager.default.fileExists(atPath: audioURL.path) else {
-            throw AuraError.engineFailure("Ses dosyası bulunamadı: \(audioURL.lastPathComponent)")
+            throw AuraError.engineFailure(String(localized: "Ses dosyası bulunamadı: \(audioURL.lastPathComponent)"))
         }
 
         let pipeline = try await loadedPipeline()
@@ -147,7 +150,7 @@ public actor WhisperKitEngine: SpeechTranscriber {
                 decodeOptions: options
             )
         } catch {
-            throw AuraError.engineFailure("Cihaz içi transkripsiyon başarısız: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Cihaz içi transkripsiyon başarısız: \(error.localizedDescription)"))
         }
 
         progress?(0.95)
@@ -199,6 +202,10 @@ public actor WhisperKitEngine: SpeechTranscriber {
         // HubApi varsayılanına düşüyor — yani model diskte dururken bile uçak
         // modunda yükleme patlıyordu. Asıl düzeltme bu satır.
         guard let tokenizerRoot = BundledTokenizers.root else {
+            // BİLEREK ÇEVRİLMİYOR: bu bir derleme yapılandırması hatası, kullanıcı
+            // durumu değil. Doğru paketlenmiş bir uygulamada hiç oluşamaz ve
+            // içeriği (dosya yolu + project.yml direktifi) geliştiriciye hitap
+            // ediyor. Sekiz dile çevirmek anlamsız olurdu.
             throw AuraError.engineFailure(
                 "Paketlenmiş tokenizer bulunamadı: AuraVoice/Resources/Tokenizers "
                 + "uygulama paketine kopyalanmamış (project.yml'de type: folder olmalı)."
@@ -220,7 +227,7 @@ public actor WhisperKitEngine: SpeechTranscriber {
             self.pipeline = pipeline
             return pipeline
         } catch {
-            throw AuraError.engineFailure("Model yüklenemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Model yüklenemedi: \(error.localizedDescription)"))
         }
     }
 

@@ -56,7 +56,7 @@ public struct CloudASRClient: Sendable {
         defer { upload.discardTemporaryFiles() }
 
         guard !upload.parts.isEmpty else {
-            throw AuraError.engineFailure("Yüklenecek ses parçası üretilemedi.")
+            throw AuraError.engineFailure(String(localized: "Yüklenecek ses parçası üretilemedi."))
         }
 
         // Parçalar sırayla gidiyor: eşzamanlı yükleme hız sınırına takılıp
@@ -76,7 +76,7 @@ public struct CloudASRClient: Sendable {
 
         let merged = AudioUploadPlanner.merge(pieces)
         guard !merged.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw AuraError.engineFailure("Transkript boş döndü — kayıtta konuşma algılanmadı.")
+            throw AuraError.engineFailure(String(localized: "Transkript boş döndü — kayıtta konuşma algılanmadı."))
         }
         return merged
     }
@@ -141,7 +141,7 @@ public struct CloudASRClient: Sendable {
         do {
             decoded = try JSONDecoder().decode(VerboseTranscription.self, from: data)
         } catch {
-            throw AuraError.engineFailure("Groq yanıtı çözümlenemedi: \(error.localizedDescription)")
+            throw AuraError.engineFailure(String(localized: "Groq yanıtı çözümlenemedi: \(error.localizedDescription)"))
         }
 
         let segments: [TranscriptSegment] = (decoded.segments ?? []).compactMap { segment in
@@ -163,7 +163,7 @@ public struct CloudASRClient: Sendable {
                 if allowEmpty {
                     return TranscriptionOutput(text: "", segments: [], language: language)
                 }
-                throw AuraError.engineFailure("Transkript boş döndü — kayıtta konuşma algılanmadı.")
+                throw AuraError.engineFailure(String(localized: "Transkript boş döndü — kayıtta konuşma algılanmadı."))
             }
             return .joining(segments: segments, language: language)
         }

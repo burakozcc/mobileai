@@ -74,19 +74,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "We use the microphone to record your meetings and calls and turn them into summaries. In Zero-Cloud mode, audio never leaves your device."
+            "value": "We use the microphone to record your meetings and calls and turn them into summaries. In Offline mode, audio never leaves your device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Usamos el micrófono para grabar tus reuniones y conversaciones, y así generar sus resúmenes. En el modo Zero-Cloud, el audio nunca sale de tu dispositivo."
+            "value": "Usamos el micrófono para grabar tus reuniones y conversaciones, y así generar sus resúmenes. En el modo sin conexión, el audio nunca sale de tu dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nous accédons au micro afin d’enregistrer vos réunions et vos appels et d’en générer un résumé. En mode Zero-Cloud, tout est traité sur votre appareil et le son n’en sort jamais."
+            "value": "Nous accédons au micro afin d’enregistrer vos réunions et vos appels et d’en générer un résumé. En mode hors ligne, tout est traité sur votre appareil et le son n’en sort jamais."
           }
         },
         "hi": {
@@ -104,7 +104,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "我们需要使用麦克风，以便录制你的会议和通话并生成摘要。在设备端模式下，音频绝不会离开你的设备。"
+            "value": "我们需要使用麦克风，以便录制你的会议和通话并生成摘要。在离线模式下，音频绝不会离开你的设备。"
           }
         }
       }

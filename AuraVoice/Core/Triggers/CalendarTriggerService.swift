@@ -75,7 +75,32 @@ public enum MeetingKeywordMatcher {
         "toplantı", "meeting", "sync", "1-on-1", "1:1", "one-on-one",
         "zoom", "teams", "meet", "görüşme", "standup", "stand-up",
         "retro", "review", "demo", "kickoff", "workshop", "mülakat",
-        "interview", "call", "webinar", "sunum", "brief"
+        "interview", "call", "webinar", "sunum", "brief",
+
+        // Uygulama sekiz dilde yayınlanıyor; bu liste yalnızca Türkçe ve
+        // İngilizce olduğu sürece "Reunión de equipo" ya da "产品会议"
+        // başlıklı bir etkinlik HİÇ algılanmıyordu.
+        //
+        // Eşleşme kelime sınırı kontrol etmeyen bir ALT DİZE araması, bu
+        // yüzden kısa ve genel kelimeler bilerek dışarıda bırakıldı: yanlış
+        // pozitif, alakasız bir etkinlik için kayıt bildirimi göndermek
+        // demek ve bu, kaçırılan toplantıdan daha rahatsız edici. Örneğin
+        // Çince 站会 (ayakta toplantı) elendi, çünkü 网站会话 ("web sitesi
+        // oturumu") içinde alt dize olarak geçiyor.
+        // İspanyolca
+        "comite", "consejo de administracion", "entrevista", "junta directiva",
+        "reunion", "videoconferencia", "videollamada",
+        // Fransızca
+        "assemblee", "codir", "conference", "entrevue", "point hebdo",
+        // Çince
+        "会议", "例会", "开会", "晨会", "洽谈", "访谈", "评审", "面试", "面谈",
+        // Arapça
+        "اجتماع", "مؤتمر", "مقابلة", "مكالمة", "مناقشة", "ندوة",
+        // Hintçe
+        "इंटरव्यू", "चर्चा", "बैठक", "मीटिंग", "साक्षात्कार",
+        // Bengalce
+        "ইন্টারভিউ", "ওয়েবিনার", "কনফারেন্স", "কর্মশালা", "বৈঠক", "মিটিং", "সাক্ষাৎকার",
+        "সেমিনার"
     ]
 
     /// Sanal toplantı bağlantısı arayan alan adları.
@@ -204,7 +229,7 @@ public actor CalendarTriggerService {
         return MeetingCandidate(
             id: "\(event.eventIdentifier ?? UUID().uuidString)#\(Int(start.timeIntervalSince1970))",
             eventIdentifier: event.eventIdentifier ?? UUID().uuidString,
-            title: rawTitle.isEmpty ? "İsimsiz Toplantı" : rawTitle,
+            title: rawTitle.isEmpty ? String(localized: "İsimsiz Toplantı") : rawTitle,
             startDate: start,
             endDate: end,
             isVirtual: virtualLink != nil,
