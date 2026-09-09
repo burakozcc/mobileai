@@ -78,13 +78,19 @@ struct SentenceClassificationTests {
     @Test("İpucu eşleşmesi kelime sınırında")
     func cueMatchingRespectsTokenBoundary() {
         let tokens = Summarizer.allTokens(in: "hala kararsizim")
-        #expect(!Summarizer.matchesCue(["kararlastir"], tokens: tokens, sentence: "hala kararsizim"))
+        // Yöntem artık ipucunun kendisinde: "kararlastir" bir sözcük ÖNEKİ.
+        // "kararsizim" tokeni bu önekle başlamadığı için eşleşmemeli.
+        #expect(!Summarizer.matchesCue([.prefix("kararlastir")], tokens: tokens,
+                                       sentence: "hala kararsizim"))
     }
 
     @Test("Türkçe çekimler önek eşleşmesiyle yakalanıyor")
     func turkishInflectionsMatch() {
         let tokens = Summarizer.allTokens(in: "dosyayi gonderecegim")
-        #expect(Summarizer.matchesCue(["gonderec"], tokens: tokens, sentence: "dosyayi gonderecegim"))
+        // Fiil kökü + çekimli gelecek zaman eki: serbest önek eşleşmesi
+        // "gondereceğimizi bilmiyoruz" cümlesini de göreve çevirirdi.
+        #expect(Summarizer.matchesCue([.turkishFuture("gonderec")], tokens: tokens,
+                                      sentence: "dosyayi gonderecegim"))
     }
 }
 
