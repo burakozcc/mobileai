@@ -543,7 +543,7 @@ enum SummaryCues {
         // Hintçe
         .hindi: [
             .phrase("एक्शन आइटम"), .prefix("डेडलाइन"), .phrase("समय सीमा"),
-            .prefix("ज़िम्मे"), .prefix("असाइन"), .phrase("फॉलो अप"), .phrase("फॉलोअप"),
+            .words("ज़िम्मे"), .prefix("असाइन"), .phrase("फॉलो अप"), .phrase("फॉलोअप"),
             .words("सौंप"), .phrase("भेज देंगे"), .phrase("अंतिम तिथि")
         ],
 
