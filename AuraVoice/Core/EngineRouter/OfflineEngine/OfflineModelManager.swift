@@ -29,7 +29,8 @@ public actor OfflineModelManager {
     /// KAYNAKTAN DOĞRULANDI, tahmin değil: `WhisperKit.download` bir
     /// `HubApi(downloadBase:)` kurup `snapshot(from:matching:)` çağırıyor;
     /// `HubApi.localRepoLocation` ise `downloadBase/<repo.type>/<repo.id>`
-    /// döndürüyor (swift-transformers, HubApi.swift:618-620).
+    /// döndürüyor (swift-transformers 573e5c9, HubApi.swift:618-620:
+    /// https://github.com/huggingface/swift-transformers/blob/573e5c9036c2f136b3a8a071da8e8907322403d0/Sources/Hub/HubApi.swift#L618-L620).
     nonisolated static func speechRepositoryRoot(in directory: URL = modelsDirectory) -> URL {
         directory
             .appendingPathComponent("models", isDirectory: true)
@@ -40,7 +41,8 @@ public actor OfflineModelManager {
     ///
     /// İki klasör yetiyor çünkü yarım dosyalar ve metadata, anlık görüntüyle
     /// AYNI göreli yolu izliyor: `<kök>/.cache/huggingface/download/<varyant>/…`
-    /// (HubApi.swift:895-900, `metadataDestination` ve `incompleteDestination`).
+    /// (HubApi.swift:895-900, `metadataDestination` ve `incompleteDestination`:
+    /// https://github.com/huggingface/swift-transformers/blob/573e5c9036c2f136b3a8a071da8e8907322403d0/Sources/Hub/HubApi.swift#L895-L900).
     /// Bu yüzden temizlik varyantla sınırlı kalıyor ve komşu bir modeli
     /// bozamıyor — kör bir `.cache` silme öyle olmazdı.
     nonisolated static func speechArtifacts(
