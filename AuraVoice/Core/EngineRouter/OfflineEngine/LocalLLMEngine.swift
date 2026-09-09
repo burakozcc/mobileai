@@ -152,6 +152,16 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// "kararsizim" oluyor ve içinde "karar" geçtiği için Kararlar bölümüne
     /// giriyordu. Artık token öneki aranıyor ve olumsuzlama görülüyor.
     static func classify(_ sentence: String, language: Language) -> CandidateKind {
+        // SORU CÜMLESİ hiçbir dilde karar ya da görev değildir:
+        // "Sağlayıcıya karar verdik mi?" karar bildirmiyor, soruyor.
+        // Kural dilden bağımsız olduğu için ipucu listelerine bırakılmadı —
+        // öyle olsaydı altı dilde birden aynı boşluk açılırdı ve her dilin
+        // kendi soru kalıplarını tek tek yazmak gerekirdi.
+        if let last = sentence.trimmingCharacters(in: .whitespacesAndNewlines).last,
+           Self.questionMarks.contains(last) {
+            return .keyPoint
+        }
+
         let normalizedSentence = normalized(sentence)
         let tokens = allTokens(in: normalizedSentence)
 
@@ -185,12 +195,12 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// Çıplak "yok" BİLEREK yok: Türkçe toplantı dilinde ağırlıklı olarak
     /// OLUMLAMA taşıyor ("Sorun yok, cuma yayına alıyoruz", "İtiraz yok,
     /// onaylandı") ve gerçek kararları Kararlar bölümünden atıyordu.
+    /// Cümle olumsuz mu — yani ne karar ne aksiyon sayılmalı.
+    ///
+    /// Üç ayrı liste yerine tek liste: yöntem artık ipucunun kendisinde,
+    /// dolayısıyla "hangi listeye koyayım" sorusu ortadan kalktı.
     static func isNegated(_ normalizedSentence: String, tokens: [String], language: Language) -> Bool {
-        if language.negationPhrases.contains(where: { normalizedSentence.contains($0) }) { return true }
-        if language.negationExact.contains(where: { tokens.contains($0) }) { return true }
-        return language.negationPrefixes.contains { prefix in
-            tokens.contains { $0.hasPrefix(prefix) }
-        }
+        matchesCue(language.negationCues, tokens: tokens, sentence: normalizedSentence)
     }
 
     /// Normalize edilmiş cümlenin bütün kelimeleri (durak kelimeler dahil).
@@ -206,23 +216,68 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// Önek eşleşmesi Türkçe için şart: "göndereceğim" de "gonderec" ipucunu
     /// karşılamalı. Ama kökün kendisi tehlikeliyse ("karar" → "kararsızım")
     /// o kök listeden çıkarıldı; yerine ayrık biçimleri kondu.
-    static func matchesCue(_ cues: [String], tokens: [String], sentence: String) -> Bool {
-        for cue in cues {
-            if cue.contains(" ") {
-                if sentence.contains(cue) { return true }
-            } else if cue.hasSuffix("c") {
-                // Fiil kökü ("yapac", "gonderec"): ekin ÇEKİMLİ gelecek zaman
-                // olması şart. Serbest önek eşleşmesi "yapacağımızı hâlâ
-                // bilmiyoruz" cümlesini tikleyebilir bir göreve çeviriyordu.
-                if tokens.contains(where: { token in
-                    guard token.hasPrefix(cue), token.count > cue.count else { return false }
-                    return finiteFutureSuffixes.contains(String(token.dropFirst(cue.count)))
-                }) { return true }
-            } else if tokens.contains(where: { $0.hasPrefix(cue) }) {
-                return true
+    /// Tek bir ipucu bu cümleyle eşleşiyor mu.
+    ///
+    /// Yöntem artık ipucunun kendisinde yazılı; eskiden ipucunun ŞEKLİNDEN
+    /// tahmin ediliyordu (boşluk var mı, "c" ile mi bitiyor) ve o sezgi
+    /// yalnızca Türkçe ile İngilizce için doğruydu.
+    static func matches(_ cue: SummaryCue, tokens: [String], sentence: String) -> Bool {
+        switch cue.matching {
+        case .phrase:
+            // Sözcük sınırı aranmıyor. Boşluksuz yazılan dillerde (Çince)
+            // tek geçerli yöntem, çünkü orada bütün cümle tek token oluyor.
+            return sentence.contains(cue.text)
+
+        case .words:
+            return containsAtWordBoundary(cue.text, in: sentence)
+
+        case .prefix:
+            return tokens.contains { $0.hasPrefix(cue.text) }
+
+        case .exact:
+            return tokens.contains(cue.text)
+
+        case .turkishFuture:
+            // Fiil kökü ("yapac", "gonderec"): ekin ÇEKİMLİ gelecek zaman
+            // olması şart. Serbest önek eşleşmesi "yapacağımızı hâlâ
+            // bilmiyoruz" cümlesini tikleyebilir bir göreve çeviriyordu.
+            return tokens.contains { token in
+                guard token.hasPrefix(cue.text), token.count > cue.text.count else { return false }
+                return finiteFutureSuffixes.contains(String(token.dropFirst(cue.text.count)))
             }
         }
+    }
+
+    /// `needle` cümlede SÖZCÜK SINIRINDA geçiyor mu.
+    ///
+    /// İlk eşleşmeye bakmak yetmiyor: sınırda olmayan bir eşleşme, daha
+    /// sonraki geçerli bir eşleşmeyi gölgeleyebilir. Bu yüzden bütün
+    /// geçişler taranıyor.
+    static func containsAtWordBoundary(_ needle: String, in haystack: String) -> Bool {
+        guard !needle.isEmpty else { return false }
+        var searchStart = haystack.startIndex
+
+        while let range = haystack.range(of: needle, range: searchStart..<haystack.endIndex) {
+            let beforeOK: Bool = {
+                guard range.lowerBound > haystack.startIndex else { return true }
+                let previous = haystack[haystack.index(before: range.lowerBound)]
+                return !(previous.isLetter || previous.isNumber)
+            }()
+            let afterOK: Bool = {
+                guard range.upperBound < haystack.endIndex else { return true }
+                let next = haystack[range.upperBound]
+                return !(next.isLetter || next.isNumber)
+            }()
+            if beforeOK && afterOK { return true }
+
+            searchStart = haystack.index(after: range.lowerBound)
+            if searchStart >= haystack.endIndex { break }
+        }
         return false
+    }
+
+    static func matchesCue(_ cues: [SummaryCue], tokens: [String], sentence: String) -> Bool {
+        cues.contains { matches($0, tokens: tokens, sentence: sentence) }
     }
 
     /// Fiil kökünden sonra gelebilecek ÇEKİMLİ gelecek zaman ekleri.
@@ -294,6 +349,21 @@ public struct ExtractiveSummarizer: LocalSummarizer {
 
     // MARK: Cümleleme
 
+    /// Cümle sonu sayılan karakterler.
+    ///
+    /// Latin noktalamasının yanında Çince (`。？！`), Arapça (`؟`), Urduca
+    /// (`۔`) ve Devanagari/Bengalce (`।॥`) karşılıkları da var. Bunlar
+    /// eksikken o dillerde deşifre hiç bölünmüyordu.
+    static let sentenceTerminators: Set<Character> = [
+        ".", "!", "?", "…", "\n", ";",
+        "。", "？", "！", "；", "．",
+        "؟", "۔",
+        "।", "॥"
+    ]
+
+    /// Soru işaretleri — dil ne olursa olsun soru cümlesi karar değildir.
+    static let questionMarks: Set<Character> = ["?", "？", "؟"]
+
     static let minimumSentenceLength = 12
     /// Noktalama gelmezse bu uzunlukta zorla böleriz.
     static let hardWrapLength = 320
@@ -305,7 +375,8 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     /// atıyordu. Kısaltmalardan ayırmak için en uzun harf dizisine bakıyoruz:
     /// "Dr." → 2 harf (kısaltma), "Kabul." → 5 harf (cümle).
     static func isCompleteShortSentence(_ text: String) -> Bool {
-        guard text.count >= 6, let last = text.last, ".!?…".contains(last) else { return false }
+        guard text.count >= 6, let last = text.last,
+              Self.sentenceTerminators.contains(last) else { return false }
         // Sonlandırıcıdan önce HARF olmalı. Olmazsa ondalık/sürüm noktası
         // cümleyi ortadan bölüyor: "Sürüm 2.1 yayınlandı." ilk noktada
         // "Sürüm 2." olarak kesilip ayrı madde oluyordu.
@@ -325,7 +396,13 @@ public struct ExtractiveSummarizer: LocalSummarizer {
     }
 
     public static func sentences(from text: String) -> [String] {
-        let terminators: Set<Character> = [".", "!", "?", "…", "\n", ";"]
+        // LATIN DIŞI SONLANDIRICILAR ŞARTTI: liste yalnızca Latin
+        // noktalamasını tanıyordu, dolayısıyla Çince `。`, Arapça `؟` ve
+        // Devanagari/Bengalce danda `।` cümle sonu SAYILMIYORDU. Çince'de
+        // ayrıca boşluk olmadığı için aşağıdaki yedek bölme de devreye
+        // girmiyordu — bütün deşifre TEK cümle oluyor ve özet tek bir dev
+        // madde olarak çıkıyordu.
+        let terminators = Self.sentenceTerminators
         var result: [String] = []
         var current = ""
 
@@ -343,7 +420,12 @@ public struct ExtractiveSummarizer: LocalSummarizer {
             current.append(character)
             if terminators.contains(character) {
                 flush()
-            } else if current.count >= hardWrapLength, character == " " {
+            } else if current.count >= hardWrapLength,
+                      character == " " || !current.contains(" ") {
+                // Boşluk şartı, boşluksuz yazılan dillerde yedek bölmeyi
+                // tamamen devre dışı bırakıyordu. Boşluk hiç görülmediyse
+                // sabit uzunlukta bölmek son çare olarak doğru: o yazı
+                // sisteminde zaten sözcük sınırı yok.
                 flush()
             }
         }

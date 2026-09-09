@@ -27,10 +27,19 @@ public struct SummaryLanguage: Sendable, Equatable {
     /// ISO 639-1 kodu, küçük harf. Tespit edilemediyse boş.
     public let code: String
 
-    /// Elimizde ipucu ve durak kelime listesi olan diller.
-    public enum Profile: String, Sendable, Equatable, CaseIterable {
+    /// Elimizde ipucu listesi olan diller.
+    ///
+    /// Yeni dil eklemek artık VERİ işi: buraya bir case, `SummaryCues`
+    /// tablolarına birer giriş. Kod akışına dokunulmuyor.
+    public enum Profile: String, Sendable, Equatable, Hashable, CaseIterable {
         case turkish
         case english
+        case spanish
+        case french
+        case arabic
+        case hindi
+        case bengali
+        case simplifiedChinese
         /// Listesi olmayan her dil.
         case generic
     }
@@ -45,10 +54,11 @@ public struct SummaryLanguage: Sendable, Equatable {
             // Boş/bilinmeyen dilde Türkçe varsayılıyor: birincil kitle Türkçe
             // ve dil tespiti yalnızca konuşma çok kısa olduğunda boş dönüyor.
             self.profile = .turkish
-        } else if lowered.hasPrefix("en") {
-            self.profile = .english
         } else {
-            self.profile = .generic
+            // Yalnızca dil alt etiketine bakılıyor: "es-MX" da "es" gibi.
+            let base = lowered.split(whereSeparator: { $0 == "-" || $0 == "_" })
+                .first.map(String.init) ?? lowered
+            self.profile = SummaryLanguage.profilesByCode[base] ?? .generic
         }
     }
 
@@ -87,84 +97,30 @@ public struct SummaryLanguage: Sendable, Equatable {
 
     // MARK: - Sözcük listeleri
 
-    /// Durak kelimeler. Profili olmayan dilde BOŞ.
+    /// Durak kelimeler. Listesi olmayan dilde BOŞ.
     ///
     /// Boş liste kaliteyi düşürüyor ama bozmuyor: terim frekansı puanlaması
     /// yaygın kelimeleri her cümlede gördüğü için kısmen kendini dengeliyor.
-    /// Yanlış bir dilin durak kelimelerini uygulamak ise gerçek içeriği
+    /// YANLIŞ bir dilin durak kelimelerini uygulamak ise gerçek içeriği
     /// eleyebilirdi — o yüzden boş bırakmak daha güvenli.
-    public var stopwords: Set<String> {
-        switch profile {
-        case .turkish: return SummaryVocabulary.turkishStopwords
-        case .english: return SummaryVocabulary.englishStopwords
-        case .generic: return []
-        }
-    }
+    public var stopwords: Set<String> { SummaryCues.stopwords[profile] ?? [] }
 
-    /// Karar ipuçları. Profili olmayan dilde boş → karar bölümü çıkmıyor.
-    public var decisionCues: [String] {
-        switch profile {
-        case .turkish:
-            return ["kararlastir", "karar verildi", "karar verdik", "karar alindi",
-                    "karara bagl", "anlastik", "onaylandi", "onayland", "kabul edildi",
-                    "netlesti", "belirlendi", "sonuclandi", "mutabik"]
-        case .english:
-            return ["decided", "agreed", "approved", "conclusion", "resolved",
-                    "we will go with", "consensus"]
-        case .generic:
-            return []
-        }
-    }
+    /// Karar alındığını gösteren ipuçları. Listesi olmayan dilde boş →
+    /// karar bölümü hiç basılmıyor.
+    public var decisionCues: [SummaryCue] { SummaryCues.decision[profile] ?? [] }
 
-    public var actionCues: [String] {
-        switch profile {
-        case .turkish:
-            return ["yapac", "hazirlayac", "gonderec", "paylasac", "iletec",
-                    "guncelleyec", "olusturac", "yazac", "arayac", "bakac",
-                    "takip edec", "kontrol edec", "sorumlu", "gorevlendir",
-                    "atandi", "son tarih", "deadline", "yapilmali",
-                    "hazirlanmali", "ustlendi"]
-        case .english:
-            return ["action item", "todo", "to-do", "follow up", "follow-up",
-                    "will send", "will prepare", "will review", "assign",
-                    "responsible", "deadline", "due by"]
-        case .generic:
-            return []
-        }
-    }
+    /// Yapılacak iş atandığını gösteren ipuçları.
+    public var actionCues: [SummaryCue] { SummaryCues.action[profile] ?? [] }
 
-    public var negationPrefixes: [String] {
-        switch profile {
-        case .turkish:
-            return ["degil", "veremedik", "alamadik", "edemedik", "yapamadik",
-                    "kalamadik", "kararsiz", "belirsiz", "netlesmedi", "olmadi",
-                    "olmayacak", "vazgectik", "verilmedi", "bilmiyoruz"]
-        case .english, .generic:
-            return []
-        }
-    }
+    /// Cümleyi olumsuzlayan ipuçları: eşleşirse cümle ne karar ne aksiyon
+    /// sayılıyor. "Bu konuda karar veremedik" bir karar değildir.
+    public var negationCues: [SummaryCue] { SummaryCues.negation[profile] ?? [] }
 
-    public var negationExact: [String] {
-        switch profile {
-        case .english:
-            return ["not", "never", "no", "cannot", "couldn", "didn", "wont",
-                    "unclear", "undecided", "postponed"]
-        case .turkish, .generic:
-            return []
-        }
-    }
-
-    public var negationPhrases: [String] {
-        switch profile {
-        case .turkish:
-            return ["karar yok", "netlik yok", "karar verilmedi", "karar ertelendi",
-                    "karara varilamadi"]
-        case .english:
-            return ["no decision", "not decided", "no agreement"]
-        case .generic:
-            return []
-        }
-    }
+    /// Dil kodundan profile. `init` bunu kullanıyor.
+    static let profilesByCode: [String: Profile] = [
+        "tr": .turkish, "en": .english, "es": .spanish, "fr": .french,
+        "ar": .arabic, "hi": .hindi, "bn": .bengali, "zh": .simplifiedChinese
+    ]
 
     // MARK: - Başlıklar
 
@@ -207,6 +163,58 @@ public struct SummaryLanguage: Sendable, Equatable {
         let minutes = max(1, Int((durationSeconds / 60).rounded()))
         return String(format: vocabulary.metaFormat, minutes)
     }
+}
+
+
+// MARK: - İpucu
+
+/// Bir karar/aksiyon/olumsuzluk ipucu ve NASIL eşleştirileceği.
+///
+/// Eşleşme yöntemi eskiden ipucunun ŞEKLİNDEN tahmin ediliyordu: boşluk
+/// varsa cümlede alt dize, "c" ile bitiyorsa Türkçe gelecek zaman eki,
+/// yoksa sözcük öneki. İki dilde işe yarıyordu ama yeni dillerde sessizce
+/// yanılıyordu — özellikle Çincede, çünkü boşluk olmadığı için her ipucu
+/// sözcük yoluna düşüyor, oysa tokenizasyon bütün cümleyi tek parça
+/// bırakıyor. Artık yöntem ipucunun kendisinde yazılı.
+public struct SummaryCue: Sendable, Equatable, Hashable {
+
+    public enum Matching: String, Sendable, Equatable, Hashable, CaseIterable {
+        /// Normalleştirilmiş CÜMLEDE alt dize. Sözcük sınırı aramaz.
+        /// Boşluksuz yazılan dillerde (Çince) tek geçerli yöntem.
+        case phrase
+        /// Alt dize, ama SÖZCÜK SINIRINDA. Boşluklu dillerde doğru seçim:
+        /// `phrase` ile "si queda aprobado" ipucu "Así queda aprobado"
+        /// cümlesinde de eşleşip GERÇEK bir kararı düşürüyordu.
+        case words
+        /// Sözcük ÖNEKİ. Çekimli dillerde bir kökün tüm çekimlerini yakalar.
+        case prefix
+        /// TAM sözcük eşleşmesi. En dar, en güvenli.
+        case exact
+        /// Türkçe fiil kökü + ÇEKİMLİ gelecek zaman eki. Serbest önek
+        /// eşleşmesi "yapacağımızı hâlâ bilmiyoruz" cümlesini bir göreve
+        /// çeviriyordu.
+        case turkishFuture
+    }
+
+    public let text: String
+    public let matching: Matching
+
+    /// Metin KURUCUDA normalleştiriliyor.
+    ///
+    /// Cümle eşleşme anında normalleştiriliyor ama ipucu eskiden
+    /// geçmiyordu; bu yüzden Türkçe ipuçları elle aksansız yazılmak
+    /// zorundaydı ("kararlastir") ve bu, yazanın dikkatine bağlı sessiz
+    /// bir tuzaktı. Artık doğal yazımla yazılabiliyor.
+    public init(_ text: String, _ matching: Matching) {
+        self.text = MeetingKeywordMatcher.normalize(text)
+        self.matching = matching
+    }
+
+    public static func phrase(_ text: String) -> SummaryCue { .init(text, .phrase) }
+    public static func words(_ text: String) -> SummaryCue { .init(text, .words) }
+    public static func prefix(_ text: String) -> SummaryCue { .init(text, .prefix) }
+    public static func exact(_ text: String) -> SummaryCue { .init(text, .exact) }
+    public static func turkishFuture(_ stem: String) -> SummaryCue { .init(stem, .turkishFuture) }
 }
 
 // MARK: - Başlık tabloları
@@ -417,5 +425,259 @@ public struct SummaryVocabulary: Sendable, Equatable {
         "hi": .hindi,
         "bn": .bengali,
         "zh": .simplifiedChinese
+    ]
+}
+
+
+// MARK: - İpucu tabloları
+
+/// Dil başına ipucu ve durak kelime tabloları.
+///
+/// Ayrı bir tip: `SummaryLanguage` üzerindeki `switch`'ler yeni dil
+/// eklendiğinde kapsam dışı kalıyordu. Sözlük araması bu bakım yükünü
+/// kaldırıyor — tabloda olmayan dil boş liste alıyor, yani özet yine
+/// çıkıyor, sadece bölüm ayrımı yapılmıyor.
+enum SummaryCues {
+
+    /// Karar ipuçları.
+    static let decision: [SummaryLanguage.Profile: [SummaryCue]] = [
+        .turkish: [
+            .prefix("kararlastir"), .phrase("karar verildi"), .phrase("karar verdik"),
+            .phrase("karar alindi"), .phrase("karara bagl"), .prefix("anlastik"),
+            .prefix("onaylandi"), .prefix("onayland"), .phrase("kabul edildi"),
+            .prefix("netlesti"), .prefix("belirlendi"), .prefix("sonuclandi"),
+            .prefix("mutabik")
+        ],
+        .english: [
+            .prefix("decided"), .prefix("agreed"), .prefix("approved"),
+            .prefix("conclusion"), .prefix("resolved"), .phrase("we will go with"),
+            .prefix("consensus")
+        ],
+
+        // İspanyolca
+        .spanish: [
+            .phrase("hemos decidido"), .phrase("se ha decidido"),
+            .phrase("queda decidido"), .phrase("hemos acordado"),
+            .phrase("quedamos en que"), .phrase("queda aprobado"),
+            .phrase("hemos optado por")
+        ],
+
+        // Fransızca
+        .french: [
+            .phrase("on a decide"), .phrase("nous avons decide"), .phrase("a ete decide"),
+            .phrase("ete convenu"), .phrase("on acte"), .phrase("on a tranche"),
+            .phrase("on a choisi"), .phrase("on opte pour"), .prefix("enterin")
+        ],
+
+        // Arapça
+        .arabic: [
+            .phrase("تم الاتفاق"), .phrase("اتفقنا على"), .phrase("قررنا"),
+            .phrase("تقرر"), .phrase("تم اتخاذ القرار"), .phrase("تمت الموافقة"),
+            .phrase("وافقنا على"), .phrase("تم اعتماد"), .phrase("استقر الرأي")
+        ],
+
+        // Hintçe
+        .hindi: [
+            .phrase("तय हुआ कि"), .phrase("तय हो गय"), .phrase("तय किया गया"),
+            .phrase("तय कर लिया"), .phrase("फैसला हुआ कि"), .phrase("फैसला लिया गया"),
+            .phrase("निर्णय लिया गया"), .phrase("सहमति बनी"), .phrase("सहमत हो गए"),
+            .phrase("मंज़ूरी मिल गई"), .phrase("अप्रूव हो गय"), .phrase("फाइनल हो गय")
+        ],
+
+        // Bengalce
+        .bengali: [
+            .phrase("সিদ্ধান্ত হয়েছে"), .phrase("সিদ্ধান্ত নেওয়া হয়েছে"),
+            .phrase("সিদ্ধান্ত হলো"), .phrase("চূড়ান্ত করা হয়েছে"),
+            .phrase("অনুমোদন করা হয়েছে"), .phrase("অনুমোদিত হয়েছে"),
+            .phrase("একমত হয়েছে"), .phrase("রাজি হয়েছে"), .phrase("নির্ধারণ করা হয়েছে"),
+            .phrase("গৃহীত হয়েছে")
+        ],
+
+        // Basitleştirilmiş Çince
+        .simplifiedChinese: [
+            .phrase("我们决定"), .phrase("就这么定了"), .phrase("达成了共识"), .phrase("达成了一致"),
+            .phrase("一致同意"), .phrase("我们同意")
+        ]
+    ]
+
+    /// Aksiyon ipuçları.
+    static let action: [SummaryLanguage.Profile: [SummaryCue]] = [
+        .turkish: [
+            .turkishFuture("yapac"), .turkishFuture("hazirlayac"),
+            .turkishFuture("gonderec"), .turkishFuture("paylasac"),
+            .turkishFuture("iletec"), .turkishFuture("guncelleyec"),
+            .turkishFuture("olusturac"), .turkishFuture("yazac"), .turkishFuture("arayac"),
+            .turkishFuture("bakac"), .phrase("takip edec"), .phrase("kontrol edec"),
+            .prefix("sorumlu"), .prefix("gorevlendir"), .prefix("atandi"),
+            .phrase("son tarih"), .prefix("deadline"), .prefix("yapilmali"),
+            .prefix("hazirlanmali"), .prefix("ustlendi")
+        ],
+        .english: [
+            .phrase("action item"), .prefix("todo"), .phrase("to-do"),
+            .phrase("follow up"), .phrase("follow-up"), .phrase("will send"),
+            .phrase("will prepare"), .phrase("will review"), .prefix("assign"),
+            .prefix("responsible"), .prefix("deadline"), .phrase("due by")
+        ],
+
+        // İspanyolca
+        .spanish: [
+            .phrase("se compromete a"), .phrase("nos comprometemos a"),
+            .phrase("queda pendiente"), .phrase("queda a cargo de")
+        ],
+
+        // Fransızca
+        .french: [
+            .phrase("se charge de"), .phrase("se chargera"), .phrase("occupe de"),
+            .prefix("enverr"), .phrase("je vous envoie"), .prefix("preparer"),
+            .prefix("relancer"), .phrase("au plus tard"), .phrase("date limite"),
+            .prefix("echeance"), .prefix("deadline"), .phrase("reste a faire")
+        ],
+
+        // Arapça
+        .arabic: [
+            .phrase("سيقوم"), .phrase("سنقوم"), .phrase("سأقوم"), .phrase("سيتولى"),
+            .phrase("سيتابع"), .phrase("سيرسل"), .phrase("مطلوب من"), .phrase("تكليف"),
+            .phrase("في موعد أقصاه")
+        ],
+
+        // Hintçe
+        .hindi: [
+            .phrase("एक्शन आइटम"), .prefix("डेडलाइन"), .phrase("समय सीमा"),
+            .prefix("ज़िम्मे"), .prefix("असाइन"), .phrase("फॉलो अप"), .phrase("फॉलोअप"),
+            .words("सौंप"), .phrase("भेज देंगे"), .phrase("अंतिम तिथि")
+        ],
+
+        // Bengalce
+        .bengali: [
+            .phrase("করতে হবে"), .phrase("দিতে হবে"), .phrase("পাঠাতে হবে"),
+            .phrase("দায়িত্ব দেওয়া হয়েছে"), .phrase("জমা দেব"), .phrase("পাঠিয়ে দেব"),
+            .phrase("তৈরি করব"), .phrase("যোগাযোগ করব"), .phrase("ব্যবস্থা করব"),
+            .phrase("নিশ্চিত করব")
+        ],
+
+        // Basitleştirilmiş Çince
+        .simplifiedChinese: [
+            .phrase("行动项"), .phrase("待办事项"), .phrase("跟进一下"), .phrase("务必"),
+            .phrase("整理一份"), .phrase("输出一份")
+        ]
+    ]
+
+    /// Olumsuzluk ipuçları. Burada cömert olmak GÜVENLİ: yanlış bir olumsuzluk yalnızca cümleyi Ana Başlıklar'da bırakır.
+    static let negation: [SummaryLanguage.Profile: [SummaryCue]] = [
+        .turkish: [
+            .phrase("karar yok"), .phrase("netlik yok"), .phrase("karar verilmedi"),
+            .phrase("karar ertelendi"), .phrase("karara varilamadi"), .prefix("degil"),
+            .prefix("veremedik"), .prefix("alamadik"), .prefix("edemedik"),
+            .prefix("yapamadik"), .prefix("kalamadik"), .prefix("kararsiz"),
+            .prefix("belirsiz"), .prefix("netlesmedi"), .prefix("olmadi"),
+            .prefix("olmayacak"), .prefix("vazgectik"), .prefix("verilmedi"),
+            .prefix("bilmiyoruz")
+        ],
+        .english: [
+            .phrase("no decision"), .phrase("not decided"), .phrase("no agreement"),
+            .exact("not"), .exact("never"), .words("no"), .exact("cannot"),
+            .exact("couldn"), .exact("didn"), .exact("wont"), .exact("unclear"),
+            .exact("undecided"), .exact("postponed")
+        ],
+
+        // İspanyolca
+        .spanish: [
+            .phrase("no hemos decidido"), .phrase("no se ha decidido"),
+            .phrase("no hemos acordado"), .phrase("nos hemos acordado"),
+            .phrase("no quedamos en que"), .phrase("no queda decidido"),
+            .phrase("no queda aprobado"), .phrase("no hemos optado"),
+            .phrase("no se compromete"), .phrase("no nos comprometemos"),
+            .phrase("si nos comprometemos"), .phrase("no queda pendiente"),
+            .phrase("no hace falta"), .phrase("sin decidir"),
+            .phrase("no estamos de acuerdo"), .phrase("no llegamos a un acuerdo"),
+            .phrase("no hay acuerdo"), .phrase("no hay consenso"),
+            .phrase("no está claro"), .phrase("por definir"), .phrase("lo dejamos para"),
+            .phrase("habrá que ver"), .phrase("todavía no"), .phrase("aún no"),
+            .words("no queda a cargo"), .words("nadie queda"),
+            .words("nadie se compromete"), .words("nada queda"), .prefix("ningun"),
+            .exact("nunca"), .exact("tampoco"), .words("si queda aprobado"),
+            .words("si se compromete"), .words("si hemos decidido")
+        ],
+
+        // Fransızca
+        .french: [
+            .exact("pas"), .prefix("aucun"), .exact("jamais"), .exact("rien"),
+            .phrase("en attente"), .phrase("en suspens"), .prefix("trancher"),
+            .phrase("a confirmer"), .phrase("a definir"), .phrase("a valider"),
+            .prefix("decider"), .prefix("hesit"), .prefix("provisoire"),
+            .phrase("sous reserve"), .phrase("en reparle"), .phrase("on verra"),
+            .phrase("est reporte"), .prefix("incert"),
+            .words("est-ce qu"), .words("si"), .words("doit encore"), .words("n'est plus"),
+            .phrase("personne n"), .words("ni"), .words("y a plus"), .prefix("inutile"),
+            .words("sans date")
+        ],
+
+        // Arapça
+        .arabic: [
+            .phrase("لم يتم"), .phrase("يتم الاتفاق"), .phrase("يتم اتخاذ"),
+            .phrase("يتم اعتماد"), .phrase("سيتقرر"), .phrase("لم يتقرر"), .phrase("إذا"),
+            .phrase("إذا قررنا"), .phrase("لو قررنا"), .phrase("لو تم"), .phrase("في حال"),
+            .phrase("هل تم"), .phrase("هل تمت"), .phrase("هل تقرر"), .phrase("هل قررنا"),
+            .phrase("هل اتفقنا"), .phrase("هل وافقنا"), .phrase("من سيقوم"),
+            .phrase("هل سيقوم"), .phrase("من سيتولى"), .phrase("غير مطلوب"),
+            .phrase("ما قررنا"), .phrase("لم نتفق"), .phrase("لم نتوصل"),
+            .phrase("لم نقرر"), .phrase("لم نتمكن"), .phrase("لم يتحدد"),
+            .phrase("قيد النقاش"), .phrase("قيد الدراسة"), .phrase("غير محسوم"),
+            .phrase("لسنا متأكدين"), .phrase("تراجعنا عن"), .phrase("مزيد من النقاش"),
+            .words("هل"), .words("من سيتابع"), .words("من سيرسل"), .words("لو"),
+            .words("ما اتفقنا"), .words("ما وافقنا"), .words("ما تمت"), .words("لن يتقرر"),
+            .words("لا يوجد"), .exact("دون")
+        ],
+
+        // Hintçe
+        .hindi: [
+            .phrase("तय नहीं"), .phrase("फैसला नहीं"), .phrase("सहमति नहीं"),
+            .phrase("नहीं हु"), .phrase("नहीं हो"), .phrase("नहीं करेंगे"),
+            .phrase("नहीं है"), .phrase("नहीं ल"), .phrase("या नहीं"), .phrase("पता नहीं"),
+            .phrase("क्लियर नहीं"), .phrase("स्पष्ट नहीं"), .words("क्या"), .exact("अगर"),
+            .words("यदि"), .phrase("गया तो"), .phrase("गई तो"), .phrase("गए तो"),
+            .phrase("मान लीजिए"), .words("किस"), .phrase("हो चुक"), .phrase("बीत चुक"),
+            .phrase("निकल चुक"), .phrase("पूरा हो गया"), .phrase("पूरे हो गए"),
+            .prefix("अनिश्चित"), .exact("असमंजस"), .exact("शायद"),
+            .phrase("बाद में तय कर"), .phrase("टाल दिया गया"),
+            .words("नहीं किया"), .words("अभी तक नहीं"), .words("ज़िम्मे नहीं"),
+            .words("आइटम नहीं"), .words("डेडलाइन नहीं"), .words("ज़रूरत नहीं"),
+            .words("नहीं की गई"), .words("तय की जाएगी"), .words("तय कर लिया जाएगा"),
+            .words("पलट दिया गया"), .words("हो गया?")
+        ],
+
+        // Bengalce
+        .bengali: [
+            .phrase("সিদ্ধান্ত হয়নি"), .phrase("সিদ্ধান্ত নেওয়া হয়নি"),
+            .phrase("সিদ্ধান্ত নেই"), .phrase("চূড়ান্ত হয়নি"), .phrase("ঠিক হয়নি"),
+            .phrase("একমত ন"), .phrase("নিশ্চিত ন"), .exact("পারিনি"), .phrase("পারছি না"),
+            .prefix("স্থগিত"), .phrase("আলোচনা চলছে"), .phrase("পরে সিদ্ধান্ত"),
+            .phrase("দরকার নেই"), .words("নেই"), .phrase("হবে না"), .phrase("বে না"),
+            .phrase("ব না"), .phrase("হলো না"), .words("কি"), .phrase("কিনা"),
+            .phrase("কি না"), .words("যদি"), .phrase("জানি না"), .phrase("মনে হয় না"),
+            .phrase("শুনেছি"),
+            .words("নাকি"), .words("হয়নি"), .words("নয়"), .words("জানে না"),
+            .words("মনে হচ্ছে না"), .words("শোনা যাচ্ছে"), .words("হলে"), .words("বলেনি")
+        ],
+
+        // Basitleştirilmiş Çince
+        .simplifiedChinese: [
+            .phrase("吗"), .phrase("是不是"), .phrase("有没有"), .phrase("如果"), .phrase("要是"),
+            .phrase("假如"), .phrase("的话"), .phrase("不是"), .phrase("不能"), .phrase("不用"),
+            .phrase("不需要"), .phrase("还没"), .phrase("尚未"), .phrase("无法"), .phrase("未能"),
+            .phrase("等他们"), .phrase("等对方"), .phrase("还没决定"), .phrase("没有决定"),
+            .phrase("决定不了"), .phrase("还没定"), .phrase("没定下来"), .phrase("不确定"),
+            .phrase("待定"), .phrase("再议"), .phrase("悬而未决"), .phrase("暂缓"), .phrase("还在讨论"),
+            .phrase("没必要"), .phrase("先不"), .phrase("不用做"),
+            .phrase("没有行动项"), .phrase("没有待办"), .phrase("要不要"), .phrase("谁来"),
+            .phrase("同意不了"), .phrase("别就这么定"), .phrase("了没有"), .phrase("没有一致同意"),
+            .phrase("推翻"), .phrase("已经完成"), .phrase("已经取消")
+        ]
+    ]
+
+    /// Durak kelimeler.
+    static let stopwords: [SummaryLanguage.Profile: Set<String>] = [
+        .turkish: SummaryVocabulary.turkishStopwords,
+        .english: SummaryVocabulary.englishStopwords
     ]
 }

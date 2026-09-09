@@ -16,9 +16,11 @@ import Foundation
 struct SummaryLanguageProfileTests {
 
     @Test("Bölge ekli kodlar da doğru profile düşüyor", arguments: zip(
-        ["tr", "tr-TR", "TR", "", "en", "en-US", "de", "ja", "fr-CA", "ar"],
+        ["tr", "tr-TR", "TR", "", "en", "en-US", "es-MX", "fr-CA",
+         "ar", "hi", "bn", "zh-Hans", "de", "ja"],
         [SummaryLanguage.Profile.turkish, .turkish, .turkish, .turkish,
-         .english, .english, .generic, .generic, .generic, .generic]
+         .english, .english, .spanish, .french,
+         .arabic, .hindi, .bengali, .simplifiedChinese, .generic, .generic]
     ))
     func mapsCodeToProfile(code: String, expected: SummaryLanguage.Profile) {
         #expect(SummaryLanguage(code: code).profile == expected)
@@ -57,9 +59,7 @@ struct GenericLanguageFallbackTests {
         let de = SummaryLanguage(code: "de")
         #expect(de.decisionCues.isEmpty)
         #expect(de.actionCues.isEmpty)
-        #expect(de.negationPrefixes.isEmpty)
-        #expect(de.negationExact.isEmpty)
-        #expect(de.negationPhrases.isEmpty)
+        #expect(de.negationCues.isEmpty)
         // Durak kelimeler de boş: YANLIŞ bir dilin durak listesini uygulamak
         // gerçek içeriği eleyebilirdi.
         #expect(de.stopwords.isEmpty)
@@ -252,17 +252,51 @@ struct SummaryVocabularyCoverageTests {
         #expect(SummaryLanguage(code: "").heading(for: .meetingNotes) == "Toplantı Özeti")
     }
 
-    @Test("Arapça başlık alıyor ama karar ipucu ALMIYOR")
-    func arabicGetsHeadingsButNoCues() {
-        // Bilinçli ayrım: başlıklar çevrildi, ipucu listeleri çevrilmedi.
-        // Eşleştirici Türkçe eklemeli morfolojiye göre yazılmış; oraya
-        // Arapça ipucu koymak yanlış "Kararlar" bölümü üretirdi.
+    @Test("Arapça artık kendi ipuçlarını alıyor")
+    func arabicHasOwnCues() {
+        // Eskiden .generic'ti: başlıkları çevriliydi ama karar/aksiyon
+        // ayrımı yapılmıyordu, çünkü eşleştirici Türkçe morfolojisine
+        // göre yazılmıştı. Eşleşme yöntemi artık ipucunun kendisinde
+        // taşındığı için bu kısıt kalktı.
         let arabic = SummaryLanguage(code: "ar")
-        #expect(arabic.profile == .generic)
-        #expect(arabic.decisionCues.isEmpty)
-        #expect(arabic.actionCues.isEmpty)
+        #expect(arabic.profile == .arabic)
+        #expect(!arabic.decisionCues.isEmpty)
+        #expect(!arabic.actionCues.isEmpty)
         #expect(!arabic.decisionsTitle.isEmpty)
         #expect(arabic.decisionsTitle != "Decisions")
+    }
+
+    @Test("Hiçbir ipucu token yolunda ölü kalmıyor")
+    func noCueIsDeadOnTokenPath() {
+        // `.prefix` ve `.exact` TOKEN üzerinden çalışıyor, dolayısıyla
+        // tokenizasyonun iki kuralına da uymak zorundalar. Uymayan ipucu
+        // sessizce hiç eşleşmez — en kötü hata türü, çünkü test yazılmazsa
+        // kimse fark etmez.
+        for code in ["tr", "en", "es", "fr", "ar", "hi", "bn", "zh-Hans"] {
+            let language = SummaryLanguage(code: code)
+            for cue in language.decisionCues + language.actionCues + language.negationCues
+            where cue.matching == .prefix || cue.matching == .exact {
+                // 1) Bölme harf/rakam dışındaki her karakterde oluyor: hiçbir
+                //    token boşluk ya da tire içermez.
+                #expect(cue.text.allSatisfy { $0.isLetter || $0.isNumber },
+                        "\(cue.text) token yolunda eşleşemez")
+                // 2) `words(in:)` iki karakterden kısa tokenleri atıyor.
+                //    Devanagari/Bengalce'de iki grafem kümelik kelimeler
+                //    yaygın (सौंप), bu yüzden gerçek bir tuzak.
+                #expect(cue.text.count > 2,
+                        "\(cue.text) token uzunluk filtresine takılıyor")
+            }
+        }
+    }
+
+    @Test("Çince ipuçları token yoluna hiç girmiyor")
+    func chineseNeverUsesTokenPath() {
+        // Çincede boşluk yok: bütün cümle tek token oluyor ve uzunluk
+        // filtresi kısa ipuçlarını eliyor. Token yolu orada tamamen ölü.
+        let chinese = SummaryLanguage(code: "zh-Hans")
+        for cue in chinese.decisionCues + chinese.actionCues + chinese.negationCues {
+            #expect(cue.matching == .phrase, "\(cue.text) yöntemi \(cue.matching)")
+        }
     }
 
     @Test("metaFormat biçim belirtecini koruyor")
@@ -336,5 +370,77 @@ struct SectionIconLanguageTests {
     @Test("Tanınmayan başlık varsayılana düşüyor")
     func unknownTitleFallsBack() {
         #expect(NoteDetailView.icon(for: "Rastgele Başlık") == "sparkles")
+    }
+}
+
+
+// MARK: - Cümle bölme ve sınıflandırma
+
+@Suite("Cümle bölme çok dilli")
+struct MultilingualSentenceSplittingTests {
+
+    @Test("Latin dışı sonlandırıcılar cümleyi bölüyor", arguments: zip(
+        ["产品会议决定推迟发布。团队同意了这个方案。",
+         "هل وافقنا على العرض؟ نعم، وافقنا عليه.",
+         "हमने तारीख तय कर ली। टीम सहमत है।",
+         "আমরা তারিখ ঠিক করেছি। দল একমত হয়েছে।"],
+        [2, 2, 2, 2]
+    ))
+    func splitsOnNonLatinTerminators(text: String, expected: Int) {
+        // Sonlandırıcı listesi yalnızca Latin noktalamasını tanıdığı sürece
+        // bu diller HİÇ bölünmüyordu: Çince'de boşluk da olmadığı için
+        // yedek bölme devreye girmiyor ve bütün deşifre tek madde oluyordu.
+        #expect(ExtractiveSummarizer.sentences(from: text).count >= expected)
+    }
+
+    @Test("Boşluksuz uzun metin yine de bölünüyor")
+    func splitsSpacelessLongText() {
+        // Yedek bölme `character == " "` şartına bağlıydı; Çince'de boşluk
+        // olmadığı için hiç tetiklenmiyordu.
+        let long = String(repeating: "会议内容记录", count: 120)
+        #expect(ExtractiveSummarizer.sentences(from: long).count > 1)
+    }
+}
+
+@Suite("Sınıflandırma kuralları")
+struct ClassificationRuleTests {
+
+    @Test("Soru cümlesi hiçbir dilde karar sayılmıyor", arguments: [
+        "Sağlayıcıya karar verdik mi?",
+        "¿Hemos decidido ya el proveedor?",
+        "Est-ce qu'on a décidé la date ?",
+        "هل وافقنا على العرض؟",
+        "我们决定了吗？"
+    ])
+    func questionsAreNeverDecisions(sentence: String) {
+        // Kural KODDA, ipucu listelerinde değil: dilden bağımsız olduğu için
+        // altı dilde birden aynı boşluğu açıyordu.
+        let language = SummaryLanguage(code: "")
+        #expect(ExtractiveSummarizer.classify(sentence, language: language) != .decision)
+    }
+
+    @Test("Sözcük sınırı gerçek kararı düşürmüyor")
+    func wordBoundaryProtectsRealDecision() {
+        // "si queda aprobado" olumsuzluk ipucu sınırsız aransaydı
+        // "Así queda aprobado" cümlesindeki GERÇEK kararı da düşürürdü.
+        let spanish = SummaryLanguage(code: "es")
+        #expect(ExtractiveSummarizer.classify("Así queda aprobado el presupuesto.",
+                                              language: spanish) == .decision)
+        #expect(ExtractiveSummarizer.classify("Si queda aprobado el presupuesto, arrancamos.",
+                                              language: spanish) != .decision)
+    }
+
+    @Test("Olumsuz cümle Ana Başlıklar'da kalıyor", arguments: zip(
+        ["Bu konuda karar veremedik.",
+         "No hemos decidido el proveedor todavía.",
+         "Personne ne se charge de ce sujet pour l'instant.",
+         "我们还没有决定。"],
+        ["tr", "es", "fr", "zh-Hans"]
+    ))
+    func negatedSentencesStayKeyPoints(sentence: String, code: String) {
+        // Cümle KENDİ diliyle sınanıyor: başka bir dilin ipuçlarıyla
+        // denemek anlamsız olurdu.
+        let language = SummaryLanguage(code: code)
+        #expect(ExtractiveSummarizer.classify(sentence, language: language) == .keyPoint)
     }
 }
