@@ -184,6 +184,8 @@ derleyicinin işi.
 | Siri / Kısayollar / Action Button (App Intents) | Tam |
 | Widget: kilit ekranı kotası + Kontrol Merkezi kaydı | Tam |
 | Uygulama ikonu, asset katalogu, `PrivacyInfo.xcprivacy` | Tam |
+| Sekiz dilde yerelleştirme (tr, en, zh-Hans, hi, es, fr, ar, bn) | Tam |
+| İki havuzlu kota (cihaz içi / bulut) | Tam |
 | GitHub Actions CI (gerçek `xcodebuild` + test) | Tam |
 
 ## Kalanlar
@@ -192,10 +194,18 @@ Kodlama tarafında denetimin bulduğu 8 blocker + 17 orta + 8 küçük bulgunun
 tamamı kapandı. Kalanların hepsi ya bir Mac'e ya da bir ürün kararına bağlı.
 
 1. **Uygulamayı bir kez çalıştırmak.** Mac gerekiyor; ekran görüntüsü ve
-   cihazda doğrulama henüz yok. CI derlemeyi ve 384 testi doğruluyor, ama
-   gerçek bir modelle tek bir çıkarım yapılmadı.
-2. **Backend proxy.** `.proxy` rotası ve bilet imzalama için. Bilet doğrulama
-   tarafı hazır, imzalayan taraf yok.
+   cihazda doğrulama henüz yok. CI derlemeyi ve testleri doğruluyor, ama
+   gerçek bir modelle tek bir çıkarım yapılmadı. Bugüne kadarki her yeşil
+   CI koşusu, hiç çalıştırılmamış bir uygulamanın yeşili.
+2. **Backend proxy.** Bulut modunun tamamı buna bağlı: `AuraCloudProxyBaseURL`
+   tanımlı olmadığı için rota `.userProvidedKey`e düşüyor ve bireysel
+   kullanıcıda o rotayı besleyen bir yüzey yok — yani bulut işleme, kurumsal
+   anahtar yüzeyi ve dakika bileti üçü birden kapalı. Uç noktaların,
+   gövdelerin ve hata sözleşmesinin tamamı koddan çıkarılıp
+   [PROXY-SOZLESMESI.md](PROXY-SOZLESMESI.md) içine yazıldı.
+
+   En acil eksik orada §8.1: her proxy isteği bir oturum jetonu istiyor ama
+   jetonu alacak akış **iki tarafta da yok**.
 3. **RevenueCat bağlantısı.** Paywall ekranı ve akış hazır; geriye
    `SubscriptionProvider` protokolünü uygulayan tek bir sınıf kaldı.
    App Store Connect hesabı ve RevenueCat API anahtarı gerekiyor.
@@ -205,7 +215,11 @@ tamamı kapandı. Kalanların hepsi ya bir Mac'e ya da bir ürün kararına bağ
    ama IFEval'de geride (61,2 vs 68,2) — katı `K:/D:/A:` biçimini tutturmakta
    en kritik yetenek talimat izleme. İkisi yan yana koşulmadan seçim
    kesinleşmemeli.
-5. **Yerelleştirme.** Metinler şu an sabit Türkçe.
+5. **Çevrimdışı kullanımın uzlaştırılması.** Cihaz içi işleme sunucuya hiç
+   uğramıyor, dolayısıyla sunucu o havuzu ölçemiyor — yalnızca verebiliyor.
+   Hiç bağlanmayan bir cihazın bakiyesini sonsuza kadar kendi başına
+   harcaması ile offline modun "uçakta çalışır" vaadi arasında bir sayıya
+   karar verilmesi gerekiyor (bkz. PROXY-SOZLESMESI.md §5.4).
 
 ### App Store için dikkat
 
