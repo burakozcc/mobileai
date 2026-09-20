@@ -19,6 +19,44 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Sembol denetimi diff'e bakıyor; sığ kopyada karşılaştıracak
+          # taban commit olmuyor.
+          fetch-depth: 0
+
+      # --- Derleyicinin YAPMADIĞI denetimler ---------------------------------
+      #
+      # İkisi de derlemeden ÖNCE koşuyor. Sebep: derleme + test on dakikanın
+      # üstünde sürüyor ve bu iki denetim iki saniyede bitiyor. Sonda olsalardı
+      # katalogdaki bir hata için on dakika beklerdik.
+
+      # Xcode `.xcstrings` dosyalarını doğrulamıyor. En pahalısı biçim belirteci
+      # uyuşmazlığı: kaynakta `%lld`, çeviride `%@` kalmışsa uygulama YALNIZCA
+      # O DİLDE çöker — test ettiğimiz dilde hiç görünmez. KAPI.
+      - name: Verify localization catalogs
+        run: python3 Tools/verify-localizations.py
+
+      # "Kullanılan ama bildirilmeyen sembol" tek bir dosyada bile olsa hedefin
+      # TAMAMI derlenmiyor ve hata mesajı ilgisiz bir satırı gösteriyor.
+      # UYARI seviyesinde: kapsam diff olduğu için gürültü düşük ama sıfır
+      # değil, ve her yeni Apple API çağrısında kırmızıya dönen bir kapı hiç
+      # kapı olmamasından kötü olurdu.
+      - name: Report newly used undeclared symbols
+        run: |
+          BASE=""
+          PR_BASE="${{ github.event.pull_request.base.sha }}"
+          PUSH_BASE="${{ github.event.before }}"
+          if [ -n "$PR_BASE" ]; then
+            BASE="$PR_BASE"
+          elif [ -n "$PUSH_BASE" ] && [ "$PUSH_BASE" != "0000000000000000000000000000000000000000" ]; then
+            BASE="$PUSH_BASE"
+          fi
+          if [ -z "$BASE" ]; then
+            echo "Karşılaştırılacak taban commit yok (ilk push?) — denetim atlandı."
+            exit 0
+          fi
+          echo "Taban: $BASE"
+          python3 Tools/verify-new-symbols.py --base "$BASE"
 
       # Swift 6 için Xcode 16+ şart.
       - name: Select Xcode

@@ -123,6 +123,42 @@ ekranının açılması aynı zamanda kullanıcıya görsel onaydır.
 
 ---
 
+## Derleyicinin yapmadığı denetimler
+
+Geliştirme Windows'ta yürüdüğü için derleyici yalnızca CI'da çalışıyor. İki
+hata sınıfı ise derleyicinin hiç bakmadığı yerde duruyor; `Tools/` altındaki
+iki betik onları kapatıyor ve CI'da derlemeden **önce** koşuyor (iki saniye
+sürüyorlar; sonda olsalardı bir katalog hatası için on dakika beklerdik).
+
+```bash
+python3 Tools/verify-localizations.py
+python3 Tools/verify-new-symbols.py --base origin/main
+```
+
+**`verify-localizations.py` — KAPI.** Xcode `.xcstrings` dosyalarını derlemede
+doğrulamıyor. En pahalısı biçim belirteci uyuşmazlığı: kaynakta `%lld`,
+çeviride `%@` kalmışsa `String(format:)` tamsayıyı işaretçi sanır ve uygulama
+**yalnızca o dilde** çöker — test ettiğimiz dilde hiç görünmez. Ayrıca eksik
+dil ve katalogda karşılığı olmayan anahtar denetleniyor.
+
+Betik iki API'nin gerçek farkını taşıyor ve bu fark tahmin değil, kataloğun
+kendisinden okundu: `String(localized:)` literal `%` işaretini olduğu gibi
+bırakıyor (`%.1f dk`), SwiftUI'nin `Text("...")` çağrısı ise `%%` olarak
+kaçırıyor (`%%%lld`).
+
+**`verify-new-symbols.py` — UYARI.** "Kullanılan ama bildirilmeyen sembol"
+tek bir dosyada bile olsa hedefin tamamı derlenmiyor; CI'da tek test koşmuyor
+ve hata mesajı çoğu zaman değişikliğin konusuyla ilgisiz bir satırı gösteriyor.
+Betik diff'in eklediği `.üye` erişimlerini depodaki bildirimlerle karşılaştırıyor.
+
+Kapı değil uyarı, çünkü değişiklik yeni bir SwiftUI değiştiricisi kullandığında
+o da "bildirimsiz" görünüyor; her yeni Apple çağrısında kırmızıya dönen bir kapı
+hiç kapı olmamasından kötü olurdu. Sınırı da açık: sembolün depoda **bir yerde**
+bildirilmiş olmasına bakıyor, **doğru tipte** bildirilmiş olmasına değil — o
+derleyicinin işi.
+
+---
+
 ## Tamamlananlar
 
 | Alan | Durum |
