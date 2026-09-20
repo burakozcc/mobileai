@@ -72,6 +72,8 @@ struct QuotaPeriodTests {
 @Suite("Aylık yenileme", .serialized)
 struct QuotaRenewalTests {
 
+    /// İki havuza da aynı değeri koyar: bu paketin konusu YENİLEME, havuz
+    /// ayrımı değil. Ayrımı sınayan testler `lanesRenewIndependently`.
     private func makeManager(
         seconds: Double,
         periodStart: Date,
@@ -89,26 +91,44 @@ struct QuotaRenewalTests {
     @Test("Ay dolunca bakiye plan dakikasına döner")
     func renewsAfterOneMonth() {
         let (quota, _) = makeManager(seconds: 0, periodStart: day(2026, 3, 10))
-        #expect(quota.getRemainingMinutes(now: day(2026, 4, 11)) == 30)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 4, 11)) == 30)
+    }
+
+    @Test("Yenileme İKİ havuzu birden doldurur")
+    func lanesRenewIndependently() {
+        // Dönem ortak, değerler ayrı. Yenileme tek havuzu doldursaydı öteki
+        // sonsuza kadar boş kalırdı ve bunu başka hiçbir test yakalamazdı.
+        let storage = InMemoryQuotaStorage(
+            offlineSeconds: 0,
+            onlineSeconds: 0,
+            bootstrapped: true,
+            periodStart: day(2026, 3, 10),
+            offlinePlanMinutes: 3_000,
+            onlinePlanMinutes: 1_200
+        )
+        let quota = QuotaManager(storage: storage, calendar: utcCalendar())
+
+        #expect(quota.getRemainingMinutes(.offline, now: day(2026, 4, 11)) == 3_000)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 4, 11)) == 1_200)
     }
 
     @Test("Dönem içinde bakiye korunur")
     func doesNotRenewEarly() {
         let (quota, _) = makeManager(seconds: 300, periodStart: day(2026, 3, 10))
-        #expect(quota.getRemainingSeconds(now: day(2026, 3, 25)) == 300)
+        #expect(quota.getRemainingSeconds(.online, now: day(2026, 3, 25)) == 300)
     }
 
     @Test("Yenileme bakiyeyi artırmaz, eşitler")
     func renewalResetsRatherThanAdds() {
         // Kalan 20 dakikası olan kullanıcı yeni ayda 50 değil 30 dakika görür.
         let (quota, _) = makeManager(seconds: 20 * 60, periodStart: day(2026, 3, 10))
-        #expect(quota.getRemainingMinutes(now: day(2026, 4, 15)) == 30)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 4, 15)) == 30)
     }
 
     @Test("Pro planında yenileme plan dakikasını kullanır")
     func renewalUsesPlanMinutes() {
         let (quota, _) = makeManager(seconds: 0, periodStart: day(2026, 3, 10), planMinutes: 1_200)
-        #expect(quota.getRemainingMinutes(now: day(2026, 4, 11)) == 1_200)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 4, 11)) == 1_200)
     }
 
     @Test("Yenileme sonrası aynı dönemde tekrar yenilenmez")
@@ -116,10 +136,10 @@ struct QuotaRenewalTests {
         let (quota, _) = makeManager(seconds: 0, periodStart: day(2026, 3, 10))
         let now = day(2026, 4, 11)
 
-        #expect(quota.getRemainingMinutes(now: now) == 30)
-        try? quota.deductUsage(durationSeconds: 600, now: now)
+        #expect(quota.getRemainingMinutes(.online, now: now) == 30)
+        try? quota.deductUsage(durationSeconds: 600, lane: .online, now: now)
         // Aynı dönemde tekrar okumak harcanan dakikayı geri getirmemeli.
-        #expect(quota.getRemainingMinutes(now: now) == 20)
+        #expect(quota.getRemainingMinutes(.online, now: now) == 20)
     }
 
     @Test("Bakiye yazılamazsa dönem ilerlemez")
@@ -129,7 +149,7 @@ struct QuotaRenewalTests {
         let storage = FailingQuotaStorage(periodStart: day(2026, 3, 10), planMinutes: 30)
         let quota = QuotaManager(storage: storage, calendar: utcCalendar())
 
-        _ = quota.getRemainingSeconds(now: day(2026, 4, 11))
+        _ = quota.getRemainingSeconds(.online, now: day(2026, 4, 11))
         #expect(storage.readPeriodStart() == day(2026, 3, 10))
     }
 
@@ -143,9 +163,11 @@ struct QuotaRenewalTests {
     func setPlanWritesBoth() {
         let (quota, storage) = makeManager(seconds: 0, periodStart: day(2026, 3, 10))
 
-        #expect(quota.setPlan(monthlyMinutes: 1_200, now: day(2026, 3, 20)))
-        #expect(quota.getRemainingMinutes(now: day(2026, 3, 21)) == 1_200)
-        #expect(quota.planMonthlyMinutes() == 1_200)
+        #expect(quota.setPlan(offlineMinutes: 3_000, onlineMinutes: 1_200, now: day(2026, 3, 20)))
+        #expect(quota.getRemainingMinutes(.offline, now: day(2026, 3, 21)) == 3_000)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 3, 21)) == 1_200)
+        #expect(quota.planMonthlyMinutes(.offline) == 3_000)
+        #expect(quota.planMonthlyMinutes(.online) == 1_200)
         #expect(storage.readPeriodStart() == day(2026, 3, 20))
     }
 }
@@ -160,7 +182,8 @@ struct QuotaBootstrapOrderTests {
         let storage = InMemoryQuotaStorage()
         let quota = QuotaManager(storage: storage, calendar: utcCalendar())
 
-        #expect(quota.getRemainingMinutes(now: day(2026, 3, 10)) == 30)
+        #expect(quota.getRemainingMinutes(.offline, now: day(2026, 3, 10)) == QuotaManager.freeOfflineMinutes)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 3, 10)) == QuotaManager.freeOnlineMinutes)
         #expect(storage.readPeriodStart() == day(2026, 3, 10))
         #expect(storage.isBootstrapped())
     }
@@ -172,11 +195,11 @@ struct QuotaBootstrapOrderTests {
         let storage = FailingQuotaStorage()
         let quota = QuotaManager(storage: storage, calendar: utcCalendar())
 
-        _ = quota.getRemainingSeconds(now: day(2026, 3, 10))
+        _ = quota.getRemainingSeconds(.online, now: day(2026, 3, 10))
         #expect(!storage.isBootstrapped())
 
         storage.writesFail = false
-        #expect(quota.getRemainingMinutes(now: day(2026, 3, 10)) == 30)
+        #expect(quota.getRemainingMinutes(.online, now: day(2026, 3, 10)) == QuotaManager.freeOnlineMinutes)
         #expect(storage.isBootstrapped())
     }
 }
@@ -214,7 +237,7 @@ struct ProcessingOverrunTests {
         let result = try await router.execute(request: request(600.4))
 
         // Sahip olmadığı dakika harcanmıyor: bakiye tam sıfırlanıyor.
-        #expect(quota.getRemainingSeconds() == 0)
+        #expect(quota.getRemainingSeconds(.offline) == 0)
         #expect(result.usedMinutes == 10)
     }
 
@@ -225,14 +248,14 @@ struct ProcessingOverrunTests {
         await #expect(throws: AuraError.self) {
             _ = try await router.execute(request: request(600))
         }
-        #expect(quota.getRemainingSeconds() == 60)
+        #expect(quota.getRemainingSeconds(.offline) == 60)
     }
 
     @Test("Tolerans içinde kalan kayıt bakiyeyi eksiye düşürmez")
     func billingNeverGoesNegative() async throws {
         let (router, quota) = makeRouter(seconds: 100)
         _ = try await router.execute(request: request(101.5))
-        #expect(quota.getRemainingSeconds() == 0)
+        #expect(quota.getRemainingSeconds(.offline) == 0)
     }
 }
 
@@ -242,10 +265,10 @@ struct ProcessingOverrunTests {
 private final class FailingQuotaStorage: QuotaStorage, @unchecked Sendable {
 
     private let lock = NSLock()
-    private var balance: Double?
+    private var balances: [QuotaLane: Double] = [:]
     private var bootstrapped = false
     private var periodStart: Date?
-    private var planMinutes: Double?
+    private var plans: [QuotaLane: Double] = [:]
     private var failing = true
 
     var writesFail: Bool {
@@ -255,19 +278,21 @@ private final class FailingQuotaStorage: QuotaStorage, @unchecked Sendable {
 
     init(periodStart: Date? = nil, planMinutes: Double? = nil) {
         self.periodStart = periodStart
-        self.planMinutes = planMinutes
+        if let planMinutes {
+            plans = [.offline: planMinutes, .online: planMinutes]
+        }
     }
 
-    func readBalanceSeconds() -> Double? {
+    func readBalanceSeconds(_ lane: QuotaLane) -> Double? {
         lock.lock(); defer { lock.unlock() }
-        return balance
+        return balances[lane]
     }
 
     @discardableResult
-    func writeBalanceSeconds(_ seconds: Double) -> Bool {
+    func writeBalanceSeconds(_ seconds: Double, lane: QuotaLane) -> Bool {
         lock.lock(); defer { lock.unlock() }
         guard !failing else { return false }
-        balance = max(0, seconds)
+        balances[lane] = max(0, seconds)
         return true
     }
 
@@ -296,16 +321,16 @@ private final class FailingQuotaStorage: QuotaStorage, @unchecked Sendable {
         return true
     }
 
-    func readPlanMinutes() -> Double? {
+    func readPlanMinutes(_ lane: QuotaLane) -> Double? {
         lock.lock(); defer { lock.unlock() }
-        return planMinutes
+        return plans[lane]
     }
 
     @discardableResult
-    func writePlanMinutes(_ minutes: Double) -> Bool {
+    func writePlanMinutes(_ minutes: Double, lane: QuotaLane) -> Bool {
         lock.lock(); defer { lock.unlock() }
         guard !failing else { return false }
-        planMinutes = minutes
+        plans[lane] = minutes
         return true
     }
 }

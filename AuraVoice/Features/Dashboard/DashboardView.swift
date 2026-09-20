@@ -69,11 +69,14 @@ public struct DashboardView: View {
         }
         .fullScreenCover(isPresented: $viewModel.isPaywallPresented) {
             SubscriptionPaywallView(
-                remainingMinutes: viewModel.remainingMinutes,
-                usedMinutes: viewModel.minutesUsedThisMonth
+                lane: viewModel.paywallLane,
+                offlineRemainingMinutes: viewModel.offlineRemainingMinutes,
+                onlineRemainingMinutes: viewModel.onlineRemainingMinutes,
+                usedMinutes: viewModel.minutesUsedThisMonth,
+                isOfflineModelReady: viewModel.isOfflineModelReady
             ) {
                 // "Zero-Cloud modunda devam et" — sadece kapatmakla kalmıyor,
-                // kullanıcıyı gerçekten kotasız çalışan moda alıyor.
+                // kullanıcıyı gerçekten cihaz içi havuzu kullanan moda alıyor.
                 viewModel.select(mode: .offlineZeroCloud)
             }
         }
@@ -119,7 +122,7 @@ public struct DashboardView: View {
             Spacer()
 
             circleButton(icon: "crown.fill", tint: AuraTheme.warning) {
-                viewModel.isPaywallPresented = true
+                viewModel.presentPaywall()
             }
             .accessibilityLabel("Aboneliği yönet")
         }
@@ -181,13 +184,26 @@ public struct DashboardView: View {
                         .font(AuraFont.labelCaps)
                         .tracking(AuraFont.trackingSafe(1.4))
                         .foregroundStyle(AuraTheme.onSurfaceVariant)
+
+                    // Halka etkin havuzu gösteriyor; hangisi olduğunu yazmazsak
+                    // iki farklı sayı arasında gidip gelen açıklamasız bir
+                    // rakam kalırdı.
+                    Text(viewModel.activeLane.title)
+                        .font(AuraFont.labelCaps)
+                        .tracking(AuraFont.trackingSafe(1.2))
+                        .foregroundStyle(AuraTheme.onSurfaceVariant.opacity(0.7))
+                        .padding(.top, 2)
                 }
             }
             .frame(width: 192, height: 192)
             .padding(.top, AuraTheme.Spacing.stackSM)
             .accessibilityElement()
             .accessibilityLabel("Kalan dakika")
-            .accessibilityValue("\(Int(viewModel.remainingMinutes.rounded())) / \(Int(viewModel.planMonthlyMinutes))")
+            .accessibilityValue(viewModel.quotaAccessibilityValue)
+
+            Text(viewModel.laneSummary)
+                .font(AuraFont.bodySmall)
+                .foregroundStyle(AuraTheme.onSurfaceVariant)
 
             quotaPill
         }
@@ -202,7 +218,7 @@ public struct DashboardView: View {
                          : String(localized: "KOTA NORMAL")
 
         return Button {
-            if viewModel.isQuotaCritical { viewModel.isPaywallPresented = true }
+            if viewModel.isQuotaCritical { viewModel.presentPaywall() }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: viewModel.isQuotaCritical ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")

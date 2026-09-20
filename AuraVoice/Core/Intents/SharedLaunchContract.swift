@@ -84,14 +84,53 @@ public struct SharedLaunchRequest: Codable, Sendable, Equatable {
     }
 }
 
+// MARK: - Kota havuzu
+
+/// Dakikanın hangi işleme türünden düştüğü.
+///
+/// Bu dosyada duruyor çünkü widget de havuz biliyor: anlık görüntüdeki sayı
+/// hangi havuza aitse uzantı onu yazmak zorunda. Uygulama tarafındaki
+/// `ProcessingMode` köprüsü `QuotaManager.swift` içinde bir uzantıda — o tip
+/// uzantı hedefine girmiyor ve buraya konsaydı widget derlenmezdi.
+public enum QuotaLane: String, Sendable, Codable, CaseIterable, Identifiable {
+
+    case offline
+    case online
+
+    public var id: String { rawValue }
+
+    /// Arayüzde havuzu adlandıran kısa etiket.
+    ///
+    /// `String(localized:)` çağıranın paketine bakıyor: aynı satır uygulamada
+    /// uygulamanın kataloğundan, widget'ta widget'ın kataloğundan çözülüyor.
+    /// Anahtarın İKİ katalogda da bulunması bu yüzden şart.
+    public var title: String {
+        switch self {
+        case .offline: return String(localized: "Cihaz içi")
+        case .online:  return String(localized: "Bulut")
+        }
+    }
+}
+
 // MARK: - Kota anlık görüntüsü
 
 /// Widget'ın gösterdiği veri. Uygulama her tazelemede yazıyor; uzantı
 /// yalnızca okuyor — kota mantığı tek yerde kalsın diye.
 public struct SharedQuotaSnapshot: Codable, Sendable, Equatable {
 
+    /// Etkin havuzun bakiyesi — halkanın ve büyük sayının gösterdiği değer.
     public let remainingMinutes: Double
     public let planMinutes: Double
+    /// `remainingMinutes` hangi havuza ait. Uzantı bunu yazmadan gösterdiği
+    /// sayı, mod değiştikçe açıklamasız biçimde zıplayan bir rakam olurdu.
+    public let lane: QuotaLane
+    /// İki havuzun tamamı. Uzantı bugün yalnızca etkin olanı çiziyor; alanlar
+    /// burada çünkü anlık görüntü tek yazma noktası ve sonradan eklenen bir
+    /// alan, güncellenmemiş widget'larda eksik veri demek olurdu.
+    public let offlineRemainingMinutes: Double
+    public let offlinePlanMinutes: Double
+    public let onlineRemainingMinutes: Double
+    public let onlinePlanMinutes: Double
     public let updatedAt: Date
     /// Cihaz içi kayıt şu an mümkün mü (model kurulu ve kota var).
     ///
@@ -100,19 +139,29 @@ public struct SharedQuotaSnapshot: Codable, Sendable, Equatable {
     public let offlineAvailable: Bool
 
     public init(
-        remainingMinutes: Double,
-        planMinutes: Double,
+        lane: QuotaLane,
+        offlineRemainingMinutes: Double,
+        offlinePlanMinutes: Double,
+        onlineRemainingMinutes: Double,
+        onlinePlanMinutes: Double,
         updatedAt: Date = Date(),
         offlineAvailable: Bool = false
     ) {
-        self.remainingMinutes = remainingMinutes
-        self.planMinutes = planMinutes
+        self.lane = lane
+        self.offlineRemainingMinutes = offlineRemainingMinutes
+        self.offlinePlanMinutes = offlinePlanMinutes
+        self.onlineRemainingMinutes = onlineRemainingMinutes
+        self.onlinePlanMinutes = onlinePlanMinutes
+        self.remainingMinutes = lane == .online ? onlineRemainingMinutes : offlineRemainingMinutes
+        self.planMinutes = lane == .online ? onlinePlanMinutes : offlinePlanMinutes
         self.updatedAt = updatedAt
         self.offlineAvailable = offlineAvailable
     }
 
     private enum CodingKeys: String, CodingKey {
         case remainingMinutes, planMinutes, updatedAt, offlineAvailable
+        case lane, offlineRemainingMinutes, offlinePlanMinutes
+        case onlineRemainingMinutes, onlinePlanMinutes
     }
 
     /// Eski anlık görüntülerde alan yok; varsayılanla açılıyor ki uygulama
@@ -123,6 +172,16 @@ public struct SharedQuotaSnapshot: Codable, Sendable, Equatable {
         planMinutes = try container.decode(Double.self, forKey: .planMinutes)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
         offlineAvailable = try container.decodeIfPresent(Bool.self, forKey: .offlineAvailable) ?? false
+        // Tek havuzlu sürümün yazdığı anlık görüntüde havuz alanları yok.
+        // Varsayılan `.offline`: uygulamanın açılış modu o ve kullanıcıya
+        // "bulut" diye yanlış etiket göstermektense doğru olanı seçiyoruz.
+        // Değerler etkin havuzdan kopyalanıyor — uygulama bir kez tazeleyene
+        // kadar geçerli olan tek gerçek o.
+        lane = try container.decodeIfPresent(QuotaLane.self, forKey: .lane) ?? .offline
+        offlineRemainingMinutes = try container.decodeIfPresent(Double.self, forKey: .offlineRemainingMinutes) ?? remainingMinutes
+        offlinePlanMinutes = try container.decodeIfPresent(Double.self, forKey: .offlinePlanMinutes) ?? planMinutes
+        onlineRemainingMinutes = try container.decodeIfPresent(Double.self, forKey: .onlineRemainingMinutes) ?? remainingMinutes
+        onlinePlanMinutes = try container.decodeIfPresent(Double.self, forKey: .onlinePlanMinutes) ?? planMinutes
     }
 
     /// 0...1 — plan tanımsızsa dolu göstermek yerine boş gösteriyoruz ki

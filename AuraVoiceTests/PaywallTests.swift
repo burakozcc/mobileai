@@ -60,30 +60,60 @@ struct SubscriptionCatalogTests {
         let free = plans.first { $0.id == LocalSubscriptionProvider.freePlanID }
 
         #expect(free?.isPurchasable == false)
-        #expect(free?.monthlyMinutes == LocalSubscriptionProvider.freeMinutes)
+        #expect(free?.offlineMinutes == QuotaManager.freeOfflineMinutes)
+        #expect(free?.onlineMinutes == QuotaManager.freeOnlineMinutes)
     }
 
-    @Test("Ücretsiz planın dakikası QuotaManager ile aynı")
-    func freeMinutesMatchQuotaManager() {
-        // İki yerde farklı sayı, kullanıcıya farklı vaat demek olurdu.
-        #expect(LocalSubscriptionProvider.freeMinutes * 60 == QuotaManager.freeTierSeconds)
+    @Test("Pro her havuzda ücretsizden fazlasını veriyor")
+    func proExceedsFreeInBothLanes() async {
+        // Tek havuzluyken "daha fazla dakika" tek bir karşılaştırmaydı. İki
+        // havuzda, birini artırıp ötekini unutan bir plan tanımı sessizce
+        // düşüş olurdu.
+        let plans = await LocalSubscriptionProvider().loadPlans()
+        guard let free = plans.first, let pro = plans.last else {
+            Issue.record("Katalog iki plan döndürmeliydi")
+            return
+        }
+        #expect(pro.offlineMinutes > free.offlineMinutes)
+        #expect(pro.onlineMinutes > free.onlineMinutes)
+    }
+
+    @Test("Plan metinleri havuz sayılarını gerçekten yazıyor", arguments: [0, 1])
+    func planTextsCarryLaneNumbers(index: Int) async {
+        // Sayılar metne gömülü DEĞİL, yerleştiriliyor. Bu test o bağın
+        // koptuğunu yakalar: gömülü bir metin plan değiştiğinde sessizce
+        // yanlış rakam gösterirdi.
+        let plan = (await LocalSubscriptionProvider().loadPlans())[index]
+        let offlineText = plan.features.first(where: { $0.id == "offline" })?.text ?? ""
+        let onlineText = plan.features.first(where: { $0.id == "cloud" })?.text ?? ""
+
+        #expect(offlineText.contains("\(Int(plan.offlineMinutes))"))
+        #expect(onlineText.contains("\(Int(plan.onlineMinutes))"))
     }
 
     @Test("Kullanım bilgisi ücretsiz planda gösteriliyor")
     func usageAppearsOnFreePlan() async {
         let plans = await LocalSubscriptionProvider(usedMinutes: 18).loadPlans()
-        let detail = plans.first?.features.first?.detail
+        let detail = plans.first?.features.first(where: { $0.id == "cloud" })?.detail
 
         #expect(detail?.contains("18") == true)
-        #expect(detail?.contains("30") == true)
     }
 
-    @Test("Kullanım plan sınırını aşmış görünmüyor")
-    func usageIsClampedToPlan() async {
-        // Bilet ya da düzeltmeyle kullanım sınırın üstüne çıkabilir; kartta
-        // "45/30 dk" yazması kullanıcıyı yanıltırdı.
+    @Test("Kullanım satırı oran değil, toplam")
+    func usageIsReportedAsPlainTotal() async {
+        // Eskiden burada "45/30 dk" gibi bir ORAN yazıyordu ve kullanım plan
+        // sınırına KIRPILIYORDU, yoksa payda paydanın üstüne çıkıyordu.
+        //
+        // Havuzlar ayrılınca o oranın paydası anlamını yitirdi: tek bir plan
+        // sayısı yok, iki tane var. Satır artık kırpma gerektirmeyen düz bir
+        // toplam — 45 dakika işlemiş bir kullanıcıya 45 yazmak doğru ve
+        // yanıltıcı değil, çünkü ortada karşılaştırılacak bir payda yok.
         let plans = await LocalSubscriptionProvider(usedMinutes: 45).loadPlans()
-        #expect(plans.first?.features.first?.detail?.contains("30/30") == true)
+        let detail = plans.first?.features.first(where: { $0.id == "cloud" })?.detail
+
+        #expect(detail?.contains("45") == true)
+        // Kırpma yok: plan sayıları paydaya dönmüyor.
+        #expect(detail?.contains("/") == false)
     }
 
     @Test("Zero-Cloud maddesi her iki planda da var")
@@ -135,7 +165,11 @@ struct PaywallViewModelTests {
         let viewModel = PaywallViewModel(
             provider: StubProvider(
                 plans: plans,
-                purchaseResult: .purchased(planID: "aura.pro.monthly", grantedMinutes: 1_200)
+                purchaseResult: .purchased(
+                    planID: "aura.pro.monthly",
+                    offlineMinutes: 3_000,
+                    onlineMinutes: 1_200
+                )
             ),
             quotaManager: quota
         )
@@ -143,7 +177,8 @@ struct PaywallViewModelTests {
         await viewModel.load()
         await viewModel.purchase(plans[1])
 
-        #expect(quota.getRemainingMinutes() == 1_200)
+        #expect(quota.getRemainingMinutes(.offline) == 3_000)
+        #expect(quota.getRemainingMinutes(.online) == 1_200)
         #expect(viewModel.activePlanID == "aura.pro.monthly")
         #expect(viewModel.message != nil)
     }
@@ -160,7 +195,8 @@ struct PaywallViewModelTests {
         await viewModel.load()
         await viewModel.purchase(plans[1])
 
-        #expect(quota.getRemainingMinutes() == 10)
+        #expect(quota.getRemainingMinutes(.offline) == 10)
+        #expect(quota.getRemainingMinutes(.online) == 10)
         // İptal kullanıcının kendi kararı; uyarı göstermek gürültü olurdu.
         #expect(viewModel.message == nil)
     }
@@ -178,7 +214,7 @@ struct PaywallViewModelTests {
         await viewModel.purchase(plans[1])
 
         #expect(viewModel.message == "Mağaza yanıt vermedi")
-        #expect(quota.getRemainingMinutes() == 0)
+        #expect(quota.getRemainingMinutes(.online) == 0)
     }
 
     @Test("Geri yükleme yoksa kullanıcı bilgilendiriliyor")
@@ -196,13 +232,18 @@ struct PaywallViewModelTests {
     func restoreGrantsMinutes() async {
         let quota = makeQuota()
         let viewModel = PaywallViewModel(
-            provider: StubProvider(restoreResult: .restored(planID: "aura.pro.monthly", grantedMinutes: 600)),
+            provider: StubProvider(restoreResult: .restored(
+                planID: "aura.pro.monthly",
+                offlineMinutes: 1_500,
+                onlineMinutes: 600
+            )),
             quotaManager: quota
         )
 
         await viewModel.restore()
 
-        #expect(quota.getRemainingMinutes() == 600)
+        #expect(quota.getRemainingMinutes(.offline) == 1_500)
+        #expect(quota.getRemainingMinutes(.online) == 600)
         #expect(viewModel.activePlanID == "aura.pro.monthly")
     }
 }

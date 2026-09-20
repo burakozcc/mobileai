@@ -42,8 +42,14 @@ public final class DashboardViewModel {
 
     // MARK: Yayınlanan durum
 
-    public private(set) var remainingSeconds: Double = 0
-    public private(set) var planMonthlyMinutes: Double = 30
+    /// Bakiye havuz başına tutuluyor; ekranda gösterilen ETKİN havuz `mode`
+    /// ile belirleniyor. Tek bir `remainingSeconds` alanı, mod değiştiğinde
+    /// bayat kalırdı — kullanıcı Zero-Cloud'a geçtiğinde hâlâ bulut
+    /// bakiyesini görürdü.
+    public private(set) var offlineRemainingSeconds: Double = 0
+    public private(set) var onlineRemainingSeconds: Double = 0
+    public private(set) var offlinePlanMinutes: Double = QuotaManager.freeOfflineMinutes
+    public private(set) var onlinePlanMinutes: Double = QuotaManager.freeOnlineMinutes
     public private(set) var minutesUsedThisMonth: Double = 0
 
     public private(set) var notes: [NoteSummary] = []
@@ -62,6 +68,19 @@ public final class DashboardViewModel {
     /// Kayıt ekranını sunmak için `sheet(item:)` ile bağlanır.
     public var recordingIntent: RecordingIntent?
     public var isPaywallPresented = false
+    /// Paywall'ı açtıran havuz. Ekran hangi dakikanın bittiğini bilmeden
+    /// doğru cümleyi kuramıyor.
+    ///
+    /// `presentPaywall(for:)` DIŞINDA yazılmıyor: `isPaywallPresented`ı
+    /// doğrudan `true` yapan bir çağrı, bir önceki açılıştan kalan havuzu
+    /// gösterirdi — cihaz içi modda çalışan kullanıcıya "bulut dakikan bitti"
+    /// demek gibi.
+    ///
+    /// Varsayılan `.offline`, `mode`un varsayılanıyla (`.offlineZeroCloud`)
+    /// aynı: ekran bir şekilde `presentPaywall` çağrılmadan açılsa bile
+    /// anlattığı havuz seçili modla tutarlı kalıyor.
+    public private(set) var paywallLane: QuotaLane = .offline
+
     /// Offline mod seçili ama model yokken kayıt denendiğinde açılır.
     public var isModelDownloadPresented = false
     /// Uyarıya "Modeli indir" düğmesi eklenmeli mi.
@@ -72,12 +91,50 @@ public final class DashboardViewModel {
         didSet {
             guard oldValue != mode else { return }
             UserDefaults.standard.set(mode.rawValue, forKey: Keys.mode)
+            // Widget etkin havuzun bakiyesini gösteriyor; mod değişince
+            // yayınlamazsak bir sonraki tazelemeye kadar öteki havuzun
+            // sayısında kalırdı.
+            publishSnapshot()
         }
     }
 
     // MARK: Türetilmiş
 
+    /// Seçili modun havuzu. Halka, rozet ve kayıt kapısı bunu kullanıyor.
+    public var activeLane: QuotaLane { QuotaLane(mode: mode) }
+
+    public func remaining(_ lane: QuotaLane) -> Double {
+        lane == .online ? onlineRemainingSeconds : offlineRemainingSeconds
+    }
+
+    public func planMinutes(_ lane: QuotaLane) -> Double {
+        lane == .online ? onlinePlanMinutes : offlinePlanMinutes
+    }
+
+    public var remainingSeconds: Double { remaining(activeLane) }
+    public var planMonthlyMinutes: Double { planMinutes(activeLane) }
     public var remainingMinutes: Double { remainingSeconds / 60.0 }
+
+    public var offlineRemainingMinutes: Double { offlineRemainingSeconds / 60.0 }
+    public var onlineRemainingMinutes: Double { onlineRemainingSeconds / 60.0 }
+
+    /// Kota halkasının VoiceOver değeri.
+    ///
+    /// Düz `String` — dizge sabiti olarak yazılsaydı SwiftUI onu
+    /// `LocalizedStringKey` sayar ve çevrilecek hiçbir sözcük içermeyen
+    /// ("%@: %lld / %lld") bir anahtar sekiz dile dağıtılırdı. Havuz adı
+    /// zaten kendi içinde çevrili geliyor.
+    public var quotaAccessibilityValue: String {
+        "\(activeLane.title): \(Int(remainingMinutes.rounded())) / \(Int(planMonthlyMinutes))"
+    }
+
+    /// Halkanın altındaki iki havuzu birden gösteren satır.
+    ///
+    /// Halka yalnızca etkin havuzu gösteriyor; bu satır olmadan kullanıcı
+    /// öteki havuzda dakikası olduğunu ancak modu değiştirerek anlardı.
+    public var laneSummary: String {
+        String(localized: "Cihaz içi \(Int(offlineRemainingMinutes.rounded())) dk · Bulut \(Int(onlineRemainingMinutes.rounded())) dk")
+    }
 
     /// Kota halkası için 0...1 doluluk.
     public var quotaFraction: Double {
@@ -85,7 +142,16 @@ public final class DashboardViewModel {
         return min(1, max(0, remainingMinutes / planMonthlyMinutes))
     }
 
-    public var isQuotaCritical: Bool { remainingMinutes < 5 }
+    /// Uyarı eşiği: 5 dakika ya da planın beşte biri — hangisi küçükse.
+    ///
+    /// Sabit 5 dakika, havuzlar ayrılıp plan rakamları küçüldüğünde anlamını
+    /// yitiriyordu: 10 dakikalık ücretsiz bulut havuzunda kullanıcı planının
+    /// YARISINI harcadığı anda amber uyarıyı görüyordu. Sürekli yanan bir uyarı
+    /// hiç yanmayanla aynı işe yarar. 200 dakikalık Pro havuzunda ise 5 dakika
+    /// hâlâ doğru an, o yüzden tavan orada duruyor.
+    public var isQuotaCritical: Bool {
+        remainingMinutes < min(5, planMonthlyMinutes * 0.2)
+    }
     public var isQuotaEmpty: Bool { remainingSeconds < 30 }
 
     public var accentColorMode: ProcessingMode { mode }
@@ -132,7 +198,8 @@ public final class DashboardViewModel {
         }
         // Plan dakikası artık QuotaManager'ın kendi deposunda; UserDefaults'ta
         // ikinci bir kopya tutmak iki farklı sayı göstermek demekti.
-        self.planMonthlyMinutes = quotaManager.planMonthlyMinutes()
+        self.offlinePlanMinutes = quotaManager.planMonthlyMinutes(.offline)
+        self.onlinePlanMinutes = quotaManager.planMonthlyMinutes(.online)
     }
 
     deinit {
@@ -170,18 +237,13 @@ public final class DashboardViewModel {
         isSyncing = true
         defer { isSyncing = false }
 
-        remainingSeconds = quotaManager.getRemainingSeconds()
-        planMonthlyMinutes = quotaManager.planMonthlyMinutes()
+        reloadQuota()
         isOfflineModelReady = OfflineModelManager.isOfflineReady()
 
         // Widget kotayı kendi hesaplamıyor; buradan besleniyor.
         // `isOfflineModelReady` üç satır önce okundu; varsayılan argüman aynı
         // JSON okuma + dosya kontrolünü MainActor'da bir kez daha yapardı.
-        QuotaSnapshotPublisher.publish(
-            remainingMinutes: remainingMinutes,
-            planMinutes: planMonthlyMinutes,
-            offlineAvailable: isOfflineModelReady
-        )
+        publishSnapshot()
 
         do {
             notes = try await repository.all()
@@ -277,6 +339,16 @@ public final class DashboardViewModel {
         mode = newMode
     }
 
+    /// Paywall'ı açar ve hangi havuzu anlatacağını söyler.
+    ///
+    /// Havuz verilmezse SEÇİLİ modunki kullanılıyor: kota hapı ve taç düğmesi
+    /// belirli bir havuza takılmadan açıldıkları için kullanıcının o an
+    /// baktığı havuz doğru varsayılan.
+    public func presentPaywall(for lane: QuotaLane? = nil) {
+        paywallLane = lane ?? activeLane
+        isPaywallPresented = true
+    }
+
     /// Uyarı kapandığında iliştirilen durumu da temizler.
     public func dismissError() {
         errorMessage = nil
@@ -317,9 +389,13 @@ public final class DashboardViewModel {
     /// `offlineModelMissing` alıyordu ve o fazdan tekrar deneme yolu yoktu.
     private func canStartRecording(in requestedMode: ProcessingMode) -> Bool {
 
-        remainingSeconds = quotaManager.getRemainingSeconds()
-        guard !isQuotaEmpty else {
-            isPaywallPresented = true
+        // Kapı, kullanıcının SEÇTİĞİ modun havuzuna bakıyor. Etkin havuza
+        // bakmak yanlış olurdu: kayıt başka bir modla da başlatılabiliyor
+        // (widget, kısayol, takvim tetikleyicisi).
+        let lane = QuotaLane(mode: requestedMode)
+        reloadQuota()
+        guard remaining(lane) >= 30 else {
+            presentPaywall(for: lane)
             return false
         }
 
@@ -366,13 +442,35 @@ public final class DashboardViewModel {
                 errorMessage = String(localized: "Kayıtlar okunamadı: \(error.localizedDescription)")
             }
         }
-        remainingSeconds = quotaManager.getRemainingSeconds()
+        reloadQuota()
 
         // Kayıt bittiğinde widget'ı hemen tazele. Yalnızca `refresh()` içinde
         // yayınlansaydı widget bir saate kadar eski bakiyeyi gösterirdi.
+        publishSnapshot()
+    }
+
+    // MARK: Kota tazeleme
+
+    /// İki havuzu ve iki planı birlikte okur.
+    ///
+    /// Tek çağrıda toplanıyor: ayrı ayrı okunsaydı bir yerde havuzlardan
+    /// birini tazelemeyi unutmak sessiz bir bayat sayı üretirdi.
+    private func reloadQuota() {
+        offlineRemainingSeconds = quotaManager.getRemainingSeconds(.offline)
+        onlineRemainingSeconds = quotaManager.getRemainingSeconds(.online)
+        offlinePlanMinutes = quotaManager.planMonthlyMinutes(.offline)
+        onlinePlanMinutes = quotaManager.planMonthlyMinutes(.online)
+    }
+
+    private func publishSnapshot() {
+        // `isOfflineModelReady` çağıranlarda zaten okundu; varsayılan argüman
+        // aynı JSON okuma + dosya kontrolünü MainActor'da tekrarlardı.
         QuotaSnapshotPublisher.publish(
-            remainingMinutes: remainingMinutes,
-            planMinutes: planMonthlyMinutes,
+            lane: activeLane,
+            offlineRemainingMinutes: offlineRemainingMinutes,
+            offlinePlanMinutes: offlinePlanMinutes,
+            onlineRemainingMinutes: onlineRemainingMinutes,
+            onlinePlanMinutes: onlinePlanMinutes,
             offlineAvailable: isOfflineModelReady
         )
     }

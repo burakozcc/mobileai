@@ -2,7 +2,18 @@
 //  QuotaManager.swift
 //  AuraVoice
 //
-//  Dakika bakiyesi yönetimi.
+//  Dakika bakiyesi yönetimi — İKİ AYRI HAVUZ.
+//
+//  Cihaz içi işleme ile bulut işleme bize aynı şeye mal olmuyor: birincisinin
+//  marjinal maliyeti sıfır (kullanıcının kendi işlemcisi), ikincisi her dakika
+//  için sağlayıcıya ödenen gerçek para. Tek havuz bu farkı gizliyordu ve iki
+//  yanlış sonuç doğuruyordu: bulut dakikasını bitiren kullanıcı Zero-Cloud
+//  modunu da kaybediyor, cihaz içinde çalışan kullanıcı ise bize hiçbir
+//  maliyeti olmayan bir işlem için ücretli kotasını yakıyordu.
+//
+//  Bu yüzden bakiye `QuotaLane` başına tutuluyor. Ortak kalan tek şey DÖNEM:
+//  iki havuz da aynı anda, aynı takvim sınırında yenileniyor — kullanıcının
+//  aklında iki farklı yenileme tarihi tutmasını istemiyoruz.
 //
 //  Depolama enjekte edilebilir: üretimde Keychain, testte bellek içi. Bu ayrım
 //  CI'da ortaya çıkan gerçek bir hatadan doğdu — eski sürüm `SecItemAdd`/
@@ -13,22 +24,41 @@
 import Foundation
 import Security
 
+// MARK: - Havuz köprüsü
+
+/// `QuotaLane` App Group sınırındaki `SharedLaunchContract.swift` içinde
+/// tanımlı (widget de havuz biliyor). `ProcessingMode` ise uzantı hedefine
+/// girmiyor, bu yüzden köprü burada.
+///
+/// `ProcessingMode` kullanıcıya gösterilen SEÇİM, `QuotaLane` o seçimin
+/// faturalandığı havuz. İkisi bugün birebir eşleşiyor ama aynı şey değiller:
+/// bulut isteği cihaz içi motora düştüğünde seçim `online` kalır, düşülen
+/// havuz `offline` olur — parayı harcamayan iş, para havuzunu da yakmamalı.
+extension QuotaLane {
+
+    public init(mode: ProcessingMode) {
+        self = mode == .onlineCloudFast ? .online : .offline
+    }
+}
+
 // MARK: - Depolama Sözleşmesi
 
 public protocol QuotaStorage: Sendable {
-    func readBalanceSeconds() -> Double?
+
+    func readBalanceSeconds(_ lane: QuotaLane) -> Double?
     /// `false` → yazma başarısız; çağıran bunu kullanıcıya yansıtmalı.
-    @discardableResult func writeBalanceSeconds(_ seconds: Double) -> Bool
+    @discardableResult func writeBalanceSeconds(_ seconds: Double, lane: QuotaLane) -> Bool
+
+    /// Yürürlükteki planın o havuz için aylık dakikası. Yenilemede bakiye buna eşitleniyor.
+    func readPlanMinutes(_ lane: QuotaLane) -> Double?
+    @discardableResult func writePlanMinutes(_ minutes: Double, lane: QuotaLane) -> Bool
+
     func isBootstrapped() -> Bool
     @discardableResult func markBootstrapped() -> Bool
 
-    /// İçinde bulunulan kota döneminin başlangıcı. Aylık yenileme buna dayanıyor.
+    /// İçinde bulunulan kota döneminin başlangıcı — İKİ HAVUZ İÇİN ORTAK.
     func readPeriodStart() -> Date?
     @discardableResult func writePeriodStart(_ date: Date) -> Bool
-
-    /// Yürürlükteki planın aylık dakikası. Yenilemede bakiye buna eşitleniyor.
-    func readPlanMinutes() -> Double?
-    @discardableResult func writePlanMinutes(_ minutes: Double) -> Bool
 }
 
 // MARK: - Keychain Uygulaması
@@ -36,28 +66,37 @@ public protocol QuotaStorage: Sendable {
 public final class KeychainQuotaStorage: QuotaStorage {
 
     private let service: String
-    private let quotaKey = "remaining_seconds_balance"
-    private let bootstrapKey = "free_grant_issued_v1"
+    // Anahtarlar havuz adıyla türetiliyor. Tek havuzlu sürümün anahtarları
+    // (`remaining_seconds_balance`) bilerek KULLANILMIYOR: aynı isme iki farklı
+    // anlam yüklemek, güncellenen bir cihazda bulut bakiyesini cihaz içi
+    // bakiyesi sanmak demekti. Eski kayıt varsa öksüz kalıyor, zararsız.
+    private let bootstrapKey = "free_grant_issued_v2"
     private let periodKey = "quota_period_start_epoch"
-    private let planKey = "quota_plan_monthly_minutes"
 
     public init(service: String = "com.auravoice.quota") {
         self.service = service
     }
 
-    public func readBalanceSeconds() -> Double? {
-        guard let data = read(key: quotaKey),
-              let text = String(data: data, encoding: .utf8),
-              let value = Double(text)
-        else { return nil }
-        return value
+    private func balanceKey(_ lane: QuotaLane) -> String { "remaining_seconds_\(lane.rawValue)_v2" }
+    private func planKey(_ lane: QuotaLane) -> String { "plan_minutes_\(lane.rawValue)_v2" }
+
+    public func readBalanceSeconds(_ lane: QuotaLane) -> Double? {
+        readDouble(key: balanceKey(lane))
     }
 
     @discardableResult
-    public func writeBalanceSeconds(_ seconds: Double) -> Bool {
+    public func writeBalanceSeconds(_ seconds: Double, lane: QuotaLane) -> Bool {
         let rounded = (max(0, seconds) * 1000).rounded() / 1000
-        guard let data = "\(rounded)".data(using: .utf8) else { return false }
-        return write(data, key: quotaKey)
+        return writeDouble(rounded, key: balanceKey(lane))
+    }
+
+    public func readPlanMinutes(_ lane: QuotaLane) -> Double? {
+        readDouble(key: planKey(lane))
+    }
+
+    @discardableResult
+    public func writePlanMinutes(_ minutes: Double, lane: QuotaLane) -> Bool {
+        writeDouble(max(0, minutes), key: planKey(lane))
     }
 
     public func readPeriodStart() -> Date? {
@@ -70,17 +109,13 @@ public final class KeychainQuotaStorage: QuotaStorage {
         writeDouble(date.timeIntervalSince1970, key: periodKey)
     }
 
-    public func readPlanMinutes() -> Double? {
-        readDouble(key: planKey)
+    public func isBootstrapped() -> Bool {
+        read(key: bootstrapKey) != nil
     }
 
     @discardableResult
-    public func writePlanMinutes(_ minutes: Double) -> Bool {
-        writeDouble(max(0, minutes), key: planKey)
-    }
-
-    public func isBootstrapped() -> Bool {
-        read(key: bootstrapKey) != nil
+    public func markBootstrapped() -> Bool {
+        write(Data([1]), key: bootstrapKey)
     }
 
     // MARK: Sayısal alanlar
@@ -96,11 +131,6 @@ public final class KeychainQuotaStorage: QuotaStorage {
     private func writeDouble(_ value: Double, key: String) -> Bool {
         guard let data = "\(value)".data(using: .utf8) else { return false }
         return write(data, key: key)
-    }
-
-    @discardableResult
-    public func markBootstrapped() -> Bool {
-        write(Data([1]), key: bootstrapKey)
     }
 
     // MARK: Keychain temel işlemleri
@@ -167,32 +197,75 @@ public final class KeychainQuotaStorage: QuotaStorage {
 public final class InMemoryQuotaStorage: QuotaStorage, @unchecked Sendable {
 
     private let lock = NSLock()
-    private var balance: Double?
+    private var balances: [QuotaLane: Double]
+    private var plans: [QuotaLane: Double]
     private var bootstrapped: Bool
     private var periodStart: Date?
-    private var planMinutes: Double?
 
     public init(
-        initialSeconds: Double? = nil,
+        offlineSeconds: Double? = nil,
+        onlineSeconds: Double? = nil,
+        bootstrapped: Bool = false,
+        periodStart: Date? = nil,
+        offlinePlanMinutes: Double? = nil,
+        onlinePlanMinutes: Double? = nil
+    ) {
+        // Sözlüğe `nil` atamak anahtarı SİLİYOR; "yazılmamış" ile "sıfır"
+        // arasındaki fark böyle korunuyor. Kurulum (`bootstrapIfNeeded`)
+        // yalnızca yazılmamış havuza hediye veriyor.
+        var balances: [QuotaLane: Double] = [:]
+        balances[.offline] = offlineSeconds
+        balances[.online] = onlineSeconds
+        self.balances = balances
+
+        var plans: [QuotaLane: Double] = [:]
+        plans[.offline] = offlinePlanMinutes
+        plans[.online] = onlinePlanMinutes
+        self.plans = plans
+
+        self.bootstrapped = bootstrapped
+        self.periodStart = periodStart
+    }
+
+    /// İki havuza da aynı değeri koyan kısayol — havuz ayrımını sınamayan
+    /// testler bununla tek satırda kuruluyor.
+    public convenience init(
+        initialSeconds: Double,
         bootstrapped: Bool = false,
         periodStart: Date? = nil,
         planMinutes: Double? = nil
     ) {
-        self.balance = initialSeconds
-        self.bootstrapped = bootstrapped
-        self.periodStart = periodStart
-        self.planMinutes = planMinutes
+        self.init(
+            offlineSeconds: initialSeconds,
+            onlineSeconds: initialSeconds,
+            bootstrapped: bootstrapped,
+            periodStart: periodStart,
+            offlinePlanMinutes: planMinutes,
+            onlinePlanMinutes: planMinutes
+        )
     }
 
-    public func readBalanceSeconds() -> Double? {
+    public func readBalanceSeconds(_ lane: QuotaLane) -> Double? {
         lock.lock(); defer { lock.unlock() }
-        return balance
+        return balances[lane]
     }
 
     @discardableResult
-    public func writeBalanceSeconds(_ seconds: Double) -> Bool {
+    public func writeBalanceSeconds(_ seconds: Double, lane: QuotaLane) -> Bool {
         lock.lock(); defer { lock.unlock() }
-        balance = max(0, seconds)
+        balances[lane] = max(0, seconds)
+        return true
+    }
+
+    public func readPlanMinutes(_ lane: QuotaLane) -> Double? {
+        lock.lock(); defer { lock.unlock() }
+        return plans[lane]
+    }
+
+    @discardableResult
+    public func writePlanMinutes(_ minutes: Double, lane: QuotaLane) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        plans[lane] = max(0, minutes)
         return true
     }
 
@@ -219,18 +292,6 @@ public final class InMemoryQuotaStorage: QuotaStorage, @unchecked Sendable {
         periodStart = date
         return true
     }
-
-    public func readPlanMinutes() -> Double? {
-        lock.lock(); defer { lock.unlock() }
-        return planMinutes
-    }
-
-    @discardableResult
-    public func writePlanMinutes(_ minutes: Double) -> Bool {
-        lock.lock(); defer { lock.unlock() }
-        planMinutes = max(0, minutes)
-        return true
-    }
 }
 
 // MARK: - Yönetici
@@ -239,9 +300,22 @@ public final class QuotaManager: Sendable {
 
     public static let shared = QuotaManager(storage: KeychainQuotaStorage())
 
-    /// Ücretsiz planın AYLIK dakikası.
-    public static let freeTierMinutes: Double = 30
-    public static let freeTierSeconds: Double = freeTierMinutes * 60
+    /// Ücretsiz planın AYLIK dakikaları.
+    ///
+    /// Cihaz içi rakamın büyük olması bilinçli: o dakikalar bize sağlayıcı
+    /// faturası çıkarmıyor, bulut dakikası ise her biri için ödenen para.
+    /// Rakamlar ürün kararı ve tek yerde duruyor — değiştirmek bu iki satırı
+    /// düzenlemek demek; arayüz metinleri sayıyı buradan okuyup yerleştiriyor,
+    /// çeviriye dokunmak gerekmiyor.
+    public static let freeOfflineMinutes: Double = 20
+    public static let freeOnlineMinutes: Double = 10
+
+    public static func freeMinutes(_ lane: QuotaLane) -> Double {
+        switch lane {
+        case .offline: return freeOfflineMinutes
+        case .online:  return freeOnlineMinutes
+        }
+    }
 
     private let storage: any QuotaStorage
     private let calendar: Calendar
@@ -253,26 +327,29 @@ public final class QuotaManager: Sendable {
 
     // MARK: Okuma
 
-    public func getRemainingSeconds(now: Date = Date()) -> Double {
+    public func getRemainingSeconds(_ lane: QuotaLane, now: Date = Date()) -> Double {
         bootstrapIfNeeded(now: now)
         renewIfNeeded(now: now)
-        return max(0, storage.readBalanceSeconds() ?? 0)
+        return max(0, storage.readBalanceSeconds(lane) ?? 0)
     }
 
-    public func getRemainingMinutes(now: Date = Date()) -> Double {
-        getRemainingSeconds(now: now) / 60.0
+    public func getRemainingMinutes(_ lane: QuotaLane, now: Date = Date()) -> Double {
+        getRemainingSeconds(lane, now: now) / 60.0
     }
 
-    public func canProcess(durationSeconds: Double, now: Date = Date()) -> Bool {
-        getRemainingSeconds(now: now) >= durationSeconds
+    public func canProcess(durationSeconds: Double, lane: QuotaLane, now: Date = Date()) -> Bool {
+        getRemainingSeconds(lane, now: now) >= durationSeconds
     }
 
-    /// Yürürlükteki planın aylık dakikası. Plan yazılmamışsa ücretsiz plan.
-    public func planMonthlyMinutes() -> Double {
-        storage.readPlanMinutes() ?? Self.freeTierMinutes
+    /// Yürürlükteki planın o havuz için aylık dakikası. Plan yazılmamışsa ücretsiz plan.
+    public func planMonthlyMinutes(_ lane: QuotaLane) -> Double {
+        storage.readPlanMinutes(lane) ?? Self.freeMinutes(lane)
     }
 
     /// Bakiyenin bir sonraki yenileneceği an — paywall ve panel bunu gösteriyor.
+    ///
+    /// Havuz parametresi YOK: dönem ikisi için ortak. Havuz başına ayrı tarih
+    /// olsaydı kullanıcı iki yenileme günü ezberlemek zorunda kalırdı.
     public func nextRenewalDate(now: Date = Date()) -> Date? {
         bootstrapIfNeeded(now: now)
         guard let start = storage.readPeriodStart() else { return nil }
@@ -282,41 +359,50 @@ public final class QuotaManager: Sendable {
 
     // MARK: Yazma
 
-    public func deductUsage(durationSeconds: Double, now: Date = Date()) throws {
-        let currentBalance = getRemainingSeconds(now: now)
+    public func deductUsage(durationSeconds: Double, lane: QuotaLane, now: Date = Date()) throws {
+        let currentBalance = getRemainingSeconds(lane, now: now)
         guard currentBalance >= durationSeconds else {
             throw AuraError.insufficientQuota(
                 requiredSeconds: durationSeconds,
-                availableSeconds: currentBalance
+                availableSeconds: currentBalance,
+                lane: lane
             )
         }
-        guard storage.writeBalanceSeconds(currentBalance - durationSeconds) else {
+        guard storage.writeBalanceSeconds(currentBalance - durationSeconds, lane: lane) else {
             throw AuraError.quotaStorageUnavailable
         }
     }
 
+    /// Tek havuza dakika ekler — imzalı bilet ve mağaza doğrulaması bunu çağırıyor.
     @discardableResult
-    public func addMinutesFromSubscription(_ minutes: Double) -> Bool {
-        storage.writeBalanceSeconds(getRemainingSeconds() + (minutes * 60.0))
+    public func addMinutes(_ minutes: Double, lane: QuotaLane, now: Date = Date()) -> Bool {
+        storage.writeBalanceSeconds(
+            getRemainingSeconds(lane, now: now) + (minutes * 60.0),
+            lane: lane
+        )
     }
 
-    /// RevenueCat yenileme döngüsünde bakiyeyi plan kotasına eşitler.
+    /// Abonelik değiştiğinde iki havuzun planını ve dönemi birlikte yazar.
+    ///
+    /// Sıra önemli: plan → bakiye → dönem. Dönem en sonda, çünkü ondan önceki
+    /// bir yazma başarısız olursa dönem ilerlememeli; ilerleseydi kullanıcı o
+    /// ayı hiç almamış olurdu.
     @discardableResult
-    public func resetBalance(toMinutes minutes: Double, now: Date = Date()) -> Bool {
-        setPlan(monthlyMinutes: minutes, now: now)
-    }
-
-    /// Abonelik değiştiğinde planı ve dönemi birlikte yazar.
-    @discardableResult
-    public func setPlan(monthlyMinutes: Double, now: Date = Date()) -> Bool {
-        guard storage.writePlanMinutes(monthlyMinutes) else { return false }
-        guard storage.writeBalanceSeconds(max(0, monthlyMinutes * 60)) else { return false }
+    public func setPlan(offlineMinutes: Double, onlineMinutes: Double, now: Date = Date()) -> Bool {
+        // Sözlük değil DİZİ: sözlük üzerinde yineleme sırası belirsiz ve
+        // yazma yarıda kaldığında hangi havuzun yazılmış olduğu çalıştırmadan
+        // çalıştırmaya değişirdi.
+        let values: [(QuotaLane, Double)] = [(.offline, offlineMinutes), (.online, onlineMinutes)]
+        for (lane, minutes) in values {
+            guard storage.writePlanMinutes(minutes, lane: lane) else { return false }
+            guard storage.writeBalanceSeconds(max(0, minutes * 60), lane: lane) else { return false }
+        }
         return storage.writePeriodStart(now)
     }
 
     // MARK: Aylık yenileme
 
-    /// Dönem dolduysa bakiyeyi plan dakikasına eşitler.
+    /// Dönem dolduysa İKİ havuzu da kendi plan dakikasına eşitler.
     ///
     /// Uykuda kalan kullanıcı biriktiremez: kaç ay geçmiş olursa olsun bakiye
     /// TEK dönemlik değere çekilir ve dönem başlangıcı bugüne en yakın sınıra
@@ -332,9 +418,13 @@ public final class QuotaManager: Sendable {
         let current = Self.currentPeriodStart(anchor: start, now: now, calendar: calendar)
         guard current > start else { return }
 
-        // Önce bakiye, sonra dönem. Ters sırada olsaydı bakiye yazımı
+        // Önce iki bakiye, sonra dönem. Ters sırada olsaydı bakiye yazımı
         // başarısız olduğunda dönem ilerler ve kullanıcı o ayı kaybederdi.
-        guard storage.writeBalanceSeconds(planMonthlyMinutes() * 60) else { return }
+        // Yazma bakiyeyi ARTIRMIYOR, plan değerine EŞİTLİYOR; yarıda kalıp
+        // tekrar denenmesi bu yüzden zararsız.
+        for lane in QuotaLane.allCases {
+            guard storage.writeBalanceSeconds(planMonthlyMinutes(lane) * 60, lane: lane) else { return }
+        }
         storage.writePeriodStart(current)
     }
 
@@ -355,15 +445,15 @@ public final class QuotaManager: Sendable {
 
     /// İlk açılışta bir kez ücretsiz dakikaları yükler ve ilk dönemi başlatır.
     ///
-    /// Sıra önemli: önce bakiye yazılıyor, yazma BAŞARILIYSA bayrak konuyor.
+    /// Sıra önemli: önce bakiyeler yazılıyor, yazma BAŞARILIYSA bayrak konuyor.
     /// Tersi olsaydı (eski hali) Keychain yazımı başarısız olan bir cihazda
     /// hediye bir daha asla verilmezdi — cihaz ilk kilit açılmadan arka planda
     /// başlatıldığında bu gerçekten olabiliyor.
     private func bootstrapIfNeeded(now: Date) {
         guard !storage.isBootstrapped() else { return }
 
-        if storage.readBalanceSeconds() == nil {
-            guard storage.writeBalanceSeconds(Self.freeTierSeconds) else { return }
+        for lane in QuotaLane.allCases where storage.readBalanceSeconds(lane) == nil {
+            guard storage.writeBalanceSeconds(Self.freeMinutes(lane) * 60, lane: lane) else { return }
         }
         guard storage.writePeriodStart(now) else { return }
         storage.markBootstrapped()

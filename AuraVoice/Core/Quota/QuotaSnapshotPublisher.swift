@@ -19,28 +19,47 @@ public enum QuotaSnapshotPublisher {
     /// Her tazelemede körlemesine `reloadAllTimelines` çağırmak iOS'un widget
     /// yenileme bütçesini tüketiyor ve bir süre sonra widget'ı bayat
     /// bırakıyor — bu yüzden değişiklik kontrolü var.
+    /// - Parameter lane: Widget'ın büyük sayı olarak göstereceği havuz.
+    ///   `nil` → yayında duran havuz KORUNUR. Modu bilmeyen ekranlar (Ayarlar
+    ///   içindeki model indirme gibi) bunu kullanmalı; sabit bir havuz
+    ///   geçmeleri, bulut modundaki kullanıcının widget'ını sessizce cihaz içi
+    ///   havuza çevirirdi.
     @discardableResult
     public static func publish(
-        remainingMinutes: Double,
-        planMinutes: Double,
+        lane: QuotaLane?,
+        offlineRemainingMinutes: Double,
+        offlinePlanMinutes: Double,
+        onlineRemainingMinutes: Double,
+        onlinePlanMinutes: Double,
         offlineAvailable: Bool = OfflineModelManager.isOfflineReady(),
         now: Date = Date()
     ) -> Bool {
 
         let existing = SharedQuotaSnapshot.read()
+        let snapshot = SharedQuotaSnapshot(
+            lane: lane ?? existing?.lane ?? .offline,
+            offlineRemainingMinutes: max(0, offlineRemainingMinutes),
+            offlinePlanMinutes: max(0, offlinePlanMinutes),
+            onlineRemainingMinutes: max(0, onlineRemainingMinutes),
+            onlinePlanMinutes: max(0, onlinePlanMinutes),
+            updatedAt: now,
+            offlineAvailable: offlineAvailable
+        )
+
+        // Karşılaştırma İKİ havuzu ve etkin havuzun kimliğini de kapsıyor.
+        // Yalnızca gösterilen sayıya bakılsaydı, iki havuzun bakiyesi eşitken
+        // yapılan mod değişimi yayınlanmaz ve widget yanlış etiketle kalırdı.
         if let existing,
-           abs(existing.remainingMinutes - remainingMinutes) < 0.01,
-           abs(existing.planMinutes - planMinutes) < 0.01,
-           existing.offlineAvailable == offlineAvailable {
+           existing.lane == snapshot.lane,
+           existing.offlineAvailable == snapshot.offlineAvailable,
+           abs(existing.offlineRemainingMinutes - snapshot.offlineRemainingMinutes) < 0.01,
+           abs(existing.offlinePlanMinutes - snapshot.offlinePlanMinutes) < 0.01,
+           abs(existing.onlineRemainingMinutes - snapshot.onlineRemainingMinutes) < 0.01,
+           abs(existing.onlinePlanMinutes - snapshot.onlinePlanMinutes) < 0.01 {
             return false
         }
 
-        SharedQuotaSnapshot(
-            remainingMinutes: max(0, remainingMinutes),
-            planMinutes: max(0, planMinutes),
-            updatedAt: now,
-            offlineAvailable: offlineAvailable
-        ).write()
+        snapshot.write()
 
         WidgetCenter.shared.reloadAllTimelines()
         return true

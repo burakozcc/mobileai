@@ -13,11 +13,17 @@
 //  KANONİK İMZA GÖVDESİ — sunucu tarafı bunu birebir üretmek zorunda.
 //  Alanlar '|' ile birleştirilir, UTF-8 olarak kodlanır ve imzalanır:
 //
-//      aura.ticket.v1|<id>|<subject>|<plan>|<milliminutes>|<issuedAtMs>|<expiresAtMs>
+//      aura.ticket.v2|<id>|<subject>|<plan>|<lane>|<milliminutes>|<issuedAtMs>|<expiresAtMs>
 //
+//  · lane         : "offline" | "online" — dakikanın hangi havuza yazılacağı
 //  · milliminutes : dakikanın binde biri, tamsayı  → Int64((minutes*1000).rounded())
 //  · issuedAtMs   : epoch'tan beri milisaniye, tamsayı
 //  · expiresAtMs  : epoch'tan beri milisaniye, tamsayı
+//
+//  `lane` v2 ile geldi ve sürüm bilerek yükseltildi: alanı sessizce eklemek,
+//  eski bir sunucunun ürettiği biletin YENİ bir anlamla doğrulanması demekti.
+//  Sürüm dizgesi imzalanan gövdenin parçası olduğu için v1 bilet artık
+//  doğrulamadan geçemez — istenen davranış.
 //
 //  Ondalık ayraç ve tarih biçimi tartışması olmasın diye her sayısal alan
 //  tamsayıya indirgendi; yerel ayarların imzayı bozması mümkün değil.
@@ -30,7 +36,7 @@ import CryptoKit
 
 public struct MinuteTicket: Sendable, Equatable {
 
-    public static let version = "aura.ticket.v1"
+    public static let version = "aura.ticket.v2"
 
     /// Tekrar kullanımı engelleyen tekil kimlik (nonce).
     public let id: String
@@ -38,6 +44,9 @@ public struct MinuteTicket: Sendable, Equatable {
     public let subject: String
     /// Abonelik planı etiketi — kayıt ve destek için, doğrulamada rol oynamaz.
     public let plan: String
+    /// Dakikanın yazılacağı havuz. İmzalı gövdenin parçası: cihaz, sunucunun
+    /// verdiği bulut dakikasını cihaz içi havuza (ya da tersine) taşıyamaz.
+    public let lane: QuotaLane
     public let minutes: Double
     public let issuedAt: Date
     public let expiresAt: Date
@@ -46,6 +55,7 @@ public struct MinuteTicket: Sendable, Equatable {
         id: String,
         subject: String,
         plan: String,
+        lane: QuotaLane,
         minutes: Double,
         issuedAt: Date,
         expiresAt: Date
@@ -53,6 +63,7 @@ public struct MinuteTicket: Sendable, Equatable {
         self.id = id
         self.subject = subject
         self.plan = plan
+        self.lane = lane
         self.minutes = minutes
         self.issuedAt = issuedAt
         self.expiresAt = expiresAt
@@ -71,6 +82,7 @@ public struct MinuteTicket: Sendable, Equatable {
             id,
             subject,
             plan,
+            lane.rawValue,
             String(milliMinutes),
             String(issuedAtMillis),
             String(expiresAtMillis)
@@ -92,7 +104,7 @@ public struct MinuteTicket: Sendable, Equatable {
 extension MinuteTicket: Codable {
 
     private enum CodingKeys: String, CodingKey {
-        case id, subject, plan, minutes, issuedAtMs, expiresAtMs
+        case id, subject, plan, lane, minutes, issuedAtMs, expiresAtMs
     }
 
     public init(from decoder: Decoder) throws {
@@ -100,6 +112,9 @@ extension MinuteTicket: Codable {
         self.id = try container.decode(String.self, forKey: .id)
         self.subject = try container.decode(String.self, forKey: .subject)
         self.plan = try container.decodeIfPresent(String.self, forKey: .plan) ?? ""
+        // `lane` için varsayılan YOK. Eksik alanı bir havuza varsaymak,
+        // sunucunun söylemediği bir şeyi uydurmak olurdu; eksikse bilet bozuk.
+        self.lane = try container.decode(QuotaLane.self, forKey: .lane)
         self.minutes = try container.decode(Double.self, forKey: .minutes)
         self.issuedAt = MinuteTicket.date(fromMillis: try container.decode(Int64.self, forKey: .issuedAtMs))
         self.expiresAt = MinuteTicket.date(fromMillis: try container.decode(Int64.self, forKey: .expiresAtMs))
@@ -110,6 +125,7 @@ extension MinuteTicket: Codable {
         try container.encode(id, forKey: .id)
         try container.encode(subject, forKey: .subject)
         try container.encode(plan, forKey: .plan)
+        try container.encode(lane, forKey: .lane)
         try container.encode(minutes, forKey: .minutes)
         try container.encode(issuedAtMillis, forKey: .issuedAtMs)
         try container.encode(expiresAtMillis, forKey: .expiresAtMs)

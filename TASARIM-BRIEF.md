@@ -44,9 +44,22 @@ dinleme yok. Kayıt her zaman bilinçli bir eylemle başlar. Tasarım asla
 uygulama **proaktif**: takvimde toplantı görünce "başlatmak ister misin?" diye
 bildirim atar, telefon görüşmesi bağlanınca hatırlatır.
 
-**2. Dakika kotası gerçek bir kısıt.** Ücretsiz plan ayda 30 dakika, Pro plan
-600-1200 dakika. Kullanıcı kalan dakikasını sürekli hissetmeli — ama bu bir
-tehdit değil, bir gösterge gibi durmalı. Kota bittiğinde kayıt butonu kilitlenir.
+**2. Dakika kotası gerçek bir kısıt — ve İKİ AYRI havuz.** Cihaz içi işleme ile
+bulut işleme ayrı ölçülüyor: ücretsiz planda 20 dakika cihaz içi + 10 dakika
+bulut, Pro planda 250 + 200. Cihaz içi rakam her iki planda da buluttan yüksek,
+çünkü o dakikalar bize sağlayıcı faturası çıkarmıyor.
+
+Ücretsiz planın rakamları KÜÇÜK ve bu bilinçli: kullanıcı ürünü ilk günden
+tanıyacak kadar kullanıyor, alışkanlık kuracak kadar değil. Tasarımın kotayı
+görünür tutması bu yüzden daha da önemli.
+
+Tasarım açısından önemi şu: kullanıcı "dakikam bitti" duvarına çoğu zaman
+TOSLAMIYOR. Bulut dakikası bittiğinde cihaz içi dakikası duruyor olabilir ve
+ekranın söylemesi gereken ilk şey o. Kalan dakika göstergesi seçili modun
+havuzunu gösteriyor, altında iki havuzu birden yazan bir satır var.
+
+Bu bir tehdit değil, bir gösterge gibi durmalı. Kayıt butonu yalnızca SEÇİLİ
+modun havuzu bittiğinde kilitlenir.
 
 ### Platform ve teknik kısıtlar
 
@@ -123,14 +136,18 @@ gerekçesiyle** iste — hepsini bir anda isteme. Mikrofon zorunlu; takvim ve
 bildirim opsiyonel ama değeri anlatılmalı ("toplantın başlamadan hatırlatayım").
 
 **7. Paywall (YENİ)**
-Ücretsiz 30 dakika bitince veya kullanıcı Pro'ya bakınca. Planlar, dakika
-karşılıkları, offline modun ücretsiz planda da çalıştığı vurgusu.
+Seçili modun havuzu bitince veya kullanıcı Pro'ya bakınca. Planlar, her plan
+için İKİ dakika rakamı (cihaz içi + bulut), ve öteki havuzda dakika kaldıysa
+"Zero-Cloud modunda devam et" çıkışı — bu düğme artık gerçekten çalışan bir
+yola gidiyor, tek havuzluyken gitmiyordu.
 
 ### Her ekran için gereken durumlar
 
 Bunları atlarsan tasarım eksik kalır:
 
-- **Kota:** normal / kritik (5 dakikadan az, amber) / bitmiş (kayıt kilitli)
+- **Kota (havuz başına):** normal / kritik (5 dakikadan az, amber) / bitmiş
+  (o modda kayıt kilitli). Ayrıca "bu havuz bitti ama öteki dolu" durumu —
+  paywall'ın en sık göreceği hâl.
 - **Offline model:** indirilmemiş / indiriliyor (%) / kurulu
 - **Kayıt:** boşta / kaydediyor / duraklatıldı / işleniyor / hata
 - **İzin:** sorulmadı / verildi / reddedildi (Ayarlar'a yönlendirme)

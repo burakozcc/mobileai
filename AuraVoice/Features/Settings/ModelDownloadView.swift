@@ -135,9 +135,15 @@ public final class ModelDownloadViewModel {
         // Ayarlar'dan ilk modeli indiren kullanıcı için bu yayın olmadan
         // widget, uygulama arka plana atılıp geri getirilene kadar bayat
         // kalıyordu.
+        // Havuz `nil`: bu ekran kullanıcının SEÇİLİ MODUNU bilmiyor. Sabit
+        // `.offline` geçmek, bulut modundaki kullanıcı Ayarlar'dan bir model
+        // indirdiğinde widget'ını sessizce cihaz içi havuza çevirirdi.
         QuotaSnapshotPublisher.publish(
-            remainingMinutes: quota.getRemainingMinutes(),
-            planMinutes: quota.planMonthlyMinutes(),
+            lane: nil,
+            offlineRemainingMinutes: quota.getRemainingMinutes(.offline),
+            offlinePlanMinutes: quota.planMonthlyMinutes(.offline),
+            onlineRemainingMinutes: quota.getRemainingMinutes(.online),
+            onlinePlanMinutes: quota.planMonthlyMinutes(.online),
             offlineAvailable: OfflineModelManager.isOfflineReady()
         )
     }

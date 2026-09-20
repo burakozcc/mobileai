@@ -592,7 +592,9 @@ public struct RecordingView: View {
             return
         }
 
-        allowanceSeconds = QuotaManager.shared.getRemainingSeconds()
+        // Kaydı durduran sınır, İSTENEN modun havuzu. Etkin havuza bakmak
+        // yanlış olurdu: bu ekran kendi moduyla açılıyor.
+        allowanceSeconds = QuotaManager.shared.getRemainingSeconds(QuotaLane(mode: intent.mode))
 
         do {
             try recorder.startRecording()

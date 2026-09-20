@@ -23,8 +23,11 @@ struct QuotaEntry: TimelineEntry, Sendable {
     static let placeholder = QuotaEntry(
         date: Date(timeIntervalSince1970: 0),
         snapshot: SharedQuotaSnapshot(
-            remainingMinutes: 30,
-            planMinutes: 30,
+            lane: .offline,
+            offlineRemainingMinutes: 20,
+            offlinePlanMinutes: 20,
+            onlineRemainingMinutes: 10,
+            onlinePlanMinutes: 10,
             updatedAt: Date(timeIntervalSince1970: 0),
             offlineAvailable: true
         )
@@ -63,6 +66,9 @@ struct QuotaWidgetView: View {
 
     private var fraction: Double { entry.snapshot?.fraction ?? 0 }
     private var isEmpty: Bool { entry.snapshot?.isEmpty ?? true }
+    /// Gösterilen sayının ait olduğu havuz. Etiketsiz bir rakam, kullanıcı
+    /// modunu değiştirdiğinde sebepsiz zıplıyor gibi görünürdü.
+    private var laneTitle: String { (entry.snapshot?.lane ?? .offline).title }
     /// Kayıt başlatılabilir mi.
     ///
     /// Yalnızca KOTA kapısı var. Model kapısını buraya koymak yanlıştı: bu
@@ -106,6 +112,9 @@ struct QuotaWidgetView: View {
                 .font(.caption2.weight(.semibold))
             Text(isEmpty ? "Kota bitti" : "\(minutes) dakika kaldı")
                 .font(.headline)
+            Text(laneTitle)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             ProgressView(value: fraction)
                 .progressViewStyle(.linear)
         }
@@ -134,6 +143,9 @@ struct QuotaWidgetView: View {
                 Text(isEmpty ? "dakika kalmadı" : "dakika kaldı")
                     .font(.system(size: 12))
                     .foregroundStyle(WidgetTheme.onSurfaceVariant)
+                Text(laneTitle)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(WidgetTheme.onSurfaceVariant.opacity(0.7))
             }
 
             // İnteraktif widget: uygulamayı açıp kayıt ekranını hazırlıyor.

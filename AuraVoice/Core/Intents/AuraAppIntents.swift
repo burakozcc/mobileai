@@ -166,12 +166,25 @@ public struct RemainingMinutesIntent: AppIntent {
     public init() {}
 
     public func perform() async throws -> some IntentResult & ProvidesDialog & ReturnsValue<Int> {
-        let minutes = Int(QuotaManager.shared.getRemainingMinutes().rounded(.down))
-        let sentence = minutes > 0
-            ? String(localized: "AuraVoice'ta \(minutes) dakikan kaldı.")
-            : String(localized: "AuraVoice kotan bitti. Yeni dakika eklemek için uygulamayı aç.")
+        let offline = Int(QuotaManager.shared.getRemainingMinutes(.offline).rounded(.down))
+        let online = Int(QuotaManager.shared.getRemainingMinutes(.online).rounded(.down))
 
-        return .result(value: minutes, dialog: IntentDialog(stringLiteral: sentence))
+        // Dönen SAYI iki havuzun toplamı: Siri'nin okuduğu cümle ayrıntıyı
+        // veriyor ama kısayol zincirinde kullanılan değer tek bir sayı olmak
+        // zorunda ve "kaç dakikam kaldı" sorusunun toplam dışında bir cevabı yok.
+        let total = offline + online
+        let sentence: String
+        if total <= 0 {
+            sentence = String(localized: "AuraVoice kotan bitti. Yeni dakika eklemek için uygulamayı aç.")
+        } else if online <= 0 {
+            sentence = String(localized: "AuraVoice'ta bulut dakikan bitti, cihaz içi \(offline) dakikan kaldı.")
+        } else if offline <= 0 {
+            sentence = String(localized: "AuraVoice'ta cihaz içi dakikan bitti, bulutta \(online) dakikan kaldı.")
+        } else {
+            sentence = String(localized: "AuraVoice'ta cihaz içi \(offline) dakika, bulutta \(online) dakika kaldı.")
+        }
+
+        return .result(value: total, dialog: IntentDialog(stringLiteral: sentence))
     }
 }
 

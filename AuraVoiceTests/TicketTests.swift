@@ -19,6 +19,7 @@ private func makeTicket(
     id: String = UUID().uuidString,
     subject: String = "device-1",
     plan: String = "pro",
+    lane: QuotaLane = .online,
     minutes: Double = 60,
     issuedAt: Date = anchor,
     validFor: TimeInterval = 3_600
@@ -27,6 +28,7 @@ private func makeTicket(
         id: id,
         subject: subject,
         plan: plan,
+        lane: lane,
         minutes: minutes,
         issuedAt: issuedAt,
         expiresAt: issuedAt.addingTimeInterval(validFor)
@@ -181,7 +183,57 @@ struct MinuteTicketSignatureTests {
     @Test("Kanonik gövde sürüm etiketiyle başlar")
     func canonicalPayloadIsVersioned() {
         let payload = String(decoding: makeTicket().canonicalPayload, as: UTF8.self)
-        #expect(payload.hasPrefix("aura.ticket.v1|"))
+        #expect(payload.hasPrefix("aura.ticket.v2|"))
+    }
+}
+
+// MARK: - Havuz
+
+@Suite("Bilet havuzu")
+struct TicketLaneTests {
+
+    private let signer = TicketSigner()
+
+    @Test("Bilet dakikayı yalnızca kendi havuzuna yazıyor", arguments: QuotaLane.allCases)
+    func ticketCreditsItsOwnLane(lane: QuotaLane) async throws {
+        let quota = makeQuota(seconds: 0)
+        let store = makeStore(signer: signer, quota: quota)
+        let other: QuotaLane = lane == .online ? .offline : .online
+
+        _ = try await store.redeem(signer.sign(makeTicket(lane: lane, minutes: 45)), deviceNow: anchor)
+
+        #expect(quota.getRemainingMinutes(lane) == 45)
+        #expect(quota.getRemainingMinutes(other) == 0)
+    }
+
+    @Test("Havuz değiştirilirse imza tutmuyor")
+    func tamperedLaneRejected() throws {
+        // Havuz kanonik gövdenin parçası. Olmasaydı cihaz, sunucunun verdiği
+        // bulut dakikasını cihaz içi havuza (ya da tersine) taşıyabilirdi ve
+        // bunu hiçbir doğrulama fark etmezdi.
+        let signed = try signer.sign(makeTicket(id: "ticket-lane", lane: .offline, minutes: 60))
+        let forged = SignedTicket(
+            ticket: makeTicket(id: "ticket-lane", lane: .online, minutes: 60),
+            signature: signed.signature
+        )
+
+        #expect(throws: TicketError.invalidSignature) {
+            try signer.verifier.verify(forged, subject: "device-1", now: anchor)
+        }
+    }
+
+    @Test("Havuzu olmayan JSON bozuk sayılıyor")
+    func missingLaneIsMalformed() {
+        // Eksik alana varsayılan atamak, sunucunun söylemediği bir şeyi
+        // uydurmak olurdu — hangi varsayılan seçilirse seçilsin yarı zamanlı
+        // yanlış olurdu.
+        let json = Data("""
+        {"ticket":{"id":"a","subject":"device-1","plan":"pro","minutes":10,"issuedAtMs":1760000000000,"expiresAtMs":1760003600000},"signature":"AA=="}
+        """.utf8)
+
+        #expect(throws: TicketError.malformed) {
+            try SignedTicket.decode(json)
+        }
     }
 }
 
@@ -200,7 +252,7 @@ struct SecureTicketStoreTests {
         let ticket = try await store.redeem(signer.sign(makeTicket(minutes: 45)), deviceNow: anchor)
 
         #expect(ticket.minutes == 45)
-        #expect(quota.getRemainingMinutes() == 45)
+        #expect(quota.getRemainingMinutes(.online) == 45)
         #expect(await store.ledger().grantedMinutes == 45)
     }
 
@@ -216,7 +268,7 @@ struct SecureTicketStoreTests {
             _ = try await store.redeem(signed, deviceNow: anchor)
         }
         // Bakiye tek bozdurma kadar kalmalı.
-        #expect(quota.getRemainingMinutes() == 45)
+        #expect(quota.getRemainingMinutes(.online) == 45)
     }
 
     @Test("Farklı biletler birikir")
@@ -227,7 +279,7 @@ struct SecureTicketStoreTests {
         _ = try await store.redeem(signer.sign(makeTicket(minutes: 30)), deviceNow: anchor)
         _ = try await store.redeem(signer.sign(makeTicket(minutes: 20)), deviceNow: anchor)
 
-        #expect(quota.getRemainingMinutes() == 50)
+        #expect(quota.getRemainingMinutes(.online) == 50)
         #expect(await store.ledger().redeemed.count == 2)
     }
 
@@ -251,7 +303,7 @@ struct SecureTicketStoreTests {
         await #expect(throws: TicketError.expired(at: stale.expiresAt)) {
             _ = try await store.redeem(signedStale, deviceNow: anchor.addingTimeInterval(-10 * 86_400))
         }
-        #expect(quota.getRemainingMinutes() == 10)
+        #expect(quota.getRemainingMinutes(.online) == 10)
     }
 
     @Test("Güvenilir zaman yalnızca imzalı issuedAt ile ilerler")
@@ -273,7 +325,7 @@ struct SecureTicketStoreTests {
             signer.sign(makeTicket(minutes: 5, issuedAt: anchor.addingTimeInterval(3_600))),
             deviceNow: anchor.addingTimeInterval(3_700)
         )
-        #expect(quota.getRemainingMinutes() == 15)
+        #expect(quota.getRemainingMinutes(.online) == 15)
     }
 
     @Test("Defter yazılamazsa dakika eklenmez")
@@ -285,7 +337,7 @@ struct SecureTicketStoreTests {
         await #expect(throws: TicketError.storageUnavailable) {
             _ = try await store.redeem(signer.sign(makeTicket(minutes: 45)), deviceNow: anchor)
         }
-        #expect(quota.getRemainingMinutes() == 0)
+        #expect(quota.getRemainingMinutes(.online) == 0)
     }
 
     @Test("Süresi geçmiş defter kayıtları temizlenir")
@@ -312,7 +364,7 @@ struct SecureTicketStoreTests {
         let payload = try signer.sign(makeTicket(minutes: 25)).encoded()
 
         _ = try await store.redeem(payload: payload, deviceNow: anchor)
-        #expect(quota.getRemainingMinutes() == 25)
+        #expect(quota.getRemainingMinutes(.online) == 25)
     }
 
     @Test("Başka cihazın bileti bakiyeye dokunmaz")
@@ -323,7 +375,7 @@ struct SecureTicketStoreTests {
         await #expect(throws: TicketError.wrongDevice) {
             _ = try await store.redeem(signer.sign(makeTicket(subject: "device-9")), deviceNow: anchor)
         }
-        #expect(quota.getRemainingMinutes() == 10)
+        #expect(quota.getRemainingMinutes(.online) == 10)
         #expect(await store.ledger().redeemed.isEmpty)
     }
 }
@@ -403,7 +455,7 @@ struct TicketRedemptionViewModelTests {
         await viewModel.redeem()
 
         #expect(viewModel.outcome != .idle)
-        #expect(quota.getRemainingMinutes() == 0)
+        #expect(quota.getRemainingMinutes(.online) == 0)
     }
 
     @Test("Geçerli bilet bakiyeye ekleniyor ve alan temizleniyor")
@@ -423,7 +475,7 @@ struct TicketRedemptionViewModelTests {
         #expect(viewModel.outcome == .success(minutes: 45))
         // Alan temizlenmezse kullanıcı aynı bileti tekrar göndermeye çalışır.
         #expect(viewModel.payload.isEmpty)
-        #expect(quota.getRemainingMinutes() == 45)
+        #expect(quota.getRemainingMinutes(.online) == 45)
     }
 
     @Test("Aynı bilet ikinci kez kabul edilmiyor")
@@ -448,7 +500,7 @@ struct TicketRedemptionViewModelTests {
             return
         }
         #expect(reason == TicketError.alreadyRedeemed.errorDescription)
-        #expect(quota.getRemainingMinutes() == 45)
+        #expect(quota.getRemainingMinutes(.online) == 45)
     }
 
     @Test("Bozuk metin okunabilir hata veriyor")

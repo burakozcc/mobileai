@@ -240,7 +240,10 @@ public actor SecureTicketStore {
             throw TicketError.storageUnavailable
         }
 
-        guard quota.addMinutesFromSubscription(ticket.minutes) else {
+        // Havuzu bilet söylüyor, uygulama seçmiyor: `lane` imzalı gövdenin
+        // parçası olduğu için cihaz, bulut dakikasını cihaz içi havuza
+        // taşıyamaz.
+        guard quota.addMinutes(ticket.minutes, lane: ticket.lane) else {
             // Defter işlendi ama bakiye yazılamadı: kullanıcı dakikayı
             // kaybediyor. Sessizce başarılı dönmektense söylüyoruz; sunucu
             // yeniden bilet düzenleyebilir.

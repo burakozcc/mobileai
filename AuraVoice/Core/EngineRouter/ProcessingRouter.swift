@@ -4,6 +4,11 @@
 //
 //  Kota kontrolü → motor seçimi → kota düşümü zinciri.
 //
+//  Kota İKİ HAVUZLU (`QuotaLane`): cihaz içi ve bulut dakikaları ayrı
+//  sayılıyor. Zincirin iki ucu bu yüzden farklı havuza bakabiliyor —
+//  kapıda İSTENEN modun havuzu, düşümde işi GERÇEKTEN yapan motorun
+//  havuzu. Bulut isteği cihaz içi motora düştüğünde ikisi ayrışıyor.
+//
 //  Şablona göre düzeltmeler:
 //   • `processingTimeSeconds` artık gerçekten ölçülüyor (şablonda
 //     `CFAbsoluteTimeGetCurrent() - CFAbsoluteTimeGetCurrent()` daima 0 dönüyordu).
@@ -75,26 +80,37 @@ public final class ProcessingRouter: Sendable {
         request: ProcessingRequest,
         progress: ProcessingProgress?
     ) async throws -> ProcessingResult {
-        let available = quotaManager.getRemainingSeconds()
-        guard available + Self.overrunToleranceSeconds >= request.durationSeconds else {
+
+        // Kota kapısı mod dalından ÖNCE: iki mod da ölçülüyor. Ölçülen havuz
+        // ise moda göre değişiyor — cihaz içi işleme bulut dakikasını, bulut
+        // işleme cihaz içi dakikasını yakmıyor.
+        let requestedLane = QuotaLane(mode: request.mode)
+        guard hasRoom(for: request.durationSeconds, lane: requestedLane) else {
             throw AuraError.insufficientQuota(
                 requiredSeconds: request.durationSeconds,
-                availableSeconds: available
+                availableSeconds: quotaManager.getRemainingSeconds(requestedLane),
+                lane: requestedLane
             )
         }
 
-        // Yukarı yuvarlanıyor ve asla bakiyeyi aşmıyor.
-        let billableSeconds = Self.billableSeconds(
-            for: request.durationSeconds,
-            available: available
-        )
-
         let startTime = CFAbsoluteTimeGetCurrent()
-        let raw = try await run(request: request, progress: progress)
+        let (raw, billedLane) = try await run(request: request, progress: progress)
         let elapsed = CFAbsoluteTimeGetCurrent() - startTime
 
+        // Faturalanan havuz, işi GERÇEKTEN yapan motorunki. Bulut isteği cihaz
+        // içi motora düştüğünde `billedLane` `.offline` dönüyor: sağlayıcıya
+        // tek kuruş ödemediğimiz bir iş için kullanıcının bulut dakikasını
+        // almak, ayrımı anlamsız kılardı.
+        //
+        // Bakiye burada yeniden okunuyor: yedeğe düşüldüyse baştaki okuma
+        // başka bir havuza aitti ve kırpma yanlış tavana göre yapılırdı.
+        let billableSeconds = Self.billableSeconds(
+            for: request.durationSeconds,
+            available: quotaManager.getRemainingSeconds(billedLane)
+        )
+
         // Dakika yalnızca sonuç üretildikten sonra düşülür.
-        try quotaManager.deductUsage(durationSeconds: billableSeconds)
+        try quotaManager.deductUsage(durationSeconds: billableSeconds, lane: billedLane)
 
         return ProcessingResult(
             rawTranscript: raw.rawTranscript,
@@ -106,6 +122,15 @@ public final class ProcessingRouter: Sendable {
         )
     }
 
+    /// Bir havuzda bu kaydı çalıştıracak yer var mı.
+    ///
+    /// Tolerans hem baştaki kapıda hem yedeğe düşme kapısında aynı olsun diye
+    /// tek yerde: ikisi ayrışsaydı, baştan geçen bir kayıt yedekte kıl payı
+    /// reddedilebilirdi.
+    private func hasRoom(for duration: Double, lane: QuotaLane) -> Bool {
+        quotaManager.getRemainingSeconds(lane) + Self.overrunToleranceSeconds >= duration
+    }
+
     // MARK: Motor seçimi
 
     /// Bulut yolu çalışmazsa cihaz içi motora düşer.
@@ -113,13 +138,16 @@ public final class ProcessingRouter: Sendable {
     /// Neden burada: kayıt zaten alınmış ve kullanıcı sonucu bekliyor. Bulut
     /// erişilemiyorken diskte çalışır bir model dururken kaydı hataya
     /// göndermek, ürünün asıl vaadini boşa çıkarmak olurdu.
+    ///
+    /// Dönen havuz, sonucu ÜRETEN motorun havuzu — faturalandırma onu kullanıyor.
     private func run(
         request: ProcessingRequest,
         progress: ProcessingProgress?
-    ) async throws -> ProcessingResult {
+    ) async throws -> (ProcessingResult, QuotaLane) {
 
         guard request.mode == .onlineCloudFast else {
-            return try await offlineEngine.process(request: request, progress: progress)
+            let result = try await offlineEngine.process(request: request, progress: progress)
+            return (result, .offline)
         }
 
         // Ağ kesinlikle yoksa buluta hiç uğramıyoruz: zaman aşımlarını
@@ -127,22 +155,36 @@ public final class ProcessingRouter: Sendable {
         // Bu kural KOŞULSUZ — cihaz içi model de yoksa buluta gitmek yine
         // boşuna, kullanıcının görmesi gereken şey gerçek sebep.
         if isNetworkOffline() {
-            guard isOfflineUsable() else { throw AuraError.networkUnavailable }
+            // Cihaz içi havuzun boş olması burada `networkUnavailable` olarak
+            // bildiriliyor, `insufficientQuota` olarak değil: kullanıcının
+            // İSTEDİĞİ modu (bulut) engelleyen şey ağ, ve bulut dakikası
+            // duruyor. Ağ geldiğinde istek olduğu gibi çalışacak.
+            guard isOfflineUsable(), hasRoom(for: request.durationSeconds, lane: .offline) else {
+                throw AuraError.networkUnavailable
+            }
             let result = try await offlineEngine.process(request: request, progress: progress)
-            return result.appendingEngineNote(Self.offlineFallbackNote)
+            return (result.appendingEngineNote(Self.offlineFallbackNote), .offline)
         }
 
         do {
-            return try await onlineEngine.process(request: request, progress: progress)
+            let result = try await onlineEngine.process(request: request, progress: progress)
+            return (result, .online)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
             // Kota ve kimlik hataları yedeklenmiyor: ikisi de cihaz içi
             // motorun çözemeyeceği, kullanıcının görmesi gereken durumlar.
-            guard Self.isRecoverableCloudFailure(error), isOfflineUsable() else { throw error }
+            //
+            // Cihaz içi havuz boşsa da yedeklenmiyor ve BULUT hatası olduğu
+            // gibi yükseliyor: kullanıcının gördüğü sebep, isteğini gerçekten
+            // başarısız kılan sebep olmalı.
+            guard Self.isRecoverableCloudFailure(error),
+                  isOfflineUsable(),
+                  hasRoom(for: request.durationSeconds, lane: .offline)
+            else { throw error }
 
             let result = try await offlineEngine.process(request: request, progress: progress)
-            return result.appendingEngineNote(Self.offlineFallbackNote)
+            return (result.appendingEngineNote(Self.offlineFallbackNote), .offline)
         }
     }
 

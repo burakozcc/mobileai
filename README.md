@@ -1,11 +1,13 @@
 # AuraVoice
 
-Online (Bulut) / Offline (Zero-Cloud) çift motorlu, dakika kotalı toplantı ve
-ses kayıt uygulaması. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
+Online (Bulut) / Offline (Zero-Cloud) çift motorlu toplantı ve ses kayıt
+uygulaması. İki mod ayrı dakika kotasıyla ölçülüyor. iOS 17+, Swift 6 katı eşzamanlılık, SwiftUI + SwiftData.
 
-**Durum:** 384 test / 67 suite, GitHub Actions'ta gerçek `xcodebuild` ile yeşil.
-Uygulama henüz bir cihazda veya simülatörde **çalıştırılmadı** — geliştirme
-Windows'ta yapıldığı için doğrulama CI üzerinden yürüdü. İlk çalıştırma bir Mac
+**Durum:** Test paketi GitHub Actions'ta gerçek `xcodebuild` ile koşuyor; güncel
+test/suite sayısı için son iş akışı çıktısına bakın (buraya elle yazılan sayı
+her değişiklikte bayatlıyordu). Uygulama henüz bir cihazda veya simülatörde
+**çalıştırılmadı** — geliştirme Windows'ta yapıldığı için doğrulama CI üzerinden
+yürüyor ve derleyici yalnızca orada çalışıyor. İlk çalıştırma bir Mac
 gerektiriyor (aşağıda).
 
 ---
@@ -96,6 +98,20 @@ sunucu tarafını yazarken tahmine yer yok.
 yükleme sınırı bunu ~13 dakikaya çeviriyordu. Sınırı aşan kayıt AAC'ye
 kodlanıyor (~100 dakika), o da yetmezse bindirmeli parçalara bölünüyor ve
 transkriptler tek zaman eksenine dikiliyor.
+
+**Kota iki ayrı havuz.** Cihaz içi işleme ile bulut işleme bize aynı şeye mal
+olmuyor: birincisinin marjinal maliyeti sıfır (kullanıcının kendi işlemcisi),
+ikincisi her dakika için sağlayıcıya ödenen para. Tek havuz bunu gizliyordu ve
+iki yanlış sonuç doğuruyordu — bulut dakikasını bitiren kullanıcı Zero-Cloud
+modunu da kaybediyordu, cihaz içinde çalışan kullanıcı ise bize hiçbir maliyeti
+olmayan bir işlem için ücretli kotasını yakıyordu. `QuotaLane` bakiyeyi havuz
+başına tutuyor; ortak olan tek şey DÖNEM (iki havuz aynı takvim sınırında
+yenileniyor, kullanıcı iki yenileme tarihi ezberlemesin diye).
+
+Faturalanan havuz, isteğin modu değil işi GERÇEKTEN yapan motorunki: bulut
+isteği cihaz içi motora düştüğünde dakika cihaz içi havuzdan iniyor. İmzalı
+dakika biletinde de havuz alanı var ve kanonik gövdenin parçası — cihaz,
+sunucunun verdiği bulut dakikasını cihaz içi havuza taşıyamıyor.
 
 **Widget kotayı yeniden hesaplamaz.** Uygulama App Group'a anlık görüntü
 yazıyor, uzantı okuyor. Kota kuralları iki yerde yaşasaydı iki farklı sayı

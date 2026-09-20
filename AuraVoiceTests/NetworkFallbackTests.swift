@@ -232,7 +232,11 @@ struct CloudFallbackTests {
         let (router, quota) = makeRouter(online: online, offline: offline)
 
         _ = try await router.execute(request: makeRequest())
-        #expect(quota.getRemainingSeconds() == 3_300)
+        // İstek bulut moduyla geldi ama işi cihaz içi motor yaptı: sağlayıcıya
+        // ödenmemiş bir iş için bulut dakikası almak, havuzları ayırmanın
+        // gerekçesini boşa çıkarırdı.
+        #expect(quota.getRemainingSeconds(.offline) == 3_300)
+        #expect(quota.getRemainingSeconds(.online) == 3_600)
     }
 }
 
@@ -260,7 +264,14 @@ struct RecoverableCloudFailureTests {
     func permanentFailuresAreNotRecoverable() {
         #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.cloudCredentialsMissing(provider: "Groq")))
         #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.cloudAuthenticationFailed(provider: "Groq")))
-        #expect(!ProcessingRouter.isRecoverableCloudFailure(AuraError.insufficientQuota(requiredSeconds: 60, availableSeconds: 0)))
+        // Havuz fark etmemeli: kota hatası hangi havuzdan gelirse gelsin
+        // cihaz içi motora yedeklenemez. İkisini de sınıyoruz ki ileride
+        // yalnızca bir havuz için doğru olan bir kısayol eklenmesin.
+        for lane in QuotaLane.allCases {
+            #expect(!ProcessingRouter.isRecoverableCloudFailure(
+                AuraError.insufficientQuota(requiredSeconds: 60, availableSeconds: 0, lane: lane)
+            ))
+        }
     }
 
     @Test("Cihaz içi model eksikliği yedeklenemez")

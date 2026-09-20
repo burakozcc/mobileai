@@ -227,23 +227,73 @@ struct SharedContractValueTests {
         #expect(request.mode == nil)
     }
 
+    /// Etkin havuzu doğrudan kuran yardımcı — bu testlerin konusu halkanın
+    /// matematiği, havuz seçimi değil.
+    private func snapshot(
+        lane: QuotaLane = .online,
+        remaining: Double,
+        plan: Double
+    ) -> SharedQuotaSnapshot {
+        SharedQuotaSnapshot(
+            lane: lane,
+            offlineRemainingMinutes: lane == .offline ? remaining : 0,
+            offlinePlanMinutes: lane == .offline ? plan : 0,
+            onlineRemainingMinutes: lane == .online ? remaining : 0,
+            onlinePlanMinutes: lane == .online ? plan : 0
+        )
+    }
+
     @Test("Kota oranı 0...1 aralığında kalır", arguments: zip(
         [30.0, 0.0, 45.0, 10.0],
         [30.0, 30.0, 30.0, 0.0]
     ))
     func snapshotFractionIsClamped(remaining: Double, plan: Double) {
-        let fraction = SharedQuotaSnapshot(remainingMinutes: remaining, planMinutes: plan).fraction
-        #expect(fraction >= 0 && fraction <= 1)
+        #expect(snapshot(remaining: remaining, plan: plan).fraction >= 0)
+        #expect(snapshot(remaining: remaining, plan: plan).fraction <= 1)
     }
 
     @Test("Plan tanımsızsa oran sıfır — yanlış güven verilmez")
     func unknownPlanMeansEmptyRing() {
-        #expect(SharedQuotaSnapshot(remainingMinutes: 45, planMinutes: 0).fraction == 0)
+        #expect(snapshot(remaining: 45, plan: 0).fraction == 0)
     }
 
     @Test("Yarım dakikanın altı boş sayılır")
     func nearlyZeroIsEmpty() {
-        #expect(SharedQuotaSnapshot(remainingMinutes: 0.4, planMinutes: 30).isEmpty)
-        #expect(!SharedQuotaSnapshot(remainingMinutes: 0.6, planMinutes: 30).isEmpty)
+        #expect(snapshot(remaining: 0.4, plan: 30).isEmpty)
+        #expect(!snapshot(remaining: 0.6, plan: 30).isEmpty)
+    }
+
+    @Test("Gösterilen sayı etkin havuzdan geliyor", arguments: QuotaLane.allCases)
+    func snapshotShowsActiveLane(lane: QuotaLane) {
+        // Widget kotayı kendi hesaplamıyor; hangi havuzu göstereceğini de
+        // seçmiyor. Bu eşleme bozulursa uzantı doğru sayıyı yanlış etiketle
+        // gösterirdi ve bunu fark ettirecek başka bir yer yok.
+        let snapshot = SharedQuotaSnapshot(
+            lane: lane,
+            offlineRemainingMinutes: 84,
+            offlinePlanMinutes: 120,
+            onlineRemainingMinutes: 12,
+            onlinePlanMinutes: 30
+        )
+        #expect(snapshot.remainingMinutes == (lane == .online ? 12 : 84))
+        #expect(snapshot.planMinutes == (lane == .online ? 30 : 120))
+    }
+
+    @Test("Tek havuzlu eski anlık görüntü çözülebiliyor")
+    func legacySnapshotStillDecodes() throws {
+        // Uygulama güncellendiğinde App Group'ta eski biçimli bir kayıt
+        // duruyor olabilir. Çözümleme patlarsa widget bir sonraki tazelemeye
+        // kadar TAMAMEN boş kalırdı.
+        let legacy = Data("""
+        {"remainingMinutes":12,"planMinutes":30,"updatedAt":768000,"offlineAvailable":true}
+        """.utf8)
+
+        let decoded = try JSONDecoder().decode(SharedQuotaSnapshot.self, from: legacy)
+        #expect(decoded.remainingMinutes == 12)
+        #expect(decoded.lane == .offline)
+        // Havuz alanları yokken etkin değerden kopyalanıyor: uygulama bir kez
+        // tazeleyene kadar bilinen tek gerçek o.
+        #expect(decoded.offlineRemainingMinutes == 12)
+        #expect(decoded.onlineRemainingMinutes == 12)
     }
 }

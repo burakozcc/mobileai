@@ -4,10 +4,12 @@
 //
 //  Kota dolduğunda açılan abonelik ekranı — mockup'taki "Transcription Paused".
 //
-//  EKRANIN TONU: Kullanıcı burada bir duvara toslamış hissetmemeli. Zero-Cloud
-//  modu kotadan bağımsız ve sınırsız çalışıyor; bu, ekranın en görünür ikinci
-//  mesajı. "Öde ya da uygulamayı kullanma" değil, "bulut dakikası bitti, cihaz
-//  içi mod açık" diyoruz.
+//  EKRANIN TONU: Kullanıcı burada bir duvara toslamış hissetmemeli.
+//
+//  Havuzlar ayrıldıktan (`QuotaLane`) sonra bu artık bir slogan değil, çoğu
+//  zaman gerçek: bulut dakikası bittiğinde cihaz içi dakika duruyor olabilir
+//  ve söylenecek en eyleme dönük şey o. Ekran bu yüzden İKİ havuzun da
+//  bakiyesini alıyor — hangisinin bittiğini bilmeden doğru cümleyi kuramaz.
 //
 
 import SwiftUI
@@ -70,15 +72,15 @@ public final class PaywallViewModel {
     /// gecikmede kullanıcının beklememesi için.
     private func apply(_ outcome: PurchaseOutcome) {
         switch outcome {
-        case .purchased(let planID, let minutes):
+        case let .purchased(planID, offlineMinutes, onlineMinutes):
             activePlanID = planID
-            _ = quotaManager.resetBalance(toMinutes: minutes)
+            _ = quotaManager.setPlan(offlineMinutes: offlineMinutes, onlineMinutes: onlineMinutes)
             renewalDate = quotaManager.nextRenewalDate()
-            message = String(localized: "Aboneliğin etkin. Aylık \(Int(minutes)) dakika hesabına tanımlandı.")
+            message = String(localized: "Aboneliğin etkin. Aylık \(Int(offlineMinutes)) dakika cihaz içi, \(Int(onlineMinutes)) dakika bulut işleme hesabına tanımlandı.")
 
-        case .restored(let planID, let minutes):
+        case let .restored(planID, offlineMinutes, onlineMinutes):
             activePlanID = planID
-            _ = quotaManager.resetBalance(toMinutes: minutes)
+            _ = quotaManager.setPlan(offlineMinutes: offlineMinutes, onlineMinutes: onlineMinutes)
             renewalDate = quotaManager.nextRenewalDate()
             message = String(localized: "Aboneliğin geri yüklendi.")
 
@@ -102,23 +104,49 @@ public struct SubscriptionPaywallView: View {
 
     @State private var viewModel: PaywallViewModel
 
-    private let remainingMinutes: Double
+    /// Ekranı açtıran havuz — kullanıcının denediği mod.
+    private let lane: QuotaLane
+    private let offlineRemainingMinutes: Double
+    private let onlineRemainingMinutes: Double
+    /// Cihaz içi ASR modeli kurulu mu.
+    ///
+    /// Dakika ile model AYRI kapılar ve ücretsiz kullanıcının varsayılan hâli
+    /// "dakikası var, modeli yok". Bunu bilmeden ekran, cihaz içi modda kaydı
+    /// sürdürebileceğini söyleyip kullanıcıyı indirme uyarısına çarptırırdı.
+    private let isOfflineModelReady: Bool
     private let onContinueOffline: () -> Void
 
     public init(
-        remainingMinutes: Double,
+        lane: QuotaLane,
+        offlineRemainingMinutes: Double,
+        onlineRemainingMinutes: Double,
         usedMinutes: Double = 0,
+        isOfflineModelReady: Bool = OfflineModelManager.isOfflineReady(),
         provider: (any SubscriptionProvider)? = nil,
         onContinueOffline: @escaping () -> Void = {}
     ) {
-        self.remainingMinutes = remainingMinutes
+        self.lane = lane
+        self.offlineRemainingMinutes = offlineRemainingMinutes
+        self.onlineRemainingMinutes = onlineRemainingMinutes
+        self.isOfflineModelReady = isOfflineModelReady
         self.onContinueOffline = onContinueOffline
         _viewModel = State(initialValue: PaywallViewModel(
             provider: provider ?? LocalSubscriptionProvider(usedMinutes: usedMinutes)
         ))
     }
 
-    private var isQuotaEmpty: Bool { remainingMinutes < 0.5 }
+    private func remaining(_ lane: QuotaLane) -> Double {
+        lane == .online ? onlineRemainingMinutes : offlineRemainingMinutes
+    }
+
+    /// Ekranı açtıran havuz boş mu. Ötekinin dolu olması bunu değiştirmiyor:
+    /// kullanıcının denediği şey yine çalışmadı.
+    private var isQuotaEmpty: Bool { remaining(lane) < 0.5 }
+
+    /// Kullanıcı şu an cihaz içi moda geçerek kaydı sürdürebilir mi.
+    private var canFallBackToOffline: Bool {
+        lane == .online && offlineRemainingMinutes >= 0.5
+    }
 
     public var body: some View {
         ZStack {
@@ -198,16 +226,32 @@ public struct SubscriptionPaywallView: View {
     }
 
     private var bodyText: String {
-        // Zero-Cloud modu dakikayı AYNI havuzdan harcıyor; burada "offline'da
-        // devam edebilirsin" demek kullanıcıyı çalışmayan bir yola yollamak
-        // olurdu. Kota bittiğinde söylenecek doğru şey yenileme tarihi.
-        if isQuotaEmpty {
-            if let renewal = Self.renewalText(viewModel.renewalDate) {
-                return String(localized: "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların \(renewal) yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin.")
-            }
-            return String(localized: "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin.")
+        guard isQuotaEmpty else {
+            return String(localized: "Cihaz içinde \(AuraFormat.minutes(offlineRemainingMinutes)), bulutta \(AuraFormat.minutes(onlineRemainingMinutes)) işleme hakkın var.")
         }
-        return String(localized: "Kalan \(AuraFormat.minutes(remainingMinutes)) işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer.")
+
+        // Havuzlar ayrı olduğu için "hakkın bitti" tek başına yanlış olabilir:
+        // öteki havuzda dakika duruyorsa kullanıcının şu an yapabileceği bir
+        // şey var ve ekranın söylemesi gereken ilk şey o.
+        let other: QuotaLane = lane == .online ? .offline : .online
+        if remaining(other) >= 0.5 {
+            switch other {
+            case .offline:
+                guard isOfflineModelReady else {
+                    // Düğme yine duruyor: ona basmak modeli indirme teklifine
+                    // çıkıyor. Yanlış olan düğme değil, verilecek sözdü.
+                    return String(localized: "Bu ayki bulut dakikan bitti. Cihaz içi modda \(AuraFormat.minutes(offlineRemainingMinutes)) hakkın duruyor; kullanmak için önce cihaz içi modeli indirmen gerekiyor.")
+                }
+                return String(localized: "Bu ayki bulut dakikan bitti. Cihaz içi modda \(AuraFormat.minutes(offlineRemainingMinutes)) hakkın duruyor — ses cihazdan hiç çıkmadan kaydı sürdürebilirsin.")
+            case .online:
+                return String(localized: "Bu ayki cihaz içi dakikan bitti. Bulut modunda \(AuraFormat.minutes(onlineRemainingMinutes)) hakkın duruyor.")
+            }
+        }
+
+        if let renewal = Self.renewalText(viewModel.renewalDate) {
+            return String(localized: "İki havuzun da bu ayki dakikası bitti. Dakikaların \(renewal) yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin.")
+        }
+        return String(localized: "İki havuzun da bu ayki dakikası bitti. Pro'ya geçerek aylık dakikanı artırabilirsin.")
     }
 
     static func renewalText(_ date: Date?) -> String? {
@@ -369,15 +413,14 @@ public struct SubscriptionPaywallView: View {
     private var footer: some View {
         VStack(spacing: AuraTheme.Spacing.stackMD) {
 
-            if isQuotaEmpty {
-                // Kota bittiğinde offline'a geçmek de işe yaramıyor; kullanıcıyı
-                // çalışmayan bir düğmeyle oyalamak yerine gerçeği yazıyoruz.
-                if let renewal = Self.renewalText(viewModel.renewalDate) {
-                    Label("Ücretsiz dakikaların \(renewal) yenilenecek", systemImage: "arrow.clockwise")
-                        .font(AuraFont.bodySmall)
-                        .foregroundStyle(AuraTheme.onSurfaceVariant)
-                }
-            } else {
+            // Düğmenin TEK koşulu: cihaz içi havuzda gerçekten dakika var mı.
+            //
+            // Eskiden koşul "kota bitmedi mi" idi ve yanlış soruyu soruyordu:
+            // bulut havuzunda 5 dakikası kalan ama cihaz içi havuzu boş bir
+            // kullanıcı da düğmeyi görüyor, basınca kayıt anında
+            // `insufficientQuota(.offline)` ile düşüyordu. Düğme ancak
+            // götürdüğü yer çalışıyorsa gösterilmeli.
+            if canFallBackToOffline {
                 Button {
                     onContinueOffline()
                     dismiss()
@@ -389,6 +432,11 @@ public struct SubscriptionPaywallView: View {
                         .underline(true, color: AuraTheme.hairline)
                 }
                 .buttonStyle(.plain)
+            } else if isQuotaEmpty, let renewal = Self.renewalText(viewModel.renewalDate) {
+                // Gidilecek bir yer yok; söylenecek tek eyleme dönük şey tarih.
+                Label("Ücretsiz dakikaların \(renewal) yenilenecek", systemImage: "arrow.clockwise")
+                    .font(AuraFont.bodySmall)
+                    .foregroundStyle(AuraTheme.onSurfaceVariant)
             }
 
             Button {
@@ -424,10 +472,40 @@ public struct SubscriptionPaywallView: View {
     }
 }
 
-#Preview("Kota doldu") {
-    SubscriptionPaywallView(remainingMinutes: 0, usedMinutes: 30)
+#Preview("Bulut bitti, cihaz içi duruyor") {
+    SubscriptionPaywallView(
+        lane: .online,
+        offlineRemainingMinutes: 14,
+        onlineRemainingMinutes: 0,
+        usedMinutes: 16,
+        isOfflineModelReady: true
+    )
+}
+
+#Preview("Bulut bitti, model yok") {
+    SubscriptionPaywallView(
+        lane: .online,
+        offlineRemainingMinutes: 14,
+        onlineRemainingMinutes: 0,
+        usedMinutes: 16,
+        isOfflineModelReady: false
+    )
+}
+
+#Preview("İki havuz da bitti") {
+    SubscriptionPaywallView(
+        lane: .online,
+        offlineRemainingMinutes: 0,
+        onlineRemainingMinutes: 0,
+        usedMinutes: 30
+    )
 }
 
 #Preview("Kota var") {
-    SubscriptionPaywallView(remainingMinutes: 12, usedMinutes: 18)
+    SubscriptionPaywallView(
+        lane: .online,
+        offlineRemainingMinutes: 16,
+        onlineRemainingMinutes: 4,
+        usedMinutes: 10
+    )
 }

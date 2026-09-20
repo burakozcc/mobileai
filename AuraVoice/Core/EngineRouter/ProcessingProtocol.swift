@@ -199,7 +199,11 @@ public extension ProcessingEngineProtocol {
 // MARK: - Hata Tipleri
 
 public enum AuraError: LocalizedError, Sendable, Equatable {
-    case insufficientQuota(requiredSeconds: Double, availableSeconds: Double)
+    /// `lane` olmadan bu hata kullanıcıya yanlış şey söylüyordu: iki havuz
+    /// ayrıldıktan sonra "dakikan bitti" cümlesi, hangi dakikanın bittiğini
+    /// söylemediği sürece eyleme dönük değil — bulut dakikası bitmişken
+    /// kullanıcının cihaz içi modda kaydı sürdürebileceğini gizliyordu.
+    case insufficientQuota(requiredSeconds: Double, availableSeconds: Double, lane: QuotaLane)
     case quotaStorageUnavailable
     case microphonePermissionDenied
     case calendarPermissionDenied
@@ -218,8 +222,17 @@ public enum AuraError: LocalizedError, Sendable, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case let .insufficientQuota(required, available):
-            return String(localized: "Yetersiz dakika bakiyesi. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available)).")
+        case let .insufficientQuota(required, available, lane):
+            // İki ayrı dizge, tek şablona havuz adı yerleştirmek yerine: "Bulut"
+            // ve "Cihaz içi" cümle içinde farklı ekler alıyor ve çevirmenin
+            // yerleştirilen sözcüğü göremediği bir şablon Türkçe'de de,
+            // Arapça'da da bozuk cümle üretirdi.
+            switch lane {
+            case .online:
+                return String(localized: "Bulut dakikan yetmiyor. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available)). Cihaz içi modda kaydı sürdürebilirsin.")
+            case .offline:
+                return String(localized: "Cihaz içi dakikan yetmiyor. Gerekli: \(AuraFormatSeconds.minutes(required)), kalan: \(AuraFormatSeconds.minutes(available)).")
+            }
         case .quotaStorageUnavailable:
             return String(localized: "Dakika bakiyen güvenli depoya yazılamadı. Cihazı yeniden başlatıp tekrar dene.")
         case .microphonePermissionDenied:

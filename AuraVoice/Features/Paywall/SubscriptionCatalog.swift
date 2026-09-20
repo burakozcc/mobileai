@@ -50,7 +50,11 @@ public struct SubscriptionPlan: Sendable, Equatable, Identifiable {
     /// kurmuyoruz: para birimi ve ayraç kullanıcının bölgesine göre değişir.
     public let priceText: String
     public let periodText: String
-    public let monthlyMinutes: Double
+    /// Havuz başına aylık dakika. Tek alan olsaydı ekran, kotanın nasıl
+    /// işlediğine dair yanlış bir söz verirdi: kullanıcı 1200 dakikanın
+    /// tamamını bulutta harcayabileceğini sanırdı.
+    public let offlineMinutes: Double
+    public let onlineMinutes: Double
     public let features: [PlanFeature]
     public let isRecommended: Bool
     /// Ücretsiz plan satın alınamaz; düğmesi "Mevcut Plan" olarak durur.
@@ -61,7 +65,8 @@ public struct SubscriptionPlan: Sendable, Equatable, Identifiable {
         title: String,
         priceText: String,
         periodText: String,
-        monthlyMinutes: Double,
+        offlineMinutes: Double,
+        onlineMinutes: Double,
         features: [PlanFeature],
         isRecommended: Bool = false,
         isPurchasable: Bool = true
@@ -70,7 +75,8 @@ public struct SubscriptionPlan: Sendable, Equatable, Identifiable {
         self.title = title
         self.priceText = priceText
         self.periodText = periodText
-        self.monthlyMinutes = monthlyMinutes
+        self.offlineMinutes = offlineMinutes
+        self.onlineMinutes = onlineMinutes
         self.features = features
         self.isRecommended = isRecommended
         self.isPurchasable = isPurchasable
@@ -80,8 +86,8 @@ public struct SubscriptionPlan: Sendable, Equatable, Identifiable {
 // MARK: - Satın alma sonucu
 
 public enum PurchaseOutcome: Sendable, Equatable {
-    case purchased(planID: String, grantedMinutes: Double)
-    case restored(planID: String, grantedMinutes: Double)
+    case purchased(planID: String, offlineMinutes: Double, onlineMinutes: Double)
+    case restored(planID: String, offlineMinutes: Double, onlineMinutes: Double)
     case cancelled
     /// Sağlayıcı henüz kurulmadı ya da mağaza yanıt vermiyor.
     case unavailable(reason: String)
@@ -113,10 +119,20 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
     public static let freePlanID = "aura.free"
     public static let proPlanID = "aura.pro.monthly"
 
-    /// Ücretsiz plan aylık dakikası — `QuotaManager.freeTierMinutes` ile aynı
-    /// olmak zorunda; `SubscriptionCatalogTests` bunu doğruluyor.
-    public static let freeMinutes: Double = 30
-    public static let proMinutes: Double = 1_200
+    /// Ücretsiz planın havuz dakikaları.
+    ///
+    /// `QuotaManager` sabitlerine TAKMA AD: eskiden burada bağımsız bir literal
+    /// duruyordu ve bir test ikisinin eşitliğini kolluyordu. Sayı iki yerde
+    /// yaşadığı sürece test yalnızca ayrışmayı HABER veriyordu; tek kaynağa
+    /// bağlamak ayrışmayı imkânsız kılıyor.
+    public static let freeOfflineMinutes = QuotaManager.freeOfflineMinutes
+    public static let freeOnlineMinutes = QuotaManager.freeOnlineMinutes
+
+    /// Pro planın havuz dakikaları. Bulut rakamı fiyatın karşılığı; cihaz içi
+    /// rakam ondan yüksek, çünkü o dakikalar bize sağlayıcı faturası
+    /// çıkarmıyor.
+    public static let proOfflineMinutes: Double = 250
+    public static let proOnlineMinutes: Double = 200
 
     private let usedMinutes: Double
 
@@ -131,21 +147,22 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
                 title: String(localized: "Ücretsiz"),
                 priceText: "₺0",
                 periodText: String(localized: "/ay"),
-                monthlyMinutes: Self.freeMinutes,
+                offlineMinutes: Self.freeOfflineMinutes,
+                onlineMinutes: Self.freeOnlineMinutes,
                 features: [
                     PlanFeature(
-                        id: "cloud",
-                        text: String(localized: "Aylık 30 dakika işleme"),
-                        detail: String(localized: "Bu ay: \(Int(min(usedMinutes, Self.freeMinutes).rounded()))/\(Int(Self.freeMinutes)) dk")
+                        id: "offline",
+                        // Sayı metne GÖMÜLMÜYOR, yerleştiriliyor: plan
+                        // rakamları ürün kararı ve değişiyor. Gömülü olsaydı
+                        // her değişiklik sekiz dilde yeniden çeviri demekti.
+                        text: String(localized: "Aylık \(Int(Self.freeOfflineMinutes)) dakika cihaz içi işleme"),
+                        detail: String(localized: "Zero-Cloud — ses ve metin cihazdan hiç çıkmaz"),
+                        isHighlighted: true
                     ),
                     PlanFeature(
-                        id: "offline",
-                        // Sınırsız olan kayıt değil, GİZLİLİK. Dakika her iki
-                        // modda da aynı havuzdan düşüyor; bunu burada yanlış
-                        // yazmak kullanıcıya tutulamayacak bir söz vermek olur.
-                        text: String(localized: "Zero-Cloud modu — ses cihazdan hiç çıkmaz"),
-                        detail: String(localized: "Aynı dakika havuzunu kullanır"),
-                        isHighlighted: true
+                        id: "cloud",
+                        text: String(localized: "Aylık \(Int(Self.freeOnlineMinutes)) dakika bulut işleme"),
+                        detail: String(localized: "Bu ay toplam \(Int(usedMinutes.rounded())) dk işledin")
                     ),
                     PlanFeature(
                         id: "export",
@@ -160,15 +177,21 @@ public struct LocalSubscriptionProvider: SubscriptionProvider {
                 title: String(localized: "Pro"),
                 priceText: "₺149,99",
                 periodText: String(localized: "/ay"),
-                monthlyMinutes: Self.proMinutes,
+                offlineMinutes: Self.proOfflineMinutes,
+                onlineMinutes: Self.proOnlineMinutes,
                 features: [
                     PlanFeature(
+                        id: "offline",
+                        text: String(localized: "Aylık \(Int(Self.proOfflineMinutes)) dakika cihaz içi işleme"),
+                        detail: String(localized: "Zero-Cloud — ses ve metin cihazdan hiç çıkmaz"),
+                        isHighlighted: true
+                    ),
+                    PlanFeature(
                         id: "cloud",
-                        text: String(localized: "Aylık 1200 dakika işleme"),
+                        text: String(localized: "Aylık \(Int(Self.proOnlineMinutes)) dakika bulut işleme"),
                         detail: String(localized: "Yüksek doğruluklu bulut transkripsiyonu"),
                         isHighlighted: true
                     ),
-                    PlanFeature(id: "offline", text: String(localized: "Zero-Cloud modu — ses cihazdan hiç çıkmaz")),
                     PlanFeature(id: "export", text: String(localized: "Gelişmiş dışa aktarma (PDF, SRT, TXT)"))
                 ],
                 isRecommended: true

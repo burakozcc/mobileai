@@ -1117,60 +1117,6 @@
         }
       }
     },
-    "%lld / %lld": {
-      "comment": "Kota halkasinin VoiceOver degeri. accessibilityValue de LocalizedStringKey asiri yuklemesine baglanir. Turkce sozcuk yok, ceviri metni gerekmez",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld / %lld"
-          }
-        }
-      }
-    },
     "%lld artık kullanılmayan ses dosyası silindi.": {
       "comment": "Temizlik sonrası \"Bilgi\" uyarı kutusu mesajı",
       "extractionState": "manual",
@@ -2581,170 +2527,56 @@
         }
       }
     },
-    "Aboneliğin etkin. Aylık %lld dakika hesabına tanımlandı.": {
-      "comment": "Satin alma basarili uyari govdesi",
+    "Aboneliğin etkin. Aylık %lld dakika cihaz içi, %lld dakika bulut işleme hesabına tanımlandı.": {
+      "comment": "Satin alma onayi. Iki sayi da %lld; sira degisecekse %1$lld/%2$lld kullanilmali (ilki cihaz ici, ikincisi bulut).",
       "extractionState": "manual",
       "localizations": {
         "ar": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقائق شهريًا إلى حسابك."
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقيقة شهريًا إلى حسابك."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقيقة شهريًا إلى حسابك."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقيقة شهريًا إلى حسابك."
-                }
-              },
-              "two": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقيقتين شهريًا إلى حسابك."
-                }
-              },
-              "zero": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "اشتراكك نشط. تمت إضافة %lld دقيقة شهريًا إلى حسابك."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "اشتراكك مُفعَّل. تمت إضافة %lld دقيقة معالجة على الجهاز و%lld دقيقة معالجة سحابية شهريًا إلى حسابك."
           }
         },
         "bn": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "আপনার সাবস্ক্রিপশন চালু আছে। প্রতি মাসের %lld মিনিট আপনার অ্যাকাউন্টে যোগ হয়েছে।"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "আপনার সাবস্ক্রিপশন চালু আছে। প্রতি মাসের %lld মিনিট আপনার অ্যাকাউন্টে যোগ হয়েছে।"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার সাবস্ক্রিপশন সক্রিয়। মাসে %lld মিনিট ডিভাইসে ও %lld মিনিট ক্লাউড প্রসেসিং আপনার অ্যাকাউন্টে যোগ হয়েছে।"
           }
         },
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Your subscription is active. %lld minute a month added to your account."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Your subscription is active. %lld minutes a month added to your account."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription is active. %lld on-device and %lld cloud processing minutes per month have been added to your account."
           }
         },
         "es": {
-          "variations": {
-            "plural": {
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Tu suscripción está activa. Se han añadido %lld minutos mensuales a tu cuenta."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Tu suscripción está activa. Se ha añadido %lld minuto mensual a tu cuenta."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Tu suscripción está activa. Se han añadido %lld minutos mensuales a tu cuenta."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción está activa. Se han añadido %lld minutos en el dispositivo y %lld minutos en la nube al mes a tu cuenta."
           }
         },
         "fr": {
-          "variations": {
-            "plural": {
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Votre abonnement est actif. %lld minutes par mois ont été créditées sur votre compte."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Votre abonnement est actif. %lld minute par mois a été créditée sur votre compte."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Votre abonnement est actif. %lld minutes par mois ont été créditées sur votre compte."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement est actif. %lld minutes sur l'appareil et %lld minutes cloud par mois ont été ajoutées à votre compte."
           }
         },
         "hi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "आपका सब्सक्रिप्शन चालू है। हर महीने के लिए %lld मिनट आपके अकाउंट में जुड़ गया।"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "आपका सब्सक्रिप्शन चालू है। हर महीने के लिए %lld मिनट आपके अकाउंट में जुड़ गए।"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी सदस्यता सक्रिय है। हर महीने %lld मिनट डिवाइस पर और %lld मिनट क्लाउड प्रोसेसिंग आपके खाते में जोड़ी गई।"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aboneliğin etkin. Aylık %lld dakika hesabına tanımlandı."
+            "value": "Aboneliğin etkin. Aylık %lld dakika cihaz içi, %lld dakika bulut işleme hesabına tanımlandı."
           }
         },
         "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "订阅已生效。每月 %lld 分钟已添加到你的账户。"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "订阅已生效。每月 %lld 分钟设备端处理和 %lld 分钟云端处理已加入你的账户。"
           }
         }
       }
@@ -3559,170 +3391,164 @@
         }
       }
     },
-    "AuraVoice'ta %lld dakikan kaldı.": {
-      "comment": "Siri'nin sesli/yazılı cevabı: kalan dakika bildirimi",
+    "AuraVoice'ta bulut dakikan bitti, cihaz içi %lld dakikan kaldı.": {
+      "comment": "Siri cevabi — bulut havuzu bos.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
-          "variations": {
-            "plural": {
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقائق متبقية في AuraVoice."
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقيقة متبقية في AuraVoice."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقيقة متبقية في AuraVoice."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقيقة متبقية في AuraVoice."
-                }
-              },
-              "two": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقيقتان متبقيتان في AuraVoice."
-                }
-              },
-              "zero": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "لديك %lld دقيقة متبقية في AuraVoice."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "نفدت دقائق AuraVoice السحابية، وتبقّى لديك %lld دقيقة على الجهاز."
           }
         },
         "bn": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "AuraVoice অ্যাপে আপনার %lld মিনিট বাকি আছে।"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "AuraVoice অ্যাপে আপনার %lld মিনিট বাকি আছে।"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice-এর ক্লাউড মিনিট শেষ, ডিভাইসে %lld মিনিট বাকি আছে।"
           }
         },
         "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "You have %lld minute left in AuraVoice."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "You have %lld minutes left in AuraVoice."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your AuraVoice cloud minutes are used up; you have %lld on-device minutes left."
           }
         },
         "es": {
-          "variations": {
-            "plural": {
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Te quedan %lld minutos en AuraVoice."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Te queda %lld minuto en AuraVoice."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Te quedan %lld minutos en AuraVoice."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se te acabaron los minutos de nube en AuraVoice; te quedan %lld minutos en el dispositivo."
           }
         },
         "fr": {
-          "variations": {
-            "plural": {
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Il vous reste %lld minutes dans AuraVoice."
-                }
-              },
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Il vous reste %lld minute dans AuraVoice."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Il vous reste %lld minutes dans AuraVoice."
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos minutes cloud AuraVoice sont épuisées ; il vous reste %lld minutes sur l'appareil."
           }
         },
         "hi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "AuraVoice में आपका %lld मिनट बचा है।"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "AuraVoice में आपके %lld मिनट बचे हैं।"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice के क्लाउड मिनट खत्म हो गए, डिवाइस पर %lld मिनट बचे हैं।"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "AuraVoice'ta %lld dakikan kaldı."
+            "value": "AuraVoice'ta bulut dakikan bitti, cihaz içi %lld dakikan kaldı."
           }
         },
         "zh-Hans": {
-          "variations": {
-            "plural": {
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "AuraVoice 中还剩 %lld 分钟。"
-                }
-              }
-            }
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice 的云端分钟数已用完，设备端还剩 %lld 分钟。"
+          }
+        }
+      }
+    },
+    "AuraVoice'ta cihaz içi %lld dakika, bulutta %lld dakika kaldı.": {
+      "comment": "Siri cevabi — iki havuzda da dakika var. Ilk %lld cihaz ici, ikincisi bulut.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تبقّى لديك %lld دقيقة على الجهاز و%lld دقيقة سحابية في AuraVoice."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice-এ ডিভাইসে %lld মিনিট এবং ক্লাউডে %lld মিনিট বাকি আছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %lld on-device minutes and %lld cloud minutes left in AuraVoice."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te quedan %lld minutos en el dispositivo y %lld minutos en la nube en AuraVoice."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vous reste %lld minutes sur l'appareil et %lld minutes cloud dans AuraVoice."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice में डिवाइस पर %lld मिनट और क्लाउड में %lld मिनट बचे हैं।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice'ta cihaz içi %lld dakika, bulutta %lld dakika kaldı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice 中设备端还剩 %lld 分钟，云端还剩 %lld 分钟。"
+          }
+        }
+      }
+    },
+    "AuraVoice'ta cihaz içi dakikan bitti, bulutta %lld dakikan kaldı.": {
+      "comment": "Siri cevabi — cihaz ici havuz bos.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نفدت دقائق AuraVoice على الجهاز، وتبقّى لديك %lld دقيقة سحابية."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice-এর ডিভাইসে মিনিট শেষ, ক্লাউডে %lld মিনিট বাকি আছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your AuraVoice on-device minutes are used up; you have %lld cloud minutes left."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se te acabaron los minutos en el dispositivo en AuraVoice; te quedan %lld minutos en la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos minutes sur l'appareil AuraVoice sont épuisées ; il vous reste %lld minutes dans le cloud."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice के डिवाइस पर मिनट खत्म हो गए, क्लाउड में %lld मिनट बचे हैं।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice'ta cihaz içi dakikan bitti, bulutta %lld dakikan kaldı."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AuraVoice 的设备端分钟数已用完，云端还剩 %lld 分钟。"
           }
         }
       }
@@ -3835,164 +3661,110 @@
         }
       }
     },
-    "Aylık 1200 dakika işleme": {
-      "comment": "Pro plan ozellik satiri",
+    "Aylık %lld dakika bulut işleme": {
+      "comment": "Plan ozellik satiri. Sayi yerlestiriliyor.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "معالجة 1200 دقيقة شهريًا"
+            "value": "%lld دقيقة معالجة سحابية شهريًا"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "মাসে 1200 মিনিট প্রসেসিং"
+            "value": "মাসে %lld মিনিট ক্লাউড প্রসেসিং"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "1,200 processing minutes per month"
+            "value": "%lld cloud processing minutes per month"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "1.200 minutos de procesamiento al mes"
+            "value": "%lld minutos de procesamiento en la nube al mes"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "1 200 minutes de traitement par mois"
+            "value": "%lld minutes de traitement cloud par mois"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हर महीने 1200 मिनट प्रोसेसिंग"
+            "value": "हर महीने %lld मिनट क्लाउड प्रोसेसिंग"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aylık 1200 dakika işleme"
+            "value": "Aylık %lld dakika bulut işleme"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每月 1200 分钟处理时长"
+            "value": "每月 %lld 分钟云端处理"
           }
         }
       }
     },
-    "Aylık 30 dakika işleme": {
-      "comment": "Ucretsiz plan ozellik satiri",
+    "Aylık %lld dakika cihaz içi işleme": {
+      "comment": "Plan ozellik satiri. Sayi GOMULU DEGIL, yerlestiriliyor: plan rakami degistiginde ceviriye dokunulmuyor.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "معالجة 30 دقيقة شهريًا"
+            "value": "%lld دقيقة معالجة على الجهاز شهريًا"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "মাসে 30 মিনিট প্রসেসিং"
+            "value": "মাসে %lld মিনিট ডিভাইসে প্রসেসিং"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "30 processing minutes per month"
+            "value": "%lld on-device processing minutes per month"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "30 minutos de procesamiento al mes"
+            "value": "%lld minutos de procesamiento en el dispositivo al mes"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "30 minutes de traitement par mois"
+            "value": "%lld minutes de traitement sur l'appareil par mois"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हर महीने 30 मिनट प्रोसेसिंग"
+            "value": "हर महीने %lld मिनट डिवाइस पर प्रोसेसिंग"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aylık 30 dakika işleme"
+            "value": "Aylık %lld dakika cihaz içi işleme"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每月 30 分钟处理时长"
-          }
-        }
-      }
-    },
-    "Aynı dakika havuzunu kullanır": {
-      "comment": "Zero-Cloud ozellik satirinin detayi (buyuk harfe cevrilerek gosteriliyor)",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "يستخدم رصيد الدقائق نفسه"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "একই মিনিট পুল ব্যবহার করে"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uses the same minute pool"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usa la misma bolsa de minutos"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Utilise la même réserve de minutes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "वही मिनट पूल इस्तेमाल करता है"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aynı dakika havuzunu kullanır"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用同一个分钟池"
+            "value": "每月 %lld 分钟设备端处理"
           }
         }
       }
@@ -5455,164 +5227,218 @@
         }
       }
     },
-    "Bu ay: %lld/%lld dk": {
-      "comment": "Ucretsiz plan ozellik satirinin kullanim detayi (ekranda buyuk harfe cevrilerek gosteriliyor)",
+    "Bu ay toplam %lld dk işledin": {
+      "comment": "Ucretsiz plan kullanim satiri. Toplam: iki havuzun ayrimini burada tekrarlamak karti kalabaliklastirirdi.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "هذا الشهر: %lld/%lld د"
+            "value": "عالجت %lld دقيقة إجمالاً هذا الشهر"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "এই মাসে: %lld/%lld মিনিট"
+            "value": "এই মাসে আপনি মোট %lld মিনিট প্রসেস করেছেন"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This month: %lld/%lld min"
+            "value": "You've processed %lld min in total this month"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este mes: %lld/%lld min"
+            "value": "Este mes has procesado %lld min en total"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce mois-ci : %lld/%lld min"
+            "value": "Vous avez traité %lld min au total ce mois-ci"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "इस महीने: %1$lld/%2$lld मिनट"
+            "value": "इस महीने आपने कुल %lld मिनट प्रोसेस किए"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu ay: %lld/%lld dk"
+            "value": "Bu ay toplam %lld dk işledin"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本月：%lld/%lld 分钟"
+            "value": "本月你共处理了 %lld 分钟"
           }
         }
       }
     },
-    "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin.": {
-      "comment": "Baslik altindaki aciklama — kota bitti, yenileme tarihi yok",
+    "Bu ayki bulut dakikan bitti. Cihaz içi modda %@ hakkın duruyor — ses cihazdan hiç çıkmadan kaydı sürdürebilirsin.": {
+      "comment": "Paywall — bulut havuzu bitti ama cihaz ici havuzda dakika duruyor. Ekranin en eyleme donuk cumlesi.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لقد استخدمت رصيد المعالجة لهذا الشهر. يمكنك زيادة دقائقك الشهرية بالترقية إلى Pro."
+            "value": "استهلكت دقائق السحابة لهذا الشهر. ما زال لديك %@ في وضع المعالجة على الجهاز — تابع التسجيل دون أن يغادر الصوت جهازك."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "এই মাসের প্রসেসিং কোটা শেষ হয়েছে। Pro প্ল্যানে গিয়ে মাসিক মিনিট বাড়াতে পারেন।"
+            "value": "এই মাসের ক্লাউড মিনিট শেষ। ডিভাইসে মোডে এখনও %@ বাকি আছে — অডিও ডিভাইস থেকে না বেরিয়েই রেকর্ডিং চালিয়ে যান।"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You've used this month's processing allowance. You can upgrade to Pro to increase your monthly minutes."
+            "value": "You've used this month's cloud minutes. You still have %@ in on-device mode — keep recording without any audio leaving your device."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Has agotado tus minutos de procesamiento de este mes. Puedes aumentar tus minutos mensuales pasando a Pro."
+            "value": "Has agotado los minutos de nube de este mes. Todavía tienes %@ en modo en el dispositivo: sigue grabando sin que el audio salga del dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous avez épuisé votre quota de traitement de ce mois-ci. Passez à Pro pour augmenter vos minutes mensuelles."
+            "value": "Vous avez épuisé vos minutes cloud du mois. Il vous reste %@ en mode sur l'appareil — continuez à enregistrer sans que l'audio quitte l'appareil."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "इस महीने की प्रोसेसिंग सीमा खत्म हो गई। Pro पर जाकर हर महीने के मिनट बढ़ा सकते हैं।"
+            "value": "इस महीने के क्लाउड मिनट खत्म हो गए। डिवाइस पर मोड में अब भी %@ बचा है — ऑडियो डिवाइस से बाहर भेजे बिना रिकॉर्डिंग जारी रखें।"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu ayki işleme hakkını kullandın. Pro'ya geçerek aylık dakikanı artırabilirsin."
+            "value": "Bu ayki bulut dakikan bitti. Cihaz içi modda %@ hakkın duruyor — ses cihazdan hiç çıkmadan kaydı sürdürebilirsin."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本月的处理配额已用完。升级到 Pro 可以增加每月的分钟数。"
+            "value": "本月云端分钟数已用完。设备端模式还剩 %@ — 音频不出设备也能继续录音。"
           }
         }
       }
     },
-    "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların %@ yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin.": {
-      "comment": "Baslik altindaki aciklama — kota bitti, yenileme tarihi biliniyor",
+    "Bu ayki bulut dakikan bitti. Cihaz içi modda %@ hakkın duruyor; kullanmak için önce cihaz içi modeli indirmen gerekiyor.": {
+      "comment": "Paywall — bulut havuzu bitti, cihaz ici havuzda dakika var ama ASR modeli kurulu degil. Ucretsiz kullanicinin VARSAYILAN hali bu.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "لقد استخدمت رصيد المعالجة لهذا الشهر. ستتجدد دقائقك المجانية %@؛ يمكنك الترقية إلى Pro إن لم ترغب في الانتظار."
+            "value": "استهلكت دقائق السحابة لهذا الشهر. ما زال لديك %@ في وضع المعالجة على الجهاز، لكن عليك أولاً تنزيل النموذج المحلي."
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "এই মাসের প্রসেসিং কোটা শেষ হয়েছে। আপনার বিনামূল্যের মিনিট %@ নতুন করে যোগ হবে; অপেক্ষা করতে না চাইলে Pro প্ল্যানে যেতে পারেন।"
+            "value": "এই মাসের ক্লাউড মিনিট শেষ। ডিভাইসে মোডে এখনও %@ বাকি আছে, তবে আগে ডিভাইসের মডেলটি ডাউনলোড করতে হবে।"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You've used this month's processing allowance. Your free minutes will renew %@; if you don't want to wait, you can upgrade to Pro."
+            "value": "You've used this month's cloud minutes. You still have %@ in on-device mode, but you need to download the on-device model first."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Has agotado tus minutos de procesamiento de este mes. Tus minutos gratuitos se renovarán %@; si no quieres esperar, puedes pasar a Pro."
+            "value": "Has agotado los minutos de nube de este mes. Todavía tienes %@ en modo en el dispositivo, pero antes tienes que descargar el modelo en el dispositivo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous avez épuisé votre quota de traitement de ce mois-ci. Vos minutes gratuites seront renouvelées %@ ; si vous ne voulez pas attendre, vous pouvez passer à Pro."
+            "value": "Vous avez épuisé vos minutes cloud du mois. Il vous reste %@ en mode sur l'appareil, mais vous devez d'abord télécharger le modèle sur l'appareil."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "इस महीने की प्रोसेसिंग सीमा खत्म हो गई। आपके मुफ़्त मिनट %@ रीन्यू होंगे; इंतज़ार नहीं करना है तो Pro पर जा सकते हैं।"
+            "value": "इस महीने के क्लाउड मिनट खत्म हो गए। डिवाइस पर मोड में अब भी %@ बचा है, लेकिन पहले डिवाइस वाला मॉडल डाउनलोड करना होगा।"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bu ayki işleme hakkını kullandın. Ücretsiz dakikaların %@ yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin."
+            "value": "Bu ayki bulut dakikan bitti. Cihaz içi modda %@ hakkın duruyor; kullanmak için önce cihaz içi modeli indirmen gerekiyor."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本月的处理配额已用完。免费分钟数将在 %@ 重置；不想等的话可以升级到 Pro。"
+            "value": "本月云端分钟数已用完。设备端模式还剩 %@，但需要先下载设备端模型。"
+          }
+        }
+      }
+    },
+    "Bu ayki cihaz içi dakikan bitti. Bulut modunda %@ hakkın duruyor.": {
+      "comment": "Paywall — cihaz ici havuz bitti ama bulut havuzunda dakika duruyor.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استهلكت دقائق المعالجة على الجهاز لهذا الشهر. ما زال لديك %@ في الوضع السحابي."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "এই মাসের ডিভাইসে মিনিট শেষ। ক্লাউড মোডে এখনও %@ বাকি আছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've used this month's on-device minutes. You still have %@ in cloud mode."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has agotado los minutos en el dispositivo de este mes. Todavía tienes %@ en modo nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez épuisé vos minutes sur l'appareil du mois. Il vous reste %@ en mode cloud."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस महीने के डिवाइस पर मिनट खत्म हो गए। क्लाउड मोड में अब भी %@ बचा है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu ayki cihaz içi dakikan bitti. Bulut modunda %@ hakkın duruyor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月设备端分钟数已用完。云端模式还剩 %@。"
           }
         }
       }
@@ -6050,7 +5876,7 @@
       }
     },
     "Bulut": {
-      "comment": "Not kartindaki mod rozeti — bulut modunda gorunen etiket.",
+      "comment": "Kota havuzu adi — bulut isleme. Widget katalogunda da AYNI anahtar var.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
@@ -6153,6 +5979,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "云端访问"
+          }
+        }
+      }
+    },
+    "Bulut dakikan yetmiyor. Gerekli: %@, kalan: %@. Cihaz içi modda kaydı sürdürebilirsin.": {
+      "comment": "AuraError.insufficientQuota — bulut havuzu. Iki belirtec de %@ (AuraFormatSeconds.minutes String donuyor); sira degisecekse %1$@/%2$@ kullanilmali.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دقائق السحابة غير كافية. المطلوب: %@، المتبقي: %@. يمكنك متابعة التسجيل في وضع المعالجة على الجهاز."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ক্লাউড মিনিট যথেষ্ট নয়। প্রয়োজন: %@, বাকি: %@। আপনি ডিভাইসে মোডে রেকর্ডিং চালিয়ে যেতে পারেন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough cloud minutes. Required: %@, remaining: %@. You can keep recording in on-device mode."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tienes suficientes minutos de nube. Necesario: %@, restante: %@. Puedes seguir grabando en modo en el dispositivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutes cloud insuffisantes. Requis : %@, restant : %@. Vous pouvez continuer en mode sur l'appareil."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्लाउड मिनट कम हैं। ज़रूरी: %@, बचे: %@। आप डिवाइस पर मोड में रिकॉर्डिंग जारी रख सकते हैं।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulut dakikan yetmiyor. Gerekli: %@, kalan: %@. Cihaz içi modda kaydı sürdürebilirsin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "云端分钟数不足。需要：%@，剩余：%@。你可以在设备端模式下继续录音。"
           }
         }
       }
@@ -6423,6 +6303,168 @@
           "stringUnit": {
             "state": "translated",
             "value": "在云端处理"
+          }
+        }
+      }
+    },
+    "Cihaz içi": {
+      "comment": "Kota havuzu adi — cihaz ici isleme. Widget katalogunda da AYNI anahtar var; QuotaLane iki hedefte birden derleniyor ve String(localized:) cagiranin paketine bakiyor.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "على الجهاز"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডিভাইসে"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिवाइस पर"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz içi"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备端"
+          }
+        }
+      }
+    },
+    "Cihaz içi %lld dk · Bulut %lld dk": {
+      "comment": "Kota halkasinin altindaki ozet satiri. Halka yalnizca ETKIN havuzu gosteriyor; bu satir olmasa kullanici oteki havuzda dakikasi oldugunu ancak modu degistirerek anlardi.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "على الجهاز %lld د · السحابة %lld د"
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডিভাইসে %lld মিন · ক্লাউড %lld মিন"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On-device %lld min · Cloud %lld min"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el dispositivo %lld min · Nube %lld min"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sur l'appareil %lld min · Cloud %lld min"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिवाइस पर %lld मिनट · क्लाउड %lld मिनट"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz içi %lld dk · Bulut %lld dk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备端 %lld 分钟 · 云端 %lld 分钟"
+          }
+        }
+      }
+    },
+    "Cihaz içi dakikan yetmiyor. Gerekli: %@, kalan: %@.": {
+      "comment": "AuraError.insufficientQuota — cihaz ici havuz.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دقائق المعالجة على الجهاز غير كافية. المطلوب: %@، المتبقي: %@."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ডিভাইসে মিনিট যথেষ্ট নয়। প্রয়োজন: %@, বাকি: %@।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not enough on-device minutes. Required: %@, remaining: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tienes suficientes minutos en el dispositivo. Necesario: %@, restante: %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Minutes sur l'appareil insuffisantes. Requis : %@, restant : %@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डिवाइस पर मिनट कम हैं। ज़रूरी: %@, बचे: %@।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz içi dakikan yetmiyor. Gerekli: %@, kalan: %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设备端分钟数不足。需要：%@，剩余：%@。"
           }
         }
       }
@@ -6747,6 +6789,60 @@
           "stringUnit": {
             "state": "translated",
             "value": "设备端 · Zero-Cloud"
+          }
+        }
+      }
+    },
+    "Cihaz içinde %@, bulutta %@ işleme hakkın var.": {
+      "comment": "Paywall aciklamasi — kota varken. Ilk %@ cihaz ici, ikincisi bulut.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لديك %@ على الجهاز و%@ في السحابة."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "আপনার ডিভাইসে %@ এবং ক্লাউডে %@ বাকি আছে।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You have %@ on-device and %@ in the cloud."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tienes %@ en el dispositivo y %@ en la nube."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il vous reste %@ sur l'appareil et %@ dans le cloud."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके पास डिवाइस पर %@ और क्लाउड में %@ बचा है।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cihaz içinde %@, bulutta %@ işleme hakkın var."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你在设备端还有 %@，在云端还有 %@。"
           }
         }
       }
@@ -10311,60 +10407,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已安装"
-          }
-        }
-      }
-    },
-    "Kalan %@ işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer.": {
-      "comment": "Baslik altindaki aciklama — kota varken",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "لديك %@ متبقية من رصيد المعالجة. في وضع Zero-Cloud لا يغادر الصوت جهازك أبدًا، لكن الدقائق تُخصم من الرصيد نفسه."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আপনার %@ প্রসেসিং কোটা বাকি আছে। Zero-Cloud মোডে অডিও ডিভাইস থেকে বের হয় না, তবে মিনিট একই পুল থেকে কাটা হয়।"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You have %@ of processing allowance left. In Zero-Cloud mode audio never leaves your device, but minutes come from the same pool."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Te quedan %@ de procesamiento. En el modo Zero-Cloud el audio no sale nunca del dispositivo, pero los minutos se descuentan de la misma bolsa."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il vous reste %@ de traitement. En mode Zero-Cloud, l’audio ne quitte jamais l’appareil, mais les minutes sont décomptées de la même réserve."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपके पास अभी %@ प्रोसेसिंग बाकी है। Zero-Cloud मोड में ऑडियो डिवाइस से बाहर नहीं जाता, लेकिन मिनट उसी पूल से कटते हैं।"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kalan %@ işleme hakkın var. Zero-Cloud modunda ses cihazdan hiç çıkmaz, ama dakika aynı havuzdan düşer."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还剩 %@ 的处理配额。Zero-Cloud 模式下音频完全不会离开设备，但分钟数仍从同一个池中扣除。"
           }
         }
       }
@@ -19069,60 +19111,6 @@
         }
       }
     },
-    "Yetersiz dakika bakiyesi. Gerekli: %@, kalan: %@.": {
-      "comment": "String(localized:) ile sarili. AuraFormatSeconds.minutes imzasi dogrulandi (satir 258: `static func minutes(_ seconds: Double) -> String`) - donus tipi String, dolayisiyla iki belirtec de %@. Cevirilerde sira degisecekse %1$@/%2$@ kullanilmali.",
-      "extractionState": "manual",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "رصيد الدقائق غير كافٍ. المطلوب: %@، المتبقي: %@."
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মিনিট ব্যালেন্স যথেষ্ট নয়। প্রয়োজন: %@, বাকি: %@।"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not enough minutes. Required: %@, remaining: %@."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saldo de minutos insuficiente. Necesario: %@, restante: %@."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Solde de minutes insuffisant. Requis : %@, restant : %@."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मिनट बैलेंस काफ़ी नहीं है। ज़रूरी: %1$@, बाकी: %2$@।"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yetersiz dakika bakiyesi. Gerekli: %@, kalan: %@."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分钟余额不足。需要：%@，剩余：%@。"
-          }
-        }
-      }
-    },
     "Yok Say": {
       "comment": "Bildirim üzerindeki yok sayma düğmesi",
       "extractionState": "manual",
@@ -19663,56 +19651,56 @@
         }
       }
     },
-    "Zero-Cloud modu — ses cihazdan hiç çıkmaz": {
-      "comment": "Ucretsiz plan ozellik satiri (Zero-Cloud) | Pro plan ozellik satiri (Zero-Cloud)",
+    "Zero-Cloud — ses ve metin cihazdan hiç çıkmaz": {
+      "comment": "Cihaz ici plan satirinin ikinci satiri. 'Zero-Cloud' urun adi, cevrilmiyor.",
       "extractionState": "manual",
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "وضع Zero-Cloud — لا يغادر الصوت جهازك أبدًا"
+            "value": "Zero-Cloud — الصوت والنص لا يغادران جهازك أبدًا"
           }
         },
         "bn": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zero-Cloud মোড — অডিও ডিভাইস থেকে একেবারেই বের হয় না"
+            "value": "Zero-Cloud — অডিও ও টেক্সট ডিভাইস থেকে বের হয় না"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zero-Cloud mode — audio never leaves your device"
+            "value": "Zero-Cloud — audio and text never leave your device"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Modo Zero-Cloud — el audio no sale nunca del dispositivo"
+            "value": "Zero-Cloud: el audio y el texto nunca salen del dispositivo"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mode Zero-Cloud — l’audio ne quitte jamais l’appareil"
+            "value": "Zero-Cloud — l'audio et le texte ne quittent jamais l'appareil"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zero-Cloud मोड — ऑडियो डिवाइस से बाहर नहीं जाता"
+            "value": "Zero-Cloud — ऑडियो और टेक्स्ट डिवाइस से बाहर नहीं जाते"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zero-Cloud modu — ses cihazdan hiç çıkmaz"
+            "value": "Zero-Cloud — ses ve metin cihazdan hiç çıkmaz"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zero-Cloud 模式 — 音频完全不会离开设备"
+            "value": "Zero-Cloud — 音频和文字永不离开设备"
           }
         }
       }
@@ -21117,6 +21105,114 @@
           "stringUnit": {
             "state": "translated",
             "value": "允许"
+          }
+        }
+      }
+    },
+    "İki havuzun da bu ayki dakikası bitti. Dakikaların %@ yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin.": {
+      "comment": "Paywall — iki havuz da bos, yenileme tarihi biliniyor. %@ tarih ekiyle birlikte geliyor.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نفدت دقائق الرصيدين هذا الشهر. سيتم تجديدهما %@؛ ويمكنك الترقية إلى Pro إن لم ترغب في الانتظار."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "এই মাসে দুটি পুলেরই মিনিট শেষ। এগুলো %@ নবায়ন হবে; অপেক্ষা করতে না চাইলে Pro নিন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both pools are out of minutes this month. They renew %@; upgrade to Pro if you'd rather not wait."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambos grupos se han quedado sin minutos este mes. Se renuevan %@; pasa a Pro si prefieres no esperar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les deux réserves sont épuisées ce mois-ci. Elles se renouvellent %@ ; passez à Pro si vous ne voulez pas attendre."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस महीने दोनों पूल के मिनट खत्म हो गए। ये %@ रिन्यू होंगे; इंतज़ार नहीं करना चाहते तो Pro लें।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İki havuzun da bu ayki dakikası bitti. Dakikaların %@ yenilenecek; beklemek istemiyorsan Pro'ya geçebilirsin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月两个额度都已用完，将于%@刷新；不想等待可以升级 Pro。"
+          }
+        }
+      }
+    },
+    "İki havuzun da bu ayki dakikası bitti. Pro'ya geçerek aylık dakikanı artırabilirsin.": {
+      "comment": "Paywall — iki havuz da bos, yenileme tarihi bilinmiyor.",
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نفدت دقائق الرصيدين هذا الشهر. رقِّ اشتراكك إلى Pro لزيادة رصيدك الشهري."
+          }
+        },
+        "bn": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "এই মাসে দুটি পুলেরই মিনিট শেষ। মাসিক কোটা বাড়াতে Pro নিন।"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both pools are out of minutes this month. Upgrade to Pro to raise your monthly allowance."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ambos grupos se han quedado sin minutos este mes. Pasa a Pro para aumentar tu cuota mensual."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les deux réserves sont épuisées ce mois-ci. Passez à Pro pour augmenter votre quota mensuel."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस महीने दोनों पूल के मिनट खत्म हो गए। मासिक कोटा बढ़ाने के लिए Pro लें।"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İki havuzun da bu ayki dakikası bitti. Pro'ya geçerek aylık dakikanı artırabilirsin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本月两个额度都已用完。升级 Pro 可提高每月额度。"
           }
         }
       }
